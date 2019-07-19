@@ -3479,6 +3479,8 @@ contains
              write(fates_log(),*)'bmx = ', bmx
              write(fates_log(),*)'cmx = ', cmx
              write(fates_log(),*)'rmx = ', rmx
+             write(fates_log(),*)'qtop = ', qtop
+             write(fates_log(),*)'q_bound = ', q_bound
              call endrun(msg=errMsg(sourcefile, __LINE__))
 	  end if
 	  
