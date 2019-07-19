@@ -2498,7 +2498,13 @@ contains
 
               qflx_tran_veg_indiv          = qflx_tran_veg_patch_coh * cpatch%area* &
 	                                     min(1.0_r8,cpatch%total_canopy_area/cpatch%area)/ccohort%n !AREA / ccohort%n
-              
+               
+               write(fates_log(),*)'LOOK HERE'
+               write(fates_log(),*)'qflx_tran_veg_patch_coh = ', qflx_tran_veg_patch_coh
+               write(fates_log(),*)'cpatch%area = ', cpatch%area
+               write(fates_log(),*)'cpatch%total_canopy_area = ', cpatch%total_canopy_area
+               write(fates_log(),*)'cpatch%ccohort%n = ', ccohort%n
+
               ! [mm H2O/cohort/s] = [mm H2O / patch / s] / [cohort/patch]
 !!              qflx_tran_veg_patch_coh      = qflx_trans_patch_vol * qflx_rel_tran_coh
 
