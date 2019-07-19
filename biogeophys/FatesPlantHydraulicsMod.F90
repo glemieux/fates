@@ -3474,6 +3474,11 @@ contains
             !  write(fates_log(),*)'EDPlantHydraulics returns nan at k = ', char(index_nan)
              write(fates_log(),*)'EDPlantHydraulics returns nan at k = ', index_nan
              write(fates_log(),*)'EDPlantHydraulics using n_hypool_tot = ', n_hypool_tot
+             write(fates_log(),*)'dth_node_inner = ', dth_node_inner
+             write(fates_log(),*)'amx = ', amx
+             write(fates_log(),*)'bmx = ', bmx
+             write(fates_log(),*)'cmx = ', cmx
+             write(fates_log(),*)'rmx = ', rmx
              call endrun(msg=errMsg(sourcefile, __LINE__))
 	  end if
 	  
