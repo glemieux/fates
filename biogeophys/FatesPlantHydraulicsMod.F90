@@ -3471,7 +3471,9 @@ contains
 	     end if
 	  end do
           if(catch_nan) then
-             write(fates_log(),*)'EDPlantHydraulics returns nan at k = ', char(index_nan)
+            !  write(fates_log(),*)'EDPlantHydraulics returns nan at k = ', char(index_nan)
+             write(fates_log(),*)'EDPlantHydraulics returns nan at k = ', index_nan
+             write(fates_log(),*)'EDPlantHydraulics using n_hypool_tot = ', n_hypool_tot
              call endrun(msg=errMsg(sourcefile, __LINE__))
 	  end if
 	  
