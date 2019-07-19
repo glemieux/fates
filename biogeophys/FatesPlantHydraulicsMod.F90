@@ -2500,6 +2500,10 @@ contains
 	                                     min(1.0_r8,cpatch%total_canopy_area/cpatch%area)/ccohort%n !AREA / ccohort%n
                
                write(fates_log(),*)'LOOK HERE'
+               write(fates_log(),*)'ccohort%g_sb_laweight = ', ccohort%g_sb_laweight
+               write(fates_log(),*)'gscan_patch = ', gscan_patch
+               write(fates_log(),*)'bc_in(s)%qflx_transp_pa(ifp) = ', bc_in(s)%qflx_transp_pa(ifp)
+               write(fates_log(),*)'qflx_tran_veg_patch_coh = ', qflx_tran_veg_patch_coh
                write(fates_log(),*)'qflx_tran_veg_patch_coh = ', qflx_tran_veg_patch_coh
                write(fates_log(),*)'cpatch%area = ', cpatch%area
                write(fates_log(),*)'cpatch%total_canopy_area = ', cpatch%total_canopy_area
