@@ -732,6 +732,8 @@ contains
                
                check_elai = check_elai / currentPatch%total_canopy_area
                elai       = calc_areaindex(currentPatch,'elai')
+               write(fates_log(),*) 'check_elai = ', check_elai
+               write(fates_log(),*) 'elai = ', elai
 
                ! Normalize canopy total conductance by the effective LAI
                ! The value here was integrated over each cohort x leaf layer
@@ -1273,6 +1275,7 @@ contains
        ! area this cohort contributes, give the cohort's portion of the leaf
        ! area in this layer
        cohort_layer_eleaf_area = elai_llz(il) * c_area
+
        
        ! Increment the cohort's total effective leaf area [m2]
        cohort_eleaf_area       = cohort_eleaf_area + cohort_layer_eleaf_area
