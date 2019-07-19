@@ -653,7 +653,7 @@ contains
     !               burned_litter * new_patch%area !kG/site/day
     ! -----------------------------------------------------------------------------------
     
-    if ( error_frac > 10e-6_r8 ) then
+    if ( error_frac > 10e-3_r8 ) then
        write(fates_log(),*) 'carbon balance error detected'
        write(fates_log(),*) 'error fraction relative to biomass stock:',error_frac
        write(fates_log(),*) 'call index: ',call_index
