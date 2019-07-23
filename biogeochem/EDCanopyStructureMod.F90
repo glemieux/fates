@@ -1554,6 +1554,13 @@ contains
 
           currentCohort%lai =  currentCohort%treelai *currentCohort%c_area/currentPatch%total_canopy_area 
           currentCohort%sai =  currentCohort%treesai *currentCohort%c_area/currentPatch%total_canopy_area  
+         
+          if (debug) then
+            write(fates_log(), *) 'DEBUG: checking lai calculation'
+            write(fates_log(), *) 'currentCohort%treelai = ', currentCohort%treelai
+            write(fates_log(), *) 'currentCohort%c_area = ', currentCohort%c_area
+            write(fates_log(), *) 'currentCohort%total_canopy_area = ', currentCohort%total_canopy_area
+          end if
 
           ! Number of actual vegetation layers in this cohort's crown
           currentCohort%nv =  ceiling((currentCohort%treelai+currentCohort%treesai)/dinc_ed)  
