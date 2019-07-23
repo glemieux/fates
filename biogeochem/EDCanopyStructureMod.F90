@@ -1681,6 +1681,11 @@ contains
                 
                 if( (currentCohort%treelai+currentCohort%treesai) > 0._r8)then    
                    fleaf = currentCohort%lai / (currentCohort%lai + currentCohort%sai) 
+                   if (debug) then
+                     write(fates_log(), *) 'DEBUG: currentCohort%treelai+currentCohort%treesai) > 0'
+                     write(fates_log(), *) 'currentCohort%lai = ', currentCohort%lai
+                     write(fates_log(), *) 'currentCohort%sai = ', currentCohort%sai
+                   end if
                 else
                    fleaf = 0._r8
                    if (debug) then
