@@ -1779,7 +1779,7 @@ contains
                    if ( debug ) then
                      write(fates_log(), *) 'DEBUG: Non smooth leaf distribution'
                      write(fates_log(), *) 'elai_profile() =', currentPatch%elai_profile(1,ft,iv)
-                     write(fates_log(), *) 'remainder() =', cremainder
+                     write(fates_log(), *) 'remainder() =', remainder
                      write(fates_log(), *) 'fleaf() =', fleaf
                      write(fates_log(), *) 'fraction_exposed() =', fraction_exposed
                      write(fates_log(), *) 'total_canopy_area() =', total_canopy_area
