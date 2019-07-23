@@ -1286,7 +1286,15 @@ contains
        ! on total leaf area, and not really footprint area
        ! [m/s] * [m2 cohort's leaf layer]
        g_sb_laweight = g_sb_laweight + 1.0_r8/(rs_llz(il)+rb) * cohort_layer_eleaf_area
-       
+       if (debug) then
+         write(fates_log(),*) 'DEBUG: Checking g_sb_laweight'
+         write(fates_log(),*) 'g_sb_laweight = ', g_sb_laweight
+         write(fates_log(),*) 'cohort_layer_eleaf_area = ', cohort_layer_eleaf_area
+         write(fates_log(),*) 'rb = ', rb
+         write(fates_log(),*) 'il = ', il
+         write(fates_log(),*) 'rs_llz(il) = ', rs_llz(il)
+       end if
+
        ! GPP    [umolC/m2leaf/s] * [m2 leaf ] -> [umolC/s]   (This is cohort group sum)
        gpp = gpp + psn_llz(il) * cohort_layer_eleaf_area
        
