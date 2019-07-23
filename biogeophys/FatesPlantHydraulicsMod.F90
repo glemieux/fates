@@ -117,7 +117,7 @@ module FatesPlantHydraulicsMod
                                                           ! hydraulic properties and states be 
                                                           ! updated every day when trees grow or 
                                                           ! when recruitment happens?
-   logical,parameter :: debug = .false.                   !flag to report warning in hydro
+   logical,parameter :: debug = .true.                   !flag to report warning in hydro
 							  
 
    character(len=*), parameter, private :: sourcefile = &

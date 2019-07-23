@@ -63,7 +63,7 @@ module FATESPlantRespPhotosynthMod
    ! maximum stomatal resistance [s/m] (used across several procedures)
    real(r8),parameter :: rsmax0 =  2.e8_r8                    
    
-   logical   ::  debug = .false.
+   logical   ::  debug = .true.
 
 contains
   
@@ -732,9 +732,11 @@ contains
                
                check_elai = check_elai / currentPatch%total_canopy_area
                elai       = calc_areaindex(currentPatch,'elai')
-               write(fates_log(),*) 'check_elai = ', check_elai
-               write(fates_log(),*) 'elai = ', elai
-
+               if (debug) then
+                  write(fates_log(),*),'DEBUG: ELAI CHECK'
+                  write(fates_log(),*) 'check_elai = ', check_elai
+                  write(fates_log(),*) 'elai = ', elai
+               end if
                ! Normalize canopy total conductance by the effective LAI
                ! The value here was integrated over each cohort x leaf layer
                ! and was weighted by m2 of effective leaf area for each layer
