@@ -1300,6 +1300,8 @@ contains
          write(fates_log(),*) 'rb = ', rb
          write(fates_log(),*) 'il = ', il
          write(fates_log(),*) 'rs_llz(il) = ', rs_llz(il)
+         write(fates_log(),*) 'elai_llz(il) = ', elai_llz(il)
+         write(fates_log(),*) 'c_area = ', c_area
        end if
 
        ! GPP    [umolC/m2leaf/s] * [m2 leaf ] -> [umolC/s]   (This is cohort group sum)

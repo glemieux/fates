@@ -51,7 +51,7 @@ module EDCanopyStructureMod
   public :: canopy_summarization
   public :: update_hlm_dynamics
 
-  logical, parameter :: debug=.false.
+  logical, parameter :: debug=.true.
 
   character(len=*), parameter, private :: sourcefile = &
        __FILE__
@@ -1635,7 +1635,11 @@ contains
                 currentPatch%elai_profile(1,ft,iv) = currentPatch%tlai_profile(1,ft,iv) * fraction_exposed
                 currentPatch%esai_profile(1,ft,iv) = currentPatch%tsai_profile(1,ft,iv) * fraction_exposed
                 
-                if ( debug ) write(fates_log(), *) 'leaf_area_profile()', currentPatch%elai_profile(1,ft,iv)
+                if ( debug ) then
+                  write(fates_log(), *) 'elai_profile() =', currentPatch%elai_profile(1,ft,iv)
+                  write(fates_log(), *) 'tlai_profile() =', currentPatch%tsai_profile(1,ft,iv)
+                  write(fates_log(), *) 'fraction_exposed =', fraction_exposed
+                end if
                 
              enddo ! (iv) hite bins
              
