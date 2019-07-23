@@ -738,7 +738,7 @@ contains
                check_elai = check_elai / currentPatch%total_canopy_area
                elai       = calc_areaindex(currentPatch,'elai')
                if (debug) then
-                  write(fates_log(),*),'DEBUG: ELAI CHECK'1
+                  write(fates_log(),*),'DEBUG: ELAI CHECK'
                   write(fates_log(),*) 'check_elai = ', check_elai
                   write(fates_log(),*) 'elai = ', elai
                end if
