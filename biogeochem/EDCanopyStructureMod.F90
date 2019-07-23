@@ -1687,7 +1687,7 @@ contains
                      write(fates_log(), *) 'DEBUG: currentCohort%treelai+currentCohort%treesai) not gt 0'
                      write(fates_log(), *) 'currentCohort%treelai = ', currentCohort%treelai
                      write(fates_log(), *) 'currentCohort%treesai = ', currentCohort%treesai
-                   else if
+                   end if
                 endif
                 
                 ! XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
