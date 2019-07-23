@@ -1782,7 +1782,7 @@ contains
                      write(fates_log(), *) 'remainder() =', remainder
                      write(fates_log(), *) 'fleaf() =', fleaf
                      write(fates_log(), *) 'fraction_exposed() =', fraction_exposed
-                     write(fates_log(), *) 'total_canopy_area() =', total_canopy_area
+                     write(fates_log(), *) 'total_canopy_area() =', currentPatch%total_canopy_area
                    end if
 
                 end do
