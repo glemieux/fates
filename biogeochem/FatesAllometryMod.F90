@@ -126,6 +126,7 @@ module FatesAllometryMod
 
   logical         , parameter :: verbose_logging = .false.
   character(len=*), parameter :: sourcefile = __FILE__
+  logical, parameter :: debug=.true.
 
   
   ! The code will call the wrapper routine "set_root_fraction"
@@ -668,6 +669,10 @@ contains
                kn * slat * leafc_per_unitarea) + &
                (kn * canopy_lai_above)) / (-1.0_r8 * kn)
 
+         if (debug) then
+            write(fates_log(),*) 'DEBUG: leafc_per_unitarea <= leafc_slamax'
+         end if
+
           ! If leafc_per_unitarea becomes too large, tree_lai becomes an imaginary number 
           ! (because the tree_lai equation requires us to take the natural log of something >0)
           ! Thus, we include the following error message in case leafc_per_unitarea becomes too large.
@@ -694,6 +699,10 @@ contains
                (kn * canopy_lai_above)) / (-1.0_r8 * kn)) + &
                (leafc_per_unitarea - leafc_slamax) * sla_max
 
+            if (debug) then
+               write(fates_log(),*) 'DEBUG: leafc_per_unitarea > leafc_slamax'
+            end if
+
           ! if leafc_slamax becomes too large, tree_lai_exp becomes an imaginary number 
           ! (because the tree_lai equation requires us to take the natural log of something >0)
           ! Thus, we include the following error message in case leafc_slamax becomes too large.
@@ -707,6 +716,11 @@ contains
        end if ! (leafc_per_unitarea  > leafc_slamax)
     else
        tree_lai = 0.0_r8
+
+       if (debug) then
+         write(fates_log(),*) 'DEBUG: what is going on with leafc_per_unitarea or leafc_slamax?'
+      end if
+
     endif ! (leafc_per_unitarea > 0.0_r8)
 
     return
