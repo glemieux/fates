@@ -1683,6 +1683,11 @@ contains
                    fleaf = currentCohort%lai / (currentCohort%lai + currentCohort%sai) 
                 else
                    fleaf = 0._r8
+                   if (debug) then
+                     write(fates_log(), *) 'DEBUG: currentCohort%treelai+currentCohort%treesai) not gt 0'
+                     write(fates_log(), *) 'currentCohort%treelai = ', currentCohort%treelai
+                     write(fates_log(), *) 'currentCohort%treesai = ', currentCohort%treesai
+                   else if
                 endif
                 
                 ! XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
