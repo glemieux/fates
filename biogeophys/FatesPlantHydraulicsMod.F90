@@ -2480,7 +2480,7 @@ contains
               else if(gscan_patch == 0._r8) then
                  write(fates_log(),*) 'ERROR: Zero gscan_patch!  Will result in NaN due to divide by zero!'
                  write(fates_log(),*) 'ERROR: Check g_sb_laweight cohort variable'
-                 call endrun(msg=errMsg(sourcefile, __LINE__))
+                 !call endrun(msg=errMsg(sourcefile, __LINE__))
               end if
               ccohort => ccohort%shorter
            enddo !cohort
