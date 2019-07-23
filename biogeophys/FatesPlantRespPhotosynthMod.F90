@@ -584,6 +584,11 @@ contains
                         currentCohort%rdark = 0.0_r8 
                         currentCohort%g_sb_laweight = 0.0_r8 
                         currentCohort%ts_net_uptake(:) = 0.0_r8
+
+                        if (debug) then
+                           write(fates_log(),*) 'WARNING: currentPatch%canopy_mask(cl,ft) != 1 (cohort has no leaves)!'
+                           write(fates_log(),*) 'WARNING: g_sb_laweight will be set to zero!'
+                        end if
                         
                      end if  ! if(currentPatch%canopy_mask(cl,ft) == 1)then
                      
@@ -733,7 +738,7 @@ contains
                check_elai = check_elai / currentPatch%total_canopy_area
                elai       = calc_areaindex(currentPatch,'elai')
                if (debug) then
-                  write(fates_log(),*),'DEBUG: ELAI CHECK'
+                  write(fates_log(),*),'DEBUG: ELAI CHECK'1
                   write(fates_log(),*) 'check_elai = ', check_elai
                   write(fates_log(),*) 'elai = ', elai
                end if
