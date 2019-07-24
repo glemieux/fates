@@ -1414,6 +1414,8 @@ contains
           currentPatch => currentPatch%younger
        end do !patch loop
             
+       if (debug) write(fates_log(), *) 'DEBUG: Calling leaf_area_profile - subroutine canopy_summarization'
+
        call leaf_area_profile(sites(s),bc_in(s)%snow_depth_si,bc_in(s)%frac_sno_eff_si) 
        
     end do ! site loop
@@ -1542,6 +1544,8 @@ contains
           ! but since we go top down in terms of plant size, we should be okay
 
           leaf_c          = currentCohort%prt%GetState(leaf_organ,all_carbon_elements)
+          
+          if (debug) write(fates_log(), *) 'DEBUG: Calling tree_lai - subroutine leaf_area_profile'
 
           currentCohort%treelai = tree_lai(leaf_c, currentCohort%pft, currentCohort%c_area, &
                                            currentCohort%n, currentCohort%canopy_layer,               &
