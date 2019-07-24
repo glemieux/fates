@@ -719,6 +719,8 @@ contains
 
        if (debug) then
          write(fates_log(),*) 'DEBUG: what is going on with leafc_per_unitarea or leafc_slamax?'
+         write(fates_log(),*) 'leafc_per_unitarea = ', leafc_per_unitarea
+         write(fates_log(),*) 'leaf_c = ', leaf_c
       end if
 
     endif ! (leafc_per_unitarea > 0.0_r8)
