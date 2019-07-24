@@ -753,7 +753,15 @@ contains
 
     call bleaf(dbh,pft,canopy_trim,target_bleaf)
 
+    if (debug) write(fates_log(), *) 'DEBUG: Calling tree_lai - subroutine tree_sai'
+
     target_lai = tree_lai( target_bleaf, pft, c_area, nplant, cl, canopy_lai, vcmax25top) 
+
+    if (debug) then
+      write(fates_log(), *) 'DEBUG: Called tree_lai - subroutine tree_sai'
+      write(fates_log(), *) 'DEBUG: target_lai =', target_lai
+    end if
+
 
     tree_sai   =  EDPftvarcon_inst%allom_sai_scaler(pft) * target_lai
 
