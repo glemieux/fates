@@ -118,6 +118,8 @@ module FatesHistoryInterfaceMod
   
   ! Indices to 1D Patch variables
 
+  logical, parameter :: debug = .true.
+
   integer :: ih_trimming_pa
   integer :: ih_area_plant_pa
   integer :: ih_area_treespread_pa
@@ -1647,6 +1649,10 @@ end subroutine flush_hvars
 
       ! If we don't have dynamics turned on, we just abort these diagnostics
       if (hlm_use_ed_st3.eq.itrue) return
+
+      if (debug .eq. .true.) then
+           write(fates_log(),*) 'hlm_model_day:', hlm_model_day
+      end if
 
       model_day_int = nint(hlm_model_day)
 
