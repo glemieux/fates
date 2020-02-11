@@ -116,7 +116,7 @@ module EDPhysiologyMod
   public :: PreDisturbanceIntegrateLitter  
   public :: SeedIn
   
-  logical, parameter :: debug  = .false. ! local debug flag
+  logical, parameter :: debug  = .true. ! local debug flag
   character(len=*), parameter, private :: sourcefile = &
         __FILE__
 
@@ -503,7 +503,19 @@ contains
                    currentCohort%leaf_cost = currentCohort%leaf_cost * &
                          (EDPftvarcon_inst%grperc(ipft) + 1._r8)
                 endif
+
+                if ( debug ) then
+                  write(fates_log(),*) 'pre-trim logic variables:'
+                  write(fates_log(),*) 'sla_max', sla_max
+                  write(fates_log(),*) 'sla_levleaf', sla_levleaf
+                  write(fates_log(),*) 'leaf_cost', currentCohort%leaf_cost
+                  write(fates_log(),*) 'year_net_uptake(z)', currentCohort%year_net_uptake(z), z
+                endif
+
+                ! If the net uptake is less than leaf cost and canopy trim is greater than the trim limit
+                ! trim the leaves.  
                 if (currentCohort%year_net_uptake(z) < currentCohort%leaf_cost)then
+
                    if (currentCohort%canopy_trim > EDPftvarcon_inst%trim_limit(ipft))then
 
                       if ( debug ) then
@@ -513,20 +525,26 @@ contains
 
                       ! keep trimming until none of the canopy is in negative carbon balance.              
                       if (currentCohort%hite > EDPftvarcon_inst%hgt_min(ipft))then
+                         
                          currentCohort%canopy_trim = currentCohort%canopy_trim - &
                                EDPftvarcon_inst%trim_inc(ipft)
+                              
                          if (EDPftvarcon_inst%evergreen(ipft) /= 1)then
                             currentCohort%laimemory = currentCohort%laimemory * &
                                   (1.0_r8 - EDPftvarcon_inst%trim_inc(ipft)) 
                          endif
+
                          trimmed = .true.
+                         
                       endif
                    endif
+
                 endif
              endif !leaf activity? 
           enddo !z
 
           currentCohort%year_net_uptake(:) = 999.0_r8
+
           if ( (.not.trimmed) .and.currentCohort%canopy_trim < 1.0_r8)then
              currentCohort%canopy_trim = currentCohort%canopy_trim + EDPftvarcon_inst%trim_inc(ipft)
           endif 
