@@ -512,34 +512,38 @@ contains
                   write(fates_log(),*) 'year_net_uptake(z)', currentCohort%year_net_uptake(z), z
                 endif
 
-                ! If the net uptake is less than leaf cost and canopy trim is greater than the trim limit
-                ! trim the leaves.  
-                if (currentCohort%year_net_uptake(z) < currentCohort%leaf_cost)then
+               ! Adjust loop to match tech note statement about last two layers
+               if (z .eq. currentCohort%nv .or. z .eq. currentCohort%nv-1) then                 
+                  ! If the net uptake is less than leaf cost and canopy trim is greater than the trim limit
+                  ! trim the leaves.  
+                  if (currentCohort%year_net_uptake(z) < currentCohort%leaf_cost)then
 
-                   if (currentCohort%canopy_trim > EDPftvarcon_inst%trim_limit(ipft))then
+                     if (currentCohort%canopy_trim > EDPftvarcon_inst%trim_limit(ipft))then
 
-                      if ( debug ) then
-                         write(fates_log(),*) 'trimming leaves', &
-                               currentCohort%canopy_trim,currentCohort%leaf_cost
-                      endif
+                        if ( debug ) then
+                           write(fates_log(),*) 'trimming leaves', &
+                                 currentCohort%canopy_trim,currentCohort%leaf_cost
+                        endif
 
-                      ! keep trimming until none of the canopy is in negative carbon balance.              
-                      if (currentCohort%hite > EDPftvarcon_inst%hgt_min(ipft))then
-                         
-                         currentCohort%canopy_trim = currentCohort%canopy_trim - &
-                               EDPftvarcon_inst%trim_inc(ipft)
-                              
-                         if (EDPftvarcon_inst%evergreen(ipft) /= 1)then
-                            currentCohort%laimemory = currentCohort%laimemory * &
-                                  (1.0_r8 - EDPftvarcon_inst%trim_inc(ipft)) 
-                         endif
+                        ! keep trimming until none of the canopy is in negative carbon balance.              
+                        if (currentCohort%hite > EDPftvarcon_inst%hgt_min(ipft))then
+                           
+                           currentCohort%canopy_trim = currentCohort%canopy_trim - &
+                                 EDPftvarcon_inst%trim_inc(ipft)
+                                 
+                           if (EDPftvarcon_inst%evergreen(ipft) /= 1)then
+                              currentCohort%laimemory = currentCohort%laimemory * &
+                                    (1.0_r8 - EDPftvarcon_inst%trim_inc(ipft)) 
+                           endif
 
-                         trimmed = .true.
-                         
-                      endif
-                   endif
+                           trimmed = .true.
+                           
+                        endif
+                     endif
 
-                endif
+                  endif ! leaf cost
+               endif ! last two layers
+
              endif !leaf activity? 
           enddo !z
 
