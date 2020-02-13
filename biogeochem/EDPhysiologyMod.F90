@@ -456,7 +456,7 @@ contains
          ! Calcuate the 'optimum' cumulative_lai to use for calculating the leaf cost
          cnv = currentCohort%nv 
          lai_nu_slope = (cumulative_lai(cnv) - cumulative_lai(cnv-1)) / (year_net_uptake(cnv) - year_net_uptake(cnv-1))
-         opt_cumulative_lai = lai_nu_slope * year_net_uptake(cnv) + cumulative_lai(cnv) 
+         opt_cumulative_lai = -lai_nu_slope * year_net_uptake(cnv) + cumulative_lai(cnv) 
                    
          ! Calculate sla_levleaf following the sla profile with overlying leaf area
          ! Scale for leaf nitrogen profile
