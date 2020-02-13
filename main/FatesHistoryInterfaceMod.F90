@@ -474,7 +474,7 @@ module FatesHistoryInterfaceMod
   integer :: ih_fabd_sha_si_cnlf
   integer :: ih_fabi_sun_si_cnlf
   integer :: ih_fabi_sha_si_cnlf
-  integer :: lh_leaf_cost_si_cnlf
+  integer :: ih_leaf_cost_si_cnlf
   integer :: ih_ts_net_uptake_si_cnlf
   integer :: ih_crownarea_si_cnlf
   integer :: ih_parprof_dir_si_cnlf
@@ -3091,7 +3091,7 @@ end subroutine flush_hvars
                do ileaf=1,ccohort%nv
                   cnlf_indx = ileaf + (ican-1) * nlevleaf
                   hio_leaf_cost_si_cnlf(io_si, cnlf_indx) = hio_leaf_cost_si_cnlf(io_si, cnlf_indx) + &
-                        ccohort%leaf_cost(ileaf) * g_per_kg * ccohort$c_area / AREA
+                        ccohort%leaf_cost(ileaf) * g_per_kg * per_dt_tstep * ccohort%c_area / AREA
                   hio_ts_net_uptake_si_cnlf(io_si, cnlf_indx) = hio_ts_net_uptake_si_cnlf(io_si, cnlf_indx) + &
                        ccohort%ts_net_uptake(ileaf) * g_per_kg * per_dt_tstep * ccohort%c_area / AREA
                end do

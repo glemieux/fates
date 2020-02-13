@@ -391,7 +391,7 @@ contains
     real(r8) :: lai_layers_above ! the LAI in the leaf layers, within the current canopy, 
                                  ! above the leaf layer of interest
     real(r8) :: lai_current      ! the LAI in the current leaf layer
-    real(r8) :: cumulative_lai   ! the cumulative LAI, top down, to the leaf layer of interest
+    real(r8) :: cumulative_lai(:)   ! the cumulative LAI, top down, to the leaf layer of interest
 
     !----------------------------------------------------------------------
 
@@ -439,10 +439,8 @@ contains
           ! PFT-level maximum SLA value, even if under a thick canopy (same units as slatop)
           sla_max = EDPftvarcon_inst%slamax(ipft)
 
-          !Leaf cost vs netuptake for each leaf layer. 
+          ! Calculate the cumulative total vegetation area index (no snow occlusion, stems and leaves) for each layer
           do z = 1, currentCohort%nv
-
-             ! Calculate the cumulative total vegetation area index (no snow occlusion, stems and leaves)
 
              leaf_inc    = dinc_ed * &
                    currentCohort%treelai/(currentCohort%treelai+currentCohort%treesai)
@@ -451,69 +449,77 @@ contains
              lai_canopy_above  = sum(currentPatch%canopy_layer_tlai(1:cl-1)) 
              lai_layers_above  = leaf_inc * (z-1)
              lai_current       = min(leaf_inc, currentCohort%treelai - lai_layers_above)
-             cumulative_lai    = lai_canopy_above + lai_layers_above + 0.5*lai_current
-             
-             if (currentCohort%year_net_uptake(z) /= 999._r8)then !there was activity this year in this leaf layer.
-             
+             cumulative_lai(z)    = lai_canopy_above + lai_layers_above + 0.5*lai_current
+          
+         enddo 
+
+         ! Calcuate the 'optimum' cumulative_lai to use for calculating the leaf cost
+         cnv = currentCohort%nv 
+         lai_nu_slope = (cumulative_lai(cnv) - cumulative_lai(cnv-1)) / (year_net_uptake(cnv) - year_net_uptake(cnv-1))
+         opt_cumulative_lai = lai_nu_slope * year_net_uptake(cnv) + cumulative_lai(cnv) 
                    
-                ! Calculate sla_levleaf following the sla profile with overlying leaf area
-                ! Scale for leaf nitrogen profile
-                kn = decay_coeff_kn(ipft,currentCohort%vcmax25top)
-                ! Nscaler value at leaf level z
-                nscaler_levleaf = exp(-kn * cumulative_lai)
-                ! Sla value at leaf level z after nitrogen profile scaling (m2/gC)
-                sla_levleaf = EDPftvarcon_inst%slatop(ipft)/nscaler_levleaf
+         ! Calculate sla_levleaf following the sla profile with overlying leaf area
+         ! Scale for leaf nitrogen profile
+         kn = decay_coeff_kn(ipft,currentCohort%vcmax25top)
+         ! Nscaler value at leaf level z
+         nscaler_levleaf = exp(-kn * opt_cumulative_lai)
+         ! Sla value at leaf level z after nitrogen profile scaling (m2/gC)
+         sla_levleaf = EDPftvarcon_inst%slatop(ipft)/nscaler_levleaf
 
-                if(sla_levleaf > sla_max)then
-                   sla_levleaf = sla_max
-                end if
-                   
-                !Leaf Cost kgC/m2/year-1
-                !decidous costs. 
-                if (EDPftvarcon_inst%season_decid(ipft) ==  itrue .or. &
-                     EDPftvarcon_inst%stress_decid(ipft) == itrue )then 
+         if(sla_levleaf > sla_max)then
+            sla_levleaf = sla_max
+         end if
+            
+         !Leaf cost vs netuptake for each leaf layer.  Leaf cost is not level dependent currently.  Should be refactored
+         do z = 1, currentCohort%nv
+            !there was activity this year in this leaf layer.
+            if (currentCohort%year_net_uptake(z) /= 999._r8)then 
 
-                   ! Leaf cost at leaf level z accounting for sla profile (kgC/m2)
-                   currentCohort%leaf_cost(z) =  1._r8/(sla_levleaf*1000.0_r8)
+               !Leaf Cost kgC/m2/year-1
+               !decidous costs. 
+               if (EDPftvarcon_inst%season_decid(ipft) ==  itrue .or. &
+                  EDPftvarcon_inst%stress_decid(ipft) == itrue )then 
 
-                   if ( int(EDPftvarcon_inst%allom_fmode(ipft)) .eq. 1 ) then
-                      ! if using trimmed leaf for fine root biomass allometry, add the cost of the root increment
-                      ! to the leaf increment; otherwise do not.
-                      currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) + &
-                           1.0_r8/(sla_levleaf*1000.0_r8) * &
-                           bfr_per_bleaf / EDPftvarcon_inst%root_long(ipft)
-                   endif
+                  ! Leaf cost at leaf level z accounting for sla profile (kgC/m2)
+                  currentCohort%leaf_cost(z) =  1._r8/(sla_levleaf*1000.0_r8)
 
-                   currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) * &
-                         (EDPftvarcon_inst%grperc(ipft) + 1._r8)
-                else !evergreen costs
+                  if ( int(EDPftvarcon_inst%allom_fmode(ipft)) .eq. 1 ) then
+                     ! if using trimmed leaf for fine root biomass allometry, add the cost of the root increment
+                     ! to the leaf increment; otherwise do not.
+                     currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) + &
+                        1.0_r8/(sla_levleaf*1000.0_r8) * &
+                        bfr_per_bleaf / EDPftvarcon_inst%root_long(ipft)
+                  endif
 
-                   ! Leaf cost at leaf level z accounting for sla profile
-                   currentCohort%leaf_cost(z) = 1.0_r8/(sla_levleaf* &
-                        sum(EDPftvarcon_inst%leaf_long(ipft,:))*1000.0_r8) !convert from sla in m2g-1 to m2kg-1
-                   
-                   
-                   if ( int(EDPftvarcon_inst%allom_fmode(ipft)) .eq. 1 ) then
-                      ! if using trimmed leaf for fine root biomass allometry, add the cost of the root increment
-                      ! to the leaf increment; otherwise do not.
-                      currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) + &
-                           1.0_r8/(sla_levleaf*1000.0_r8) * &
-                           bfr_per_bleaf / EDPftvarcon_inst%root_long(ipft)
-                   endif
-                   currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) * &
-                         (EDPftvarcon_inst%grperc(ipft) + 1._r8)
-                endif
+                  currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) * &
+                        (EDPftvarcon_inst%grperc(ipft) + 1._r8)
+               else !evergreen costs
 
-                if ( debug ) then
-                  write(fates_log(),*) 'pre-trim logic variables:'
-                  write(fates_log(),*) 'sla_max', sla_max
-                  write(fates_log(),*) 'sla_levleaf', sla_levleaf
-                  write(fates_log(),*) 'leaf_cost', currentCohort%leaf_cost
-                  write(fates_log(),*) 'year_net_uptake(z)', currentCohort%year_net_uptake(z), z
-                endif
+                  ! Leaf cost at leaf level z accounting for sla profile
+                  currentCohort%leaf_cost(z) = 1.0_r8/(sla_levleaf* &
+                     sum(EDPftvarcon_inst%leaf_long(ipft,:))*1000.0_r8) !convert from sla in m2g-1 to m2kg-1
+                  
+                  
+                  if ( int(EDPftvarcon_inst%allom_fmode(ipft)) .eq. 1 ) then
+                     ! if using trimmed leaf for fine root biomass allometry, add the cost of the root increment
+                     ! to the leaf increment; otherwise do not.
+                     currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) + &
+                        1.0_r8/(sla_levleaf*1000.0_r8) * &
+                        bfr_per_bleaf / EDPftvarcon_inst%root_long(ipft)
+                  endif
+                  currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) * &
+                        (EDPftvarcon_inst%grperc(ipft) + 1._r8)
+               endif
 
-                ! If the net uptake is less than leaf cost and canopy trim is greater than the trim limit
-                ! trim the leaves.  
+               if ( debug ) then
+               write(fates_log(),*) 'pre-trim logic variables:'
+               write(fates_log(),*) 'sla_max', sla_max
+               write(fates_log(),*) 'sla_levleaf', sla_levleaf
+               write(fates_log(),*) 'leaf_cost', currentCohort%leaf_cost
+               write(fates_log(),*) 'year_net_uptake(z)', currentCohort%year_net_uptake(z), z
+               endif
+
+                ! If the net uptake is less than leaf cost and canopy trim is greater than the trim limit trim the cohort
                 if (currentCohort%year_net_uptake(z) < currentCohort%leaf_cost(z))then
 
                    if (currentCohort%canopy_trim > EDPftvarcon_inst%trim_limit(ipft))then
