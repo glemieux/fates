@@ -474,33 +474,33 @@ contains
                      EDPftvarcon_inst%stress_decid(ipft) == itrue )then 
 
                    ! Leaf cost at leaf level z accounting for sla profile (kgC/m2)
-                   currentCohort%leaf_cost =  1._r8/(sla_levleaf*1000.0_r8)
+                   currentCohort%leaf_cost(z) =  1._r8/(sla_levleaf*1000.0_r8)
 
                    if ( int(EDPftvarcon_inst%allom_fmode(ipft)) .eq. 1 ) then
                       ! if using trimmed leaf for fine root biomass allometry, add the cost of the root increment
                       ! to the leaf increment; otherwise do not.
-                      currentCohort%leaf_cost = currentCohort%leaf_cost + &
+                      currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) + &
                            1.0_r8/(sla_levleaf*1000.0_r8) * &
                            bfr_per_bleaf / EDPftvarcon_inst%root_long(ipft)
                    endif
 
-                   currentCohort%leaf_cost = currentCohort%leaf_cost * &
+                   currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) * &
                          (EDPftvarcon_inst%grperc(ipft) + 1._r8)
                 else !evergreen costs
 
                    ! Leaf cost at leaf level z accounting for sla profile
-                   currentCohort%leaf_cost = 1.0_r8/(sla_levleaf* &
+                   currentCohort%leaf_cost(z) = 1.0_r8/(sla_levleaf* &
                         sum(EDPftvarcon_inst%leaf_long(ipft,:))*1000.0_r8) !convert from sla in m2g-1 to m2kg-1
                    
                    
                    if ( int(EDPftvarcon_inst%allom_fmode(ipft)) .eq. 1 ) then
                       ! if using trimmed leaf for fine root biomass allometry, add the cost of the root increment
                       ! to the leaf increment; otherwise do not.
-                      currentCohort%leaf_cost = currentCohort%leaf_cost + &
+                      currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) + &
                            1.0_r8/(sla_levleaf*1000.0_r8) * &
                            bfr_per_bleaf / EDPftvarcon_inst%root_long(ipft)
                    endif
-                   currentCohort%leaf_cost = currentCohort%leaf_cost * &
+                   currentCohort%leaf_cost(z) = currentCohort%leaf_cost(z) * &
                          (EDPftvarcon_inst%grperc(ipft) + 1._r8)
                 endif
 
@@ -514,13 +514,13 @@ contains
 
                 ! If the net uptake is less than leaf cost and canopy trim is greater than the trim limit
                 ! trim the leaves.  
-                if (currentCohort%year_net_uptake(z) < currentCohort%leaf_cost)then
+                if (currentCohort%year_net_uptake(z) < currentCohort%leaf_cost(z))then
 
                    if (currentCohort%canopy_trim > EDPftvarcon_inst%trim_limit(ipft))then
 
                       if ( debug ) then
                          write(fates_log(),*) 'trimming leaves', &
-                               currentCohort%canopy_trim,currentCohort%leaf_cost
+                               currentCohort%canopy_trim,currentCohort%leaf_cost(z)
                       endif
 
                       ! keep trimming until none of the canopy is in negative carbon balance.              
