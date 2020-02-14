@@ -462,6 +462,14 @@ contains
          lai_nu_slope = (cumulative_lai(cnv) - cumulative_lai(cnv-1)) / &
                         (currentCohort%year_net_uptake(cnv) - currentCohort%year_net_uptake(cnv-1))
          opt_cumulative_lai = -lai_nu_slope * currentCohort%year_net_uptake(cnv) + cumulative_lai(cnv) 
+
+         if (debug) then
+            write(fates_log(),*) 'canopy layer:', cl
+            write(fates_log(),*) 'leaf layer:', z
+            write(fates_log(),*) 'optimum cumulative lai:', opt_cumulative_lai
+            write(fates_log(),*) 'net uptake check:', (opt_cumulative_lai - cumulative_lai(cnv)) / &
+                  lai_nu_slope + currentCohort%year_net_uptake(cnv)
+         endif
                    
          ! Calculate sla_levleaf following the sla profile with overlying leaf area
          ! Scale for leaf nitrogen profile
@@ -516,13 +524,13 @@ contains
                         (EDPftvarcon_inst%grperc(ipft) + 1._r8)
                endif
 
-               if ( debug ) then
-               write(fates_log(),*) 'pre-trim logic variables:'
-               write(fates_log(),*) 'sla_max', sla_max
-               write(fates_log(),*) 'sla_levleaf', sla_levleaf
-               write(fates_log(),*) 'leaf_cost', currentCohort%leaf_cost
-               write(fates_log(),*) 'year_net_uptake(z)', currentCohort%year_net_uptake(z), z
-               endif
+               ! if ( debug ) then
+               !    write(fates_log(),*) 'pre-trim logic variables:'
+               !    write(fates_log(),*) 'sla_max', sla_max
+               !    write(fates_log(),*) 'sla_levleaf', sla_levleaf
+               !    write(fates_log(),*) 'leaf_cost', currentCohort%leaf_cost
+               !    write(fates_log(),*) 'year_net_uptake(z)', currentCohort%year_net_uptake(z), z
+               ! endif
 
                 ! If the net uptake is less than leaf cost and canopy trim is greater than the trim limit trim the cohort
                 if (currentCohort%year_net_uptake(z) < currentCohort%leaf_cost(z))then
