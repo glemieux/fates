@@ -960,7 +960,7 @@ contains
      integer  :: largersc, smallersc, sc_i        ! indices for tracking the growth flux caused by fusion
      real(r8) :: larger_n, smaller_n
 
-     logical, parameter :: fuse_debug = .false.   ! This debug is over-verbose
+     logical, parameter :: fuse_debug = .true.   ! This debug is over-verbose
                                                  ! and gets its own flag
 
      !----------------------------------------------------------------------
