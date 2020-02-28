@@ -399,8 +399,25 @@ contains
     real(r8) :: lai_nu_slope
     real(r8) :: opt_cumulative_lai
 
+    ! Temporary diagnostic ouptut
     integer :: ipatch
     integer :: icohort
+    
+    ! LAPACK least squares fit variables (A*X = B)
+    integer :: nll = 4                    ! Number of leaf layers to fit a regression to for calculating the optimum lai
+    character(1) :: trans = 'N'           ! Input matrix is not transposed
+    
+    integer, parameter :: m = 2, n = 2    ! Number of rows and columns, respectively, in matrix A
+    integer, parameter :: nrhs = 1        ! Number of columns in matrix B and X
+    integer, parameter :: workmax = 100   ! Maximum iterations to minimize work
+
+    integer :: lda = m, ldb = n           ! Leading dimension of A and B, respectively
+    integer :: lwork                      ! Dimension of work array
+    integer :: info                       ! Procedure diagnostic ouput
+    
+    real(r8) :: nnu_clai_a(m,n)           ! LHS of linear least squares fit
+    real(r8) :: nnu_clai_b(m,nrhs)        ! RHS of linear least squares fit
+    real(r8) :: work(workmax)             ! work array
 
     !----------------------------------------------------------------------
 
@@ -569,26 +586,60 @@ contains
                endif ! leaf cost check
 
                ! Only calculate the optimum when you reach the bottom leaf layer for the tallest cohort in the current patch
-                  if (z .eq. currentCohort%nv .and. associated(currentCohort,currentPatch%tallest)) then
+                  if (z .eq. currentCohort%nv) then
+
+                     ! TBD Need a way to deal with when there is one leaf layer
+                     if (z .ge. nll) then
+                        ! Construct the arrays for a least square fit of the net_net_uptake versus the cumulative lai
+                        nnu_clai_a(1,1) = nll
+                        nnu_clai_a(1,2) = sum(net_net_uptake(z-nll+1:z))
+                        nnu_clai_a(2,1) = nnu_clai_a(1,2)
+                        nnu_clai_a(2,2) = sum(net_net_uptake(z-nll+1:z)**2)
+                        nnu_clai_b(1,1) = sum(cumulative_lai(z-nll+1:z))
+                        nnu_clai_b(2,1) = sum(cumulative_lai(z-nll+1:z)*net_net_uptake(z-nll+1:z))
+
+                        ! Compute the optimum size of the work array
+                        lwork = -1 ! Ask sgels to compute optimal number of entries for work
+                        call dgels(trans, m, n, nrhs, nnu_clai_a, lda, nnu_clai_b, ldb, work, lwork, info)
+                        lwork = int(work(1)) ! Pick the optimum.  TBD, can work(1) come back with greater than work size?
+
+                        if (debug) then
+                           write(fates_log(),*) 'LLSF lwork output (info, lwork):', info, lwork
+                        endif
+
+                        ! Compute the minimum of 2-norm of b-Ax
+                        call dgels(trans, m, n, nrhs, nnu_clai_a, lda, nnu_clai_b, ldb, work, lwork, info)
+
+                        if (info < 0) then
+                           write(fates_log(),*) 'LLSF optimium LAI calculation returned illegal value'
+                           call endrun(msg=errMsg(sourcefile, __LINE__))
+                        endif
+
+                        if (debug) then
+                           write(fates_log(),*) 'LLSF optimium LAI (intercept,slope):', nnu_clai_b
+                           write(fates_log(),*) 'LLSF optimium LAI info:', info
+                           write(fates_log(),*) 'LAI fraction (cumulative lai/nnu_clai_b):', cumulative_lai(z)/nnu_clai_b(1,1)
+                        endif
+
+                     else
+                        write(fates_log(),*) 'Leaf layers less than minimum number for fit (z,nll)', z, nll
+                     endif
 
                      ! Calcuate the 'optimum' cumulative_lai to use for calculating the leaf cost
-                     cnv = currentCohort%nv
-                     lai_nu_slope = (cumulative_lai(cnv) - cumulative_lai(cnv-1)) / &
-                                    (net_net_uptake(cnv) - net_net_uptake(cnv-1))
-                     opt_cumulative_lai = -1.0_r8 * lai_nu_slope * net_net_uptake(cnv) + cumulative_lai(cnv) 
+                     ! cnv = currentCohort%nv
+                     ! lai_nu_slope = (cumulative_lai(cnv) - cumulative_lai(cnv-1)) / &
+                     !                (net_net_uptake(cnv) - net_net_uptake(cnv-1))
+                     ! opt_cumulative_lai = -1.0_r8 * lai_nu_slope * net_net_uptake(cnv) + cumulative_lai(cnv) 
                      ! currentCohort%canopy_trim = cumulative_lai(cnv) / opt_cumulative_lai
             
                      ! Report debug output
                      if (debug) then
                         write(fates_log(),*) 'Optimum LAI calculations:'
                         write(fates_log(),*) 'currentCohort%canopy_trim:', currentCohort%canopy_trim
-                        write(fates_log(),*) 'LAI fraction (actual/optim):', cumulative_lai(cnv) / opt_cumulative_lai
-                        write(fates_log(),*) 'optimum cumulative lai:', opt_cumulative_lai
-                        write(fates_log(),*) 'cumulative lai:', cumulative_lai(cnv), cumulative_lai(cnv-1)
-                        write(fates_log(),*) 'leaf_cost:', currentCohort%leaf_cost(cnv), currentCohort%leaf_cost(cnv-1)
-                        write(fates_log(),*) 'net_net_uptake:', net_net_uptake(cnv), net_net_uptake(cnv-1)
-                        write(fates_log(),*) 'lai_nu_slope:', lai_nu_slope
-                        write(fates_log(),*) 'canopy layer, Number of leaf layers, current leaf layer:', cl, cnv, z
+                        write(fates_log(),*) 'cumulative lai:', cumulative_lai(z-nll+1:z)
+                        write(fates_log(),*) 'leaf_cost:', currentCohort%leaf_cost(z-nll+1:z)
+                        write(fates_log(),*) 'net_net_uptake:', net_net_uptake(z-nll+1:z)
+                        write(fates_log(),*) 'canopy layer, Number of leaf layers, current leaf layer:', cl, currentCohort%nv, z
                      endif
 
                   endif ! Bottom leaf layer check
@@ -600,16 +651,16 @@ contains
          currentCohort%year_net_uptake(:) = 999.0_r8
 
          if ( (.not.trimmed) .and.currentCohort%canopy_trim < 1.0_r8)then
-            if (associated(currentCohort,currentPatch%tallest)) then
-               if (debug) then
-                  write(fates_log(),*) 'Tallest cohort NOT TRIMMED' ! Don't add trim inc to the tallest cohort
-               endif
-            else   
+            ! if (associated(currentCohort,currentPatch%tallest)) then
+            !    if (debug) then
+            !       write(fates_log(),*) 'Tallest cohort NOT TRIMMED' ! Don't add trim inc to the tallest cohort
+            !    endif
+            ! else   
                if (debug) then
                   write(fates_log(),*) 'NOT TRIMMED'
                endif
                currentCohort%canopy_trim = currentCohort%canopy_trim + EDPftvarcon_inst%trim_inc(ipft)
-            endif
+            ! endif
          endif 
 
          ! if ( debug ) then
