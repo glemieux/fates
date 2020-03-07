@@ -476,6 +476,7 @@ module FatesHistoryInterfaceMod
   integer :: ih_fabi_sha_si_cnlf
   integer :: ih_leaf_cost_si_cnlf
   integer :: ih_ts_net_uptake_si_cnlf
+  integer :: ih_yr_net_uptake_si_cnlf
   integer :: ih_crownarea_si_cnlf
   integer :: ih_parprof_dir_si_cnlf
   integer :: ih_parprof_dif_si_cnlf
@@ -2889,6 +2890,7 @@ end subroutine flush_hvars
                hio_parsha_z_si_cnlf     => this%hvars(ih_parsha_z_si_cnlf)%r82d, &
                hio_leaf_cost_si_cnlf => this%hvars(ih_leaf_cost_si_cnlf)%r82d, &
                hio_ts_net_uptake_si_cnlf => this%hvars(ih_ts_net_uptake_si_cnlf)%r82d, &
+               hio_yr_net_uptake_si_cnlf => this%hvars(ih_yr_net_uptake_si_cnlf)%r82d, &
                hio_parsun_z_si_cnlfpft  => this%hvars(ih_parsun_z_si_cnlfpft)%r82d, &
                hio_parsha_z_si_cnlfpft  => this%hvars(ih_parsha_z_si_cnlfpft)%r82d, &
                hio_laisun_z_si_cnlf     => this%hvars(ih_laisun_z_si_cnlf)%r82d, &
@@ -3092,9 +3094,11 @@ end subroutine flush_hvars
                   cnlf_indx = ileaf + (ican-1) * nlevleaf
                   ! Leaf cost is calculated in kgC/m2/year
                   hio_leaf_cost_si_cnlf(io_si, cnlf_indx) = hio_leaf_cost_si_cnlf(io_si, cnlf_indx) + &
-                        ccohort%leaf_cost(ileaf) * g_per_kg * ccohort%c_area / AREA
+                        ccohort%leaf_cost(ileaf) * g_per_kg
                   hio_ts_net_uptake_si_cnlf(io_si, cnlf_indx) = hio_ts_net_uptake_si_cnlf(io_si, cnlf_indx) + &
                        ccohort%ts_net_uptake(ileaf) * g_per_kg * per_dt_tstep * ccohort%c_area / AREA
+                  hio_yr_net_uptake_si_cnlf(io_si, cnlf_indx) = hio_yr_net_uptake_si_cnlf(io_si, cnlf_indx) + &
+                       ccohort%year_net_uptake(ileaf) * g_per_kg     
                end do
 
                ccohort => ccohort%taller
@@ -4334,6 +4338,13 @@ end subroutine flush_hvars
          use_default='inactive',       &
          avgflag='A', vtype=site_cnlf_r8, hlms='CLM:ALM', flushval=0.0_r8, upfreq=2,   &
          ivar=ivar, initialize=initialize_variables, index = ih_ts_net_uptake_si_cnlf )
+
+    call this%set_history_var(vname='YRLY_UPTAKE_CNLF', units='gC/m2/s',                 &
+         long='yearly net carbon uptake by each canopy and leaf layer per unit ground area (i.e. divide by CROWNAREA_CNLF to make per leaf area)', &
+         use_default='inactive',       &
+         avgflag='A', vtype=site_cnlf_r8, hlms='CLM:ALM', flushval=0.0_r8, upfreq=2,   &
+         ivar=ivar, initialize=initialize_variables, index = ih_yr_net_uptake_si_cnlf )
+
 
     call this%set_history_var(vname='CROWNAREA_CNLF', units='m2/m2',                 &
          long='total crown area that is occupied by leaves in each canopy and leaf layer', &
