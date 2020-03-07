@@ -3090,8 +3090,9 @@ end subroutine flush_hvars
                ican = ccohort%canopy_layer
                do ileaf=1,ccohort%nv
                   cnlf_indx = ileaf + (ican-1) * nlevleaf
+                  ! Leaf cost is calculated in kgC/m2/year
                   hio_leaf_cost_si_cnlf(io_si, cnlf_indx) = hio_leaf_cost_si_cnlf(io_si, cnlf_indx) + &
-                        ccohort%leaf_cost(ileaf) * g_per_kg * per_dt_tstep * ccohort%c_area / AREA
+                        ccohort%leaf_cost(ileaf) * g_per_kg * ccohort%c_area / AREA
                   hio_ts_net_uptake_si_cnlf(io_si, cnlf_indx) = hio_ts_net_uptake_si_cnlf(io_si, cnlf_indx) + &
                        ccohort%ts_net_uptake(ileaf) * g_per_kg * per_dt_tstep * ccohort%c_area / AREA
                end do

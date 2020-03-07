@@ -564,8 +564,8 @@ contains
                   if (currentCohort%canopy_trim > EDPftvarcon_inst%trim_limit(ipft))then
 
                      if ( debug ) then
-                        write(fates_log(),*) 'trimming leaves', &
-                              currentCohort%canopy_trim,currentCohort%leaf_cost(z)
+                        ! write(fates_log(),*) 'trimming leaves', & 
+                        !       currentCohort%canopy_trim,currentCohort%leaf_cost(z)
                      endif
 
                      ! keep trimming until none of the canopy is in negative carbon balance.              
@@ -638,6 +638,7 @@ contains
                         write(fates_log(),*) 'currentCohort%canopy_trim:', currentCohort%canopy_trim
                         write(fates_log(),*) 'cumulative lai:', cumulative_lai(z-nll+1:z)
                         write(fates_log(),*) 'leaf_cost:', currentCohort%leaf_cost(z-nll+1:z)
+                        write(fates_log(),*) 'year_net_uptake:', currentCohort%year_net_uptake(z-nll+1:z)
                         write(fates_log(),*) 'net_net_uptake:', net_net_uptake(z-nll+1:z)
                         write(fates_log(),*) 'canopy layer, Number of leaf layers, current leaf layer:', cl, currentCohort%nv, z
                      endif
