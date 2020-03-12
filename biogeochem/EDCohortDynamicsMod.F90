@@ -488,6 +488,7 @@ contains
     currentCohort%g_sb_laweight      = nan ! Total leaf conductance of cohort (stomata+blayer) weighted by leaf-area [m/s]*[m2]
     currentCohort%canopy_trim        = nan ! What is the fraction of the maximum leaf biomass that we are targeting? :-
     currentCohort%leaf_cost(:)       = nan ! How much does it cost to maintain leaves: kgC/m2/year-1
+    currentCohort%cumulative_lai(:)  = nan ! Temporary lai allocation: kgC/m2
     currentCohort%excl_weight        = nan ! How much of this cohort is demoted each year, as a proportion of all cohorts:-
     currentCohort%prom_weight        = nan ! How much of this cohort is promoted each year, as a proportion of all cohorts:-
     currentCohort%c_area             = nan ! areal extent of canopy (m2)
@@ -602,6 +603,7 @@ contains
     currentCohort%lmort_collateral   = 0._r8
     currentCohort%l_degrad           = 0._r8    
     currentCohort%leaf_cost(:)       = 0._r8
+    currentCohort%cumulative_lai(:)  = 0._r8
     currentcohort%excl_weight        = 0._r8
     currentcohort%prom_weight        = 0._r8
     currentcohort%crownfire_mort     = 0._r8
@@ -1591,6 +1593,7 @@ contains
     n%sai             = o%sai  
     n%g_sb_laweight   = o%g_sb_laweight
     n%leaf_cost       = o%leaf_cost
+    n%cumulative_lai  = o%cumulative_lai
     n%canopy_layer    = o%canopy_layer
     n%canopy_layer_yesterday    = o%canopy_layer_yesterday
     n%nv              = o%nv

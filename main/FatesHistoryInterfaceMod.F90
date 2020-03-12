@@ -475,6 +475,7 @@ module FatesHistoryInterfaceMod
   integer :: ih_fabi_sun_si_cnlf
   integer :: ih_fabi_sha_si_cnlf
   integer :: ih_leaf_cost_si_cnlf
+  integer :: ih_cumulative_lai_si_cnlf
   integer :: ih_ts_net_uptake_si_cnlf
   integer :: ih_yr_net_uptake_si_cnlf
   integer :: ih_crownarea_si_cnlf
@@ -2889,6 +2890,7 @@ end subroutine flush_hvars
                hio_parsun_z_si_cnlf     => this%hvars(ih_parsun_z_si_cnlf)%r82d, &
                hio_parsha_z_si_cnlf     => this%hvars(ih_parsha_z_si_cnlf)%r82d, &
                hio_leaf_cost_si_cnlf => this%hvars(ih_leaf_cost_si_cnlf)%r82d, &
+               hio_cumulative_lai_si_cnlf => this%hvars(ih_cumulative_lai_si_cnlf)%r82d, &
                hio_ts_net_uptake_si_cnlf => this%hvars(ih_ts_net_uptake_si_cnlf)%r82d, &
                hio_yr_net_uptake_si_cnlf => this%hvars(ih_yr_net_uptake_si_cnlf)%r82d, &
                hio_parsun_z_si_cnlfpft  => this%hvars(ih_parsun_z_si_cnlfpft)%r82d, &
@@ -3094,11 +3096,13 @@ end subroutine flush_hvars
                   cnlf_indx = ileaf + (ican-1) * nlevleaf
                   ! Leaf cost is calculated in kgC/m2/year
                   hio_leaf_cost_si_cnlf(io_si, cnlf_indx) = hio_leaf_cost_si_cnlf(io_si, cnlf_indx) + &
-                        ccohort%leaf_cost(ileaf) * g_per_kg
+                        ccohort%leaf_cost(ileaf)
+                  hio_cumulative_lai_si_cnlf(io_si, cnlf_indx) = hio_cumulative_lai_si_cnlf(io_si, cnlf_indx) + &
+                        ccohort%cumulative_lai(ileaf)
                   hio_ts_net_uptake_si_cnlf(io_si, cnlf_indx) = hio_ts_net_uptake_si_cnlf(io_si, cnlf_indx) + &
                        ccohort%ts_net_uptake(ileaf) * g_per_kg * per_dt_tstep * ccohort%c_area / AREA
                   hio_yr_net_uptake_si_cnlf(io_si, cnlf_indx) = hio_yr_net_uptake_si_cnlf(io_si, cnlf_indx) + &
-                       ccohort%year_net_uptake(ileaf) * g_per_kg     
+                       ccohort%year_net_uptake(ileaf)
                end do
 
                ccohort => ccohort%taller
@@ -4327,11 +4331,17 @@ end subroutine flush_hvars
          ivar=ivar, initialize=initialize_variables, index = ih_fabi_sha_top_si_can )
 
     !!! canopy-resolved fluxes and structure
-    call this%set_history_var(vname='LEAF_COST_CNLF', units='gC/m2/s',                 &
+    call this%set_history_var(vname='LEAF_COST_CNLF', units='kgC/m2/s',                 &
          long='leaf maintenance cost by each canopy and leaf layer per unit ground area (i.e. divide by CROWNAREA_CNLF to make per leaf area)', &
          use_default='inactive',       &
          avgflag='A', vtype=site_cnlf_r8, hlms='CLM:ALM', flushval=0.0_r8, upfreq=2,   &
          ivar=ivar, initialize=initialize_variables, index = ih_leaf_cost_si_cnlf )
+
+    call this%set_history_var(vname='CUMULATIVE_LAI_CNLF', units='kgC/m2/s',                 &
+         long='leaf maintenance cost by each canopy and leaf layer per unit ground area (i.e. divide by CROWNAREA_CNLF to make per leaf area)', &
+         use_default='inactive',       &
+         avgflag='A', vtype=site_cnlf_r8, hlms='CLM:ALM', flushval=0.0_r8, upfreq=2,   &
+         ivar=ivar, initialize=initialize_variables, index = ih_cumulative_lai_si_cnlf )
 
     call this%set_history_var(vname='NET_C_UPTAKE_CNLF', units='gC/m2/s',                 &
          long='net carbon uptake by each canopy and leaf layer per unit ground area (i.e. divide by CROWNAREA_CNLF to make per leaf area)', &
@@ -4339,7 +4349,7 @@ end subroutine flush_hvars
          avgflag='A', vtype=site_cnlf_r8, hlms='CLM:ALM', flushval=0.0_r8, upfreq=2,   &
          ivar=ivar, initialize=initialize_variables, index = ih_ts_net_uptake_si_cnlf )
 
-    call this%set_history_var(vname='YRLY_UPTAKE_CNLF', units='gC/m2/s',                 &
+    call this%set_history_var(vname='YRLY_UPTAKE_CNLF', units='kgC/m2/s',                 &
          long='yearly net carbon uptake by each canopy and leaf layer per unit ground area (i.e. divide by CROWNAREA_CNLF to make per leaf area)', &
          use_default='inactive',       &
          avgflag='A', vtype=site_cnlf_r8, hlms='CLM:ALM', flushval=0.0_r8, upfreq=2,   &

@@ -207,7 +207,7 @@ contains
     real(r8) :: lai_layers_above   ! the LAI in the leaf layers, within the current canopy, 
                                    ! above the leaf layer of interest
     real(r8) :: lai_current        ! the LAI in the current leaf layer
-    real(r8) :: cumulative_lai     ! the cumulative LAI, top down, to the leaf layer of interest
+   !  real(r8) :: cumulative_lai     ! the cumulative LAI, top down, to the leaf layer of interest
 
     real(r8), allocatable :: rootfr_ft(:,:)  ! Root fractions per depth and PFT
 
@@ -409,7 +409,7 @@ contains
                                  lai_canopy_above  = sum(currentPatch%canopy_layer_tlai(1:cl-1)) 
                                  lai_layers_above  = leaf_inc * (iv-1)
                                  lai_current       = min(leaf_inc, currentCohort%treelai - lai_layers_above)
-                                 cumulative_lai    = lai_canopy_above + lai_layers_above + 0.5*lai_current 
+                                 currentCohort%cumulative_lai(iv)    = lai_canopy_above + lai_layers_above + 0.5*lai_current 
 
                               else
                                  
@@ -419,7 +419,7 @@ contains
                                  ! if the plant is under-snow, it will be effectively dormant for 
                                  ! the purposes of nscaler
 
-                                 cumulative_lai = sum(currentPatch%canopy_layer_tlai(1:cl-1))  + &
+                                 currentCohort%cumulative_lai(iv) = sum(currentPatch%canopy_layer_tlai(1:cl-1))  + &
                                                   sum(currentPatch%tlai_profile(cl,ft,1:iv-1)) + &
                                                   0.5*currentPatch%tlai_profile(cl,ft,iv)
                                            
@@ -438,7 +438,7 @@ contains
                               kn = decay_coeff_kn(ft,currentCohort%vcmax25top)
 
                               ! Scale for leaf nitrogen profile
-                              nscaler = exp(-kn * cumulative_lai)
+                              nscaler = exp(-kn * currentCohort%cumulative_lai(iv))
                               
                               ! Leaf maintenance respiration to match the base rate used in CN
                               ! but with the new temperature functions for C3 and C4 plants.
