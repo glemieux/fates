@@ -649,7 +649,7 @@ contains
                      lwork = int(work(1)) ! Pick the optimum.  TBD, can work(1) come back with greater than work size?
 
                      if (debug) then
-                        write(fates_log(),*) 'LLSF lwork output (info, lwork):', info, lwork
+                        ! write(fates_log(),*) 'LLSF lwork output (info, lwork):', info, lwork
                      endif
 
                      ! Compute the minimum of 2-norm of b-Ax
@@ -660,15 +660,15 @@ contains
                         call endrun(msg=errMsg(sourcefile, __LINE__))
                      endif
 
-                     if (debug) then
-                        write(fates_log(),*) 'LLSF optimium LAI (intercept,slope):', nnu_clai_b
-                        write(fates_log(),*) 'LLSF optimium LAI info:', info
-                        write(fates_log(),*) 'LAI fraction (cumulative lai/nnu_clai_b):', & 
-                                             currentCohort%cumulative_lai(z)/nnu_clai_b(1,1)
-                     endif
+                    ! if (debug) then
+                        !write(fates_log(),*) 'LLSF optimium LAI (intercept,slope):', nnu_clai_b
+                        !write(fates_log(),*) 'LLSF optimium LAI info:', info
+                        !write(fates_log(),*) 'LAI fraction (cumulative lai/nnu_clai_b):', & 
+                        !                     currentCohort%cumulative_lai(z)/nnu_clai_b(1,1)
+                    ! endif
 
-                  else
-                     write(fates_log(),*) 'Leaf layers less than minimum number for fit (z,nll)', z, nll
+                  !else
+                     !write(fates_log(),*) 'Leaf layers less than minimum number for fit (z,nll)', z, nll
                   endif
 
                   ! Calcuate the 'optimum' cumulative_lai to use for calculating the leaf cost
@@ -703,9 +703,9 @@ contains
             !       write(fates_log(),*) 'Tallest cohort NOT TRIMMED' ! Don't add trim inc to the tallest cohort
             !    endif
             ! else   
-               if (debug) then
-                  write(fates_log(),*) 'NOT TRIMMED'
-               endif
+               !if (debug) then
+               !   write(fates_log(),*) 'NOT TRIMMED'
+               !endif
                currentCohort%canopy_trim = currentCohort%canopy_trim + EDPftvarcon_inst%trim_inc(ipft)
             ! endif
          endif 
