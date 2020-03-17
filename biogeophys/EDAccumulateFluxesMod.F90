@@ -99,7 +99,7 @@ contains
                       ccohort%year_net_uptake(iv) = 0._r8
                    end if
                    ccohort%year_net_uptake(iv) = ccohort%year_net_uptake(iv) + ccohort%ts_net_uptake(iv)
-                   write(fates_log(),*) 'Accumulating yearly uptake - ccohort%ts_net_uptake(iv):', ccohort%ts_net_uptake(iv)
+                   !write(fates_log(),*) 'Accumulating yearly uptake - ccohort%ts_net_uptake(iv):', ccohort%ts_net_uptake(iv)
                 enddo
                 
                 ccohort => ccohort%taller
