@@ -545,8 +545,10 @@ contains
                write(fates_log(),*) 'Per layer calculations:'
                write(fates_log(),*) 'cumulative lai:', currentCohort%cumulative_lai(z)
                write(fates_log(),*) 'leaf_cost:', currentCohort%leaf_cost(z)
+               write(fates_log(),*) 'ts_net_uptake', currentcohort%ts_net_uptake(z)
                write(fates_log(),*) 'year_net_uptake:', currentCohort%year_net_uptake(z)
-               write(fates_log(),*) 'canopy layer, Number of leaf layers, current leaf layer:', cl, currentCohort%nv, z
+               write(fates_log(),*) 'canopy layer, Number of leaf layers, current leaf layer:', &
+                                    ',', cl,',', currentCohort%nv,',', z
             endif
 
             ! If there was activity this year in this leaf layer.
