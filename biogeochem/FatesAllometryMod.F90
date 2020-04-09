@@ -2187,7 +2187,8 @@ contains
     ! This function estimates the decay coefficient used to estimate vertical
     ! attenuation of properties in the canopy.
     !
-    ! Decay coefficient (kn) is a function of vcmax25top for each pft.
+    ! Decay coefficient (kn) is a function of vcmax25top for each cohort.  It is then
+    ! used to scale various pft specific rates.
     !
     ! Currently, this decay is applied to vcmax attenuation, and SLA (optionally)
     !
