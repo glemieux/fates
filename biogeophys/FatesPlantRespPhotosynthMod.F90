@@ -104,6 +104,7 @@ contains
     use FatesAllometryMod, only : set_root_fraction
     use FatesAllometryMod, only : i_hydro_rootprof_context
     use FatesAllometryMod, only : decay_coeff_kn
+    use FatesAllometryMod, only : cumulative_lai
 
     ! ARGUMENTS:
     ! -----------------------------------------------------------------------------------
@@ -207,7 +208,7 @@ contains
     real(r8) :: lai_layers_above   ! the LAI in the leaf layers, within the current canopy, 
                                    ! above the leaf layer of interest
     real(r8) :: lai_current        ! the LAI in the current leaf layer
-    real(r8) :: cumulative_lai     ! the cumulative LAI, top down, to the leaf layer of interest
+    real(r8) :: clai     ! the cumulative LAI, top down, to the leaf layer of interest
 
     real(r8), allocatable :: rootfr_ft(:,:)  ! Root fractions per depth and PFT
 
@@ -399,17 +400,7 @@ contains
                                  bbb = max( cf/rsmax0, bbbopt(nint(c3psn(ft)))*currentCohort%co_hydr%btran(1) ) 
                                  btran_eff = currentCohort%co_hydr%btran(1) 
                                  
-                                 ! dinc_ed is the total vegetation area index of each "leaf" layer
-                                 ! we convert to the leaf only portion of the increment
-                                 ! ------------------------------------------------------
-                                 leaf_inc    = dinc_ed * &
-                                               currentCohort%treelai/(currentCohort%treelai+currentCohort%treesai)
-                                 
-                                 ! Now calculate the cumulative top-down lai of the current layer's midpoint
-                                 lai_canopy_above  = sum(currentPatch%canopy_layer_tlai(1:cl-1)) 
-                                 lai_layers_above  = leaf_inc * (iv-1)
-                                 lai_current       = min(leaf_inc, currentCohort%treelai - lai_layers_above)
-                                 cumulative_lai    = lai_canopy_above + lai_layers_above + 0.5*lai_current 
+                                 clai = cumulative_lai(currentCohort,iv) 
 
                               else
                                  
@@ -419,7 +410,7 @@ contains
                                  ! if the plant is under-snow, it will be effectively dormant for 
                                  ! the purposes of nscaler
 
-                                 cumulative_lai = sum(currentPatch%canopy_layer_tlai(1:cl-1))  + &
+                                 clai = sum(currentPatch%canopy_layer_tlai(1:cl-1))  + &
                                                   sum(currentPatch%tlai_profile(cl,ft,1:iv-1)) + &
                                                   0.5*currentPatch%tlai_profile(cl,ft,iv)
                                            
@@ -428,17 +419,10 @@ contains
 
                               if(do_fates_salinity)then
                                 btran_eff = btran_eff*currentPatch%bstress_sal_ft(ft)
-                              endif 
-                              
-                              
-                              ! Bonan et al (2011) JGR, 116, doi:10.1029/2010JG001593 used
-                              ! kn = 0.11. Here, derive kn from vcmax25 as in Lloyd et al 
-                              ! (2010) Biogeosciences, 7, 1833-1859
-                              
-                              kn = decay_coeff_kn(ft,currentCohort%vcmax25top)
+                              endif                   
 
                               ! Scale for leaf nitrogen profile
-                              nscaler = exp(-kn * cumulative_lai)
+                              nscaler = exp(-decay_coeff_kn(cohort_in) * clai)
                               
                               ! Leaf maintenance respiration to match the base rate used in CN
                               ! but with the new temperature functions for C3 and C4 plants.
