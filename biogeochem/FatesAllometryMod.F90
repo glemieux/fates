@@ -2181,7 +2181,7 @@ contains
   ! =====================================================================================
 
   
-  real(r8) function decay_coeff_kn(pft,vcmax25top)
+  real(r8) function decay_coeff_kn(cohort_in)
     
     ! ---------------------------------------------------------------------------------
     ! This function estimates the decay coefficient used to estimate vertical
@@ -2194,8 +2194,7 @@ contains
     ! ---------------------------------------------------------------------------------
     
     !ARGUMENTS
-    integer, intent(in) :: pft
-    real(r8),intent(in) :: vcmax25top
+    type(ed_cohort_type), intent(in) :: cohort_in  ! Current cohort
 
     
     !LOCAL VARIABLES
@@ -2205,10 +2204,75 @@ contains
     ! kn = 0.11. Here, we derive kn from vcmax25 as in Lloyd et al 
     ! (2010) Biogeosciences, 7, 1833-1859
     
-    decay_coeff_kn = exp(0.00963_r8 * vcmax25top - 2.43_r8)
+    decay_coeff_kn = exp(0.00963_r8 * cohort_in%vcmax25top - 2.43_r8)
     
     return
   end function decay_coeff_kn
+
+  ! =====================================================================================
+
+  real(r8) function cumulative_lai(cohort_in, leaflayer)
+    
+    ! ---------------------------------------------------------------------------------
+    ! This function calculates the cumulative total vegetarian index down to a specific
+    ! leaf layer within a given cohort.  
+    ! ---------------------------------------------------------------------------------
+    
+    !ARGUMENTS
+    type(ed_cohort_type), intent(in) :: cohort_in  ! Current cohort
+    integer, intent(in)              :: leaflayer  ! Current leaf layer within the cohort
+
+    !LOCAL VARIABLES
+    integer  :: cl               ! canopy layer index
+    real(r8) :: leaf_inc         ! LAI-only portion of the vegetation increment of dinc_ed
+    real(r8) :: lai_canopy_above ! the LAI in the canopy layers above the layer of interest
+    real(r8) :: lai_layers_above ! the LAI in the leaf layers, within the current canopy, 
+                                 ! above the leaf layer of interest
+    real(r8) :: lai_current      ! the LAI in the current leaf layer
+    real(r8) :: cumulative_lai   ! the cumulative LAI, top down, to the leaf layer of interest
+
+    ! Identify current canopy layer (cl)
+    cl = currentCohort%canopy_layer
+    
+    ! dinc_ed is the total vegetation area index of each "leaf" layer! Leaf layer increment
+    leaf_inc = dinc_ed * &
+               cohort_in%treelai/(cohort_in%treelai+cohort_in%treesai)
+
+    ! Calculate the sum of the lai in the canopies above the current canopy layer
+    lai_canopy_above = sum(cohort_in%canopy_layer_tlai(1:cl-1))
+    
+    ! Calculate the total lai to the leaf layer down from the top of the current canopy layer
+    lai_layers_above = leaf_inc * (leaflayer-1)
+
+    ! If in the last leaf layer we will have a lai less than tree_inc 
+    lai_current = min(leaf_inc, currentCohort%treelai - lai_layers_above)
+    
+    ! Now calculate the cumulative top-down lai of the current layer's midpoint
+    cumulative_lai = lai_canopy_above + lai_layers_above + 0.5*lai_current
+    
+    return
+
+  end function cumulative_lai
+
+  ! =====================================================================================
+
+  real(r8) function nscaler(cohort_in,leaflayer)
+
+  ! ---------------------------------------------------------------------------------
+  ! This function calculates the cumulative total vegetarian index down to a specific
+  ! leaf layer within a given cohort.  
+  ! ---------------------------------------------------------------------------------
+
+  !ARGUMENTS
+  type(ed_cohort_type), intent(in) :: cohort_in  ! Current cohort
+  integer, intent(in)              :: leaflayer  ! Current leaf layer within the cohort  
+
+  ! Nscaler value at leaf level z
+  nscaler = exp(-decay_coeff_kn(cohort_in) * cumulative_lai(cohort_in,leaflayer))
+
+  return 
+
+  end function nscaler
 
   ! =====================================================================================
 
