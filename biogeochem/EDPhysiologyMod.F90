@@ -82,6 +82,7 @@ module EDPhysiologyMod
   use FatesAllometryMod  , only : CheckIntegratedAllometries
   use FatesAllometryMod, only : set_root_fraction
   use FatesAllometryMod, only : i_biomass_rootprof_context 
+  use FatesAllometryMod, only : nscaler
   
   use PRTGenericMod, only : prt_carbon_allom_hyp
   use PRTGenericMod, only : prt_cnp_flex_allom_hyp
@@ -379,19 +380,11 @@ contains
     real(r8) :: bfr_per_bleaf    ! ratio of fine root per leaf biomass
     real(r8) :: sla_levleaf      ! sla at leaf level z
     real(r8) :: nscaler_levleaf  ! nscaler value at leaf level z
-    integer  :: cl               ! canopy layer index
-    real(r8) :: kn               ! nitrogen decay coefficient
     real(r8) :: sla_max          ! Observational constraint on how large sla (m2/gC) can become
     real(r8) :: leaf_c           ! leaf carbon [kg]
     real(r8) :: sapw_c           ! sapwood carbon [kg]
     real(r8) :: store_c          ! storage carbon [kg]
     real(r8) :: struct_c         ! structure carbon [kg]
-    real(r8) :: leaf_inc         ! LAI-only portion of the vegetation increment of dinc_ed
-    real(r8) :: lai_canopy_above ! the LAI in the canopy layers above the layer of interest
-    real(r8) :: lai_layers_above ! the LAI in the leaf layers, within the current canopy, 
-                                 ! above the leaf layer of interest
-    real(r8) :: lai_current      ! the LAI in the current leaf layer
-    real(r8) :: cumulative_lai   ! the cumulative LAI, top down, to the leaf layer of interest
 
     !----------------------------------------------------------------------
 
@@ -432,9 +425,6 @@ contains
              call bfineroot(currentcohort%dbh,ipft,currentcohort%canopy_trim,tar_bfr)
              bfr_per_bleaf = tar_bfr/tar_bl
           endif
-
-          ! Identify current canopy layer (cl)
-          cl = currentCohort%canopy_layer
           
           ! PFT-level maximum SLA value, even if under a thick canopy (same units as slatop)
           sla_max = EDPftvarcon_inst%slamax(ipft)
@@ -442,25 +432,11 @@ contains
           !Leaf cost vs netuptake for each leaf layer. 
           do z = 1, currentCohort%nv
 
-             ! Calculate the cumulative total vegetation area index (no snow occlusion, stems and leaves)
-
-             leaf_inc    = dinc_ed * &
-                   currentCohort%treelai/(currentCohort%treelai+currentCohort%treesai)
-             
-             ! Now calculate the cumulative top-down lai of the current layer's midpoint
-             lai_canopy_above  = sum(currentPatch%canopy_layer_tlai(1:cl-1)) 
-             lai_layers_above  = leaf_inc * (z-1)
-             lai_current       = min(leaf_inc, currentCohort%treelai - lai_layers_above)
-             cumulative_lai    = lai_canopy_above + lai_layers_above + 0.5*lai_current
+             ! Nscaler value at leaf level z
+             nscaler_levleaf = nscaler(currentCohort,z)
              
              if (currentCohort%year_net_uptake(z) /= 999._r8)then !there was activity this year in this leaf layer.
-             
-                   
-                ! Calculate sla_levleaf following the sla profile with overlying leaf area
-                ! Scale for leaf nitrogen profile
-                kn = decay_coeff_kn(ipft,currentCohort%vcmax25top)
-                ! Nscaler value at leaf level z
-                nscaler_levleaf = exp(-kn * cumulative_lai)
+
                 ! Sla value at leaf level z after nitrogen profile scaling (m2/gC)
                 sla_levleaf = EDPftvarcon_inst%slatop(ipft)/nscaler_levleaf
 
