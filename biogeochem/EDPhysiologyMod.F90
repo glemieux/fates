@@ -102,7 +102,7 @@ module EDPhysiologyMod
   use PRTLossFluxesMod, only : PRTPhenologyFlush
   use PRTLossFluxesMod, only : PRTDeciduousTurnover
   use PRTLossFluxesMod, only : PRTReproRelease
-
+  
   implicit none
   private
 
@@ -116,7 +116,7 @@ module EDPhysiologyMod
   public :: PreDisturbanceIntegrateLitter  
   public :: SeedIn
   
-  logical, parameter :: debug  = .false. ! local debug flag
+  logical, parameter :: debug  = .true. ! local debug flag
   character(len=*), parameter, private :: sourcefile = &
         __FILE__
 
@@ -415,6 +415,8 @@ contains
 
     real(r8) :: initial_trim              ! Initial trim
     real(r8) :: optimum_trim              ! Optimum trim value 
+    real(r8) :: initial_laimem            ! Initial laimemory
+    real(r8) :: optimum_laimem            ! Optimum laimemory
 
     !----------------------------------------------------------------------
 
@@ -434,18 +436,6 @@ contains
        currentCohort => currentPatch%tallest
        do while (associated(currentCohort)) 
 
-         ! Save off the incoming trim
-         initial_trim = currentCohort%canopy_trim
-
-          ! Add debug diagnstic output to determine which cohort
-          if (debug) then
-            write(fates_log(),*) 'Current cohort:', icohort
-            write(fates_log(),*) 'Starting canopy trim:', initial_trim
-            write(fates_log(),*) 'Starting laimemory:', currentCohort%laimemory
-          endif   
-
-          trimmed = .false.
-          ipft = currentCohort%pft
           call carea_allom(currentCohort%dbh,currentCohort%n,currentSite%spread,currentCohort%pft,currentCohort%c_area)
 
           leaf_c   = currentCohort%prt%GetState(leaf_organ, all_carbon_elements)
@@ -460,6 +450,29 @@ contains
                                            currentCohort%vcmax25top,0 )  
 
           currentCohort%nv      = ceiling((currentCohort%treelai+currentCohort%treesai)/dinc_ed)
+
+         ! Save off the incoming trim
+         initial_trim = currentCohort%canopy_trim
+         initial_laimem = currentCohort%laimemory
+          
+          trimmed = .false.
+          ipft = currentCohort%pft
+
+          ! Add debug diagnstic output to determine which cohort
+          if (debug) then
+            write(fates_log(),*) 'Current cohort:', icohort
+            write(fates_log(),*) 'Starting canopy trim:', initial_trim
+            write(fates_log(),*) 'Starting laimemory:', currentCohort%laimemory
+            write(fates_log(),*) 'Starting leaf biomass:', leaf_c
+            write(fates_log(),*) 'currentCohort%treelai:', currentCohort%treelai
+            write(fates_log(),*) 'EDPftvarcon_inst%season_decid:', EDPftvarcon_inst%season_decid(ipft)
+            write(fates_log(),*) 'EDPftvarcon_inst%stress_decid:', EDPftvarcon_inst%stress_decid(ipft)
+            write(fates_log(),*) 'EDPftvarcon_inst%evergreen:', EDPftvarcon_inst%evergreen(ipft)
+            write(fates_log(),*) 'currentCohort%status_coh:', currentCohort%status_coh
+            write(fates_log(),*) 'currentSite%cstatus:',currentSite%cstatus 
+            write(fates_log(),*) 'currentSite%dstatus:',currentSite%dstatus 
+            write(fates_log(),*) 'End of cohort info:', 0
+          endif   
 
           if (currentCohort%nv > nlevleaf)then
              write(fates_log(),*) 'nv > nlevleaf',currentCohort%nv, &
@@ -552,15 +565,15 @@ contains
                 endif
 
                 if (debug) then
-                  write(fates_log(),*) 'cl,nv,z:', cl,',', currentCohort%nv,',', z
-                  write(fates_log(),*) 'cumulative lai:', cumulative_lai
-                  write(fates_log(),*) 'leaf_cost:', currentCohort%leaf_cost
-                  write(fates_log(),*) 'year_net_uptake:', currentCohort%year_net_uptake(z)   
-                  write(fates_log(),*) 'canopy trim:', currentCohort%canopy_trim   
+                  !write(fates_log(),*) 'cl,nv,z:', cl,',', currentCohort%nv,',', z
+                  !write(fates_log(),*) 'cumulative lai:', cumulative_lai
+                  !write(fates_log(),*) 'leaf_cost:', currentCohort%leaf_cost
+                  !write(fates_log(),*) 'year_net_uptake:', currentCohort%year_net_uptake(z)   
+                  !write(fates_log(),*) 'canopy trim:', currentCohort%canopy_trim   
                 endif
 
                 ! Construct the arrays for a least square fit of the net_net_uptake versus the cumulative lai
-                if (currentCohort%nv - z < nll) then  ! Only for nll layers
+                if (currentCohort%nv > nll .and. currentCohort%nv - z < nll) then  ! Only for nll layers
                   nnu_clai_a(1,1) = nnu_clai_a(1,1) + 1 ! Increment for each layer used
                   nnu_clai_a(1,2) = nnu_clai_a(1,2) + currentCohort%year_net_uptake(z) - currentCohort%leaf_cost
                   nnu_clai_a(2,1) = nnu_clai_a(1,2)
@@ -597,6 +610,12 @@ contains
                 endif ! net uptake check
              endif ! leaf activity check 
           enddo ! z, leaf layer loop
+          
+          ! Temp diagnostics for determining why optimimum laimem isn't affecting lai output
+          write(fates_log(),*) 'nnu_clai_a:', nnu_clai_a(1,1) 
+          write(fates_log(),*) 'currentCohort%nv:', currentCohort%nv
+          write(fates_log(),*) 'currentCohort%nv:', currentCohort%nv
+          write(fates_log(),*) 'CUMULATIVE LAI:', cumulative_lai
 
           ! Compute the optimal cumulative lai based on the cohort net-net uptake profile if at least 2 leaf layers
           if (nnu_clai_a(1,1) > 1) then
@@ -620,20 +639,30 @@ contains
 
             if (debug) then
                ! write(fates_log(),*) 'LLSF optimium LAI (intercept,slope):', nnu_clai_b
-               write(fates_log(),*) 'LLSF optimium LAI:', nnu_clai_b(1,1)
+               ! write(fates_log(),*) 'LLSF optimium LAI:', nnu_clai_b(1,1)
                ! write(fates_log(),*) 'LLSF optimium LAI info:', info
                ! write(fates_log(),*) 'LAI fraction (optimum_lai/cumulative_lai):', nnu_clai_b(1,1) / cumulative_lai
             endif
 
             ! Calculate the optimum trim based on the initial canopy trim value
-            optimum_trim = (nnu_clai_b(1,1) / cumulative_lai) * initial_trim
+            if (cumulative_lai > 0._r8) then  ! Sometime cumulative_lai comes in at 0.0?
+               optimum_trim = (nnu_clai_b(1,1) / cumulative_lai) * initial_trim
+               optimum_laimem = (nnu_clai_b(1,1) / cumulative_lai) * initial_laimem
 
-            ! Determine if the optimum trim value makes sense.  The smallest cohorts tend to have unrealistic fits.
-            if (optimum_trim > 0. .and. optimum_trim < 1.) then
-               currentCohort%canopy_trim = optimum_trim
-               trimmed = .true.
+               write(fates_log(),*) 'OPTIMUM TRIM:', optimum_trim
+               write(fates_log(),*) 'OPTIMUM_LAIMEM:', optimum_laimem
+               ! Determine if the optimum trim value makes sense.  The smallest cohorts tend to have unrealistic fits.
+               if (optimum_trim > 0. .and. optimum_trim < 1.) then
+                  currentCohort%canopy_trim = optimum_trim
+                  ! If the cohort pft is not evergreen we reduce the laimemory as well
+                  if (EDPftvarcon_inst%evergreen(ipft) /= 1) then
+                     !write(fates_log(),*) 'INITIAL_LAIMEM:', initial_laimem
+                     write(fates_log(),*) 'INSIDE DECIDUOUS OPT'
+                     currentCohort%laimemory = optimum_laimem
+                  endif
+                  trimmed = .true.
+               endif
             endif
-
          endif
 
           ! Reset activity for the cohort for the start of the next year
