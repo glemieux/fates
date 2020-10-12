@@ -2339,7 +2339,7 @@ contains
     do c = 1,ncwd  
 
        litt%ag_cwd_frag(c)   = litt%ag_cwd(c) * SF_val_max_decomp(c) * &
-             years_per_day * fragmentation_scaler
+             years_per_day * fragmentation_scaler(1)
        
        do ilyr = 1,nlev_eff_decomp
            
@@ -2357,7 +2357,7 @@ contains
     do dcmpy = 1,ndcmpy
 
        litt%leaf_fines_frag(dcmpy) = litt%leaf_fines(dcmpy) * &
-             years_per_day * SF_val_max_decomp(dl_sf) * fragmentation_scaler
+             years_per_day * SF_val_max_decomp(dl_sf) * fragmentation_scaler(1)
        
        do ilyr = 1,nlev_eff_decomp
            litt%root_fines_frag(dcmpy,ilyr) = litt%root_fines(dcmpy,ilyr) * &
