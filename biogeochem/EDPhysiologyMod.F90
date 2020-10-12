@@ -2321,7 +2321,7 @@ contains
     ! !ARGUMENTS    
     type(litter_type),intent(inout),target     :: litt
     
-    real(r8),intent(in)                        :: fragmentation_scaler
+    real(r8),intent(in)                        :: fragmentation_scaler(:)
 
     ! This is not necessarily every soil layer, this is the number
     ! of effective layers that are active and can be sent
