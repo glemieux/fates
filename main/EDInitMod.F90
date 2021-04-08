@@ -487,7 +487,7 @@ contains
           if(hlm_use_nocomp.eq.itrue)then
              num_new_patches = numpft
              if(hlm_use_sp.eq.itrue)then
-                num_new_patches = numpft + 1 ! bare ground patch in SP mode. 
+                !num_new_patches = numpft + 1 ! bare ground patch in SP mode. 
                 start_patch = 0 ! start at the bare ground patch
              endif
              !           allocate(newppft(numpft))
@@ -514,7 +514,12 @@ contains
                 ! i.e. each grid cell is divided exactly into the number of FATES PFTs.  
 
                 if(hlm_use_fixed_biogeog.eq.itrue)then
-                   newparea = sites(s)%area_pft(nocomp_pft)
+                    if(hlm_use_sp.eq.itrue.and.n.eq.0)then ! bare ground patch
+                        newparea = sites(s)%area_bareground 
+                        nocomp_pft = 0
+                    else
+                        newparea = sites(s)%area_pft(nocomp_pft)
+                    end if
                 else
                    newparea = area / numpft
                 end if
