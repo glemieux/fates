@@ -89,11 +89,13 @@ module FatesPlantHydraulicsMod
   use FatesHydraulicsMemMod, only: recruit_water_avail_layer  
   use FatesHydraulicsMemMod, only: rwccap, rwcft
   use FatesHydraulicsMemMod, only: ignore_layer1
-
-  use PRTGenericMod,          only : all_carbon_elements
+  
+  use PRTGenericMod,          only : carbon12_element
   use PRTGenericMod,          only : leaf_organ, fnrt_organ, sapw_organ
   use PRTGenericMod,          only : store_organ, repro_organ, struct_organ
-
+  use PRTGenericMod,          only : num_elements
+  use PRTGenericMod,          only : element_list
+  
   use clm_time_manager  , only : get_step_size, get_nstep
 
   use EDPftvarcon, only : EDPftvarcon_inst
@@ -174,7 +176,8 @@ module FatesPlantHydraulicsMod
   logical, parameter :: trap_neg_wc = .false.
   logical, parameter :: trap_supersat_psi = .false.
 
-
+  real(r8), parameter :: error_thresh = 1.e-5_r8  ! site level conservation error threshold in CLM
+                                                  ! (mm = kg/m2)
 
   real(r8), parameter :: thsat_buff = 0.001_r8 ! Ensure that this amount of buffer
   ! is left between soil moisture and saturation [m3/m3]
@@ -429,9 +432,11 @@ contains
        ! are not perturbed
        call SavePreviousRhizVolumes(sites(s))
 
-    end do
 
-    call UpdateH2OVeg(nsites,sites,bc_out)
+       call UpdateH2OVeg(sites(s),bc_out(s))
+       
+    end do
+    
 
     return
   end subroutine RestartHydrStates
@@ -552,13 +557,6 @@ contains
        cohort_hydr%th_ag(k) = wrf_plant(site_hydr%pm_node(k),ft)%p%th_from_psi(cohort_hydr%psi_ag(k))
        cohort_hydr%ftc_ag(k) = wkf_plant(site_hydr%pm_node(k),ft)%p%ftc_from_psi(cohort_hydr%psi_ag(k))
     end do
-
-    cohort_hydr%errh2o_growturn_ag(:)    = 0.0_r8
-    cohort_hydr%errh2o_growturn_troot    = 0.0_r8
-    cohort_hydr%errh2o_growturn_aroot    = 0.0_r8
-    cohort_hydr%errh2o_pheno_ag(:)       = 0.0_r8
-    cohort_hydr%errh2o_pheno_troot       = 0.0_r8
-    cohort_hydr%errh2o_pheno_aroot       = 0.0_r8
 
     !initialize cohort-level btran
 
@@ -831,10 +829,10 @@ contains
     ccohort_hydr => ccohort%co_hydr
     ft           = ccohort%pft
     nlevrhiz = site_hydr%nlevrhiz
-    leaf_c   = ccohort%prt%GetState(leaf_organ, all_carbon_elements)
-    sapw_c   = ccohort%prt%GetState(sapw_organ, all_carbon_elements)
-    fnrt_c   = ccohort%prt%GetState(fnrt_organ, all_carbon_elements)
-    struct_c = ccohort%prt%GetState(struct_organ, all_carbon_elements)
+    leaf_c   = ccohort%prt%GetState(leaf_organ, carbon12_element)
+    sapw_c   = ccohort%prt%GetState(sapw_organ, carbon12_element)
+    fnrt_c   = ccohort%prt%GetState(fnrt_organ, carbon12_element)
+    struct_c = ccohort%prt%GetState(struct_organ, carbon12_element)
 
     roota    = prt_params%fnrt_prof_a(ft)
     rootb    = prt_params%fnrt_prof_b(ft)
@@ -966,9 +964,7 @@ contains
     type(ed_site_hydr_type),pointer :: csite_hydr
     integer  :: j,k,FT                       ! indices
     integer  :: err_code = 0
-    real(r8) :: th_ag_uncorr(      n_hypool_ag) ! uncorrected aboveground water content[m3 m-3]
-    real(r8) :: th_troot_uncorr                 ! uncorrected transporting root water content[m3 m-3]
-    real(r8) :: th_aroot_uncorr(currentSite%si_hydr%nlevrhiz)    ! uncorrected absorbing root water content[m3 m-3] 
+    real(r8) :: th_uncorr                    ! Uncorrected water content
     real(r8), parameter :: small_theta_num = 1.e-7_r8  ! avoids theta values equalling thr or ths         [m3 m-3]
 
     integer :: nstep !number of time steps
@@ -976,7 +972,8 @@ contains
 
     ccohort_hydr => ccohort%co_hydr
     FT      =  cCohort%pft
-
+    csite_hydr =>currentSite%si_hydr
+    
     associate(pm_node => currentSite%si_hydr%pm_node)
 
       ! MAYBE ADD A NAN CATCH?  If UpdateSizeDepPlantHydProps() was not called twice prior to the first
@@ -988,49 +985,45 @@ contains
 
     do k=1,n_hypool_leaf
        if( ccohort_hydr%v_ag(k) > nearzero ) then
-          th_ag_uncorr(k)    = ccohort_hydr%th_ag(k)   * &
+          th_uncorr    = ccohort_hydr%th_ag(k)   * &
                ccohort_hydr%v_ag_init(k) /ccohort_hydr%v_ag(k)
-          ccohort_hydr%th_ag(k) = constrain_water_contents(th_ag_uncorr(k), small_theta_num, ft, pm_node(k))
+          ccohort_hydr%th_ag(k) = constrain_water_contents(th_uncorr, small_theta_num, ft, leaf_p_media)
        else
-          th_ag_uncorr(k)    = ccohort_hydr%th_ag(k) 
+          th_uncorr    = ccohort_hydr%th_ag(k) 
        end if
+       
+       csite_hydr%h2oveg_growturn_err = csite_hydr%h2oveg_growturn_err + &
+            denh2o*cCohort%n*AREA_INV*(ccohort_hydr%th_ag(k)-th_uncorr)*ccohort_hydr%v_ag(k)
     end do
 
     do k=n_hypool_leaf+1,n_hypool_ag
-       th_ag_uncorr(k)    = ccohort_hydr%th_ag(k)   * &
+       th_uncorr    = ccohort_hydr%th_ag(k)   * &
             ccohort_hydr%v_ag_init(k) /ccohort_hydr%v_ag(k)
-       ccohort_hydr%th_ag(k) = constrain_water_contents(th_ag_uncorr(k), small_theta_num, ft, pm_node(k))
+       ccohort_hydr%th_ag(k) = constrain_water_contents(th_uncorr, small_theta_num, ft, stem_p_media)
+
+       csite_hydr%h2oveg_growturn_err = csite_hydr%h2oveg_growturn_err + &
+            denh2o*cCohort%n*AREA_INV*(ccohort_hydr%th_ag(k)-th_uncorr)*ccohort_hydr%v_ag(k)
     enddo
 
-    th_troot_uncorr = ccohort_hydr%th_troot * ccohort_hydr%v_troot_init /ccohort_hydr%v_troot
-    ccohort_hydr%th_troot = constrain_water_contents(th_troot_uncorr, small_theta_num, ft, pm_node(3))
+    th_uncorr = ccohort_hydr%th_troot * ccohort_hydr%v_troot_init /ccohort_hydr%v_troot
+    ccohort_hydr%th_troot =  constrain_water_contents(th_uncorr, small_theta_num, ft, troot_p_media )
 
-
-    ccohort_hydr%errh2o_growturn_aroot = 0._r8
-    do j=1,currentSite%si_hydr%nlevrhiz
-       th_aroot_uncorr(j) = ccohort_hydr%th_aroot(j) * &
-            ccohort_hydr%v_aroot_layer_init(j)/ccohort_hydr%v_aroot_layer(j)
-       ccohort_hydr%th_aroot(j) = constrain_water_contents(th_aroot_uncorr(j), small_theta_num, ft, pm_node(4))
-       ccohort_hydr%errh2o_growturn_aroot = ccohort_hydr%errh2o_growturn_aroot + & 
-            denh2o*cCohort%n*AREA_INV*(ccohort_hydr%th_aroot(j)-th_aroot_uncorr(j))*ccohort_hydr%v_aroot_layer(j)
-    enddo
-
-    ! Storing mass balance error
-    ! + means water created; - means water destroyed
-    ccohort_hydr%errh2o_growturn_ag(:) = denh2o*cCohort%n*AREA_INV*ccohort_hydr%v_ag(:) * & 
-         (ccohort_hydr%th_ag(:)-th_ag_uncorr(:))
-    ccohort_hydr%errh2o_growturn_troot = denh2o*cCohort%n*AREA_INV*ccohort_hydr%v_troot * &
-         (ccohort_hydr%th_troot-th_troot_uncorr)
-
-    csite_hydr =>currentSite%si_hydr
     csite_hydr%h2oveg_growturn_err = csite_hydr%h2oveg_growturn_err + &
-         sum(ccohort_hydr%errh2o_growturn_ag(:)) + & 
-         ccohort_hydr%errh2o_growturn_troot      + &
-         ccohort_hydr%errh2o_growturn_aroot
+            denh2o*cCohort%n*AREA_INV*(ccohort_hydr%th_troot-th_uncorr)*ccohort_hydr%v_troot
+    
+
+    do j=1,currentSite%si_hydr%nlevrhiz
+       th_uncorr = ccohort_hydr%th_aroot(j) * &
+            ccohort_hydr%v_aroot_layer_init(j)/ccohort_hydr%v_aroot_layer(j)
+       ccohort_hydr%th_aroot(j) = constrain_water_contents(th_uncorr, small_theta_num, ft, aroot_p_media)
+       
+       csite_hydr%h2oveg_growturn_err = csite_hydr%h2oveg_growturn_err + &
+            denh2o*cCohort%n*AREA_INV*(ccohort_hydr%th_aroot(j)-th_uncorr)*ccohort_hydr%v_aroot_layer(j)
+       
+    enddo
 
 
-    ! UPDATES OF WATER POTENTIALS ARE DONE PRIOR TO RICHARDS' SOLUTION WITHIN FATESPLANTHYDRAULICSMOD.F90
-  end associate
+    end associate
 
 end subroutine UpdateSizeDepPlantHydStates
 
@@ -1266,7 +1259,6 @@ subroutine InitHydrSites(sites,bc_in)
   integer :: j
   integer :: jj
   type(ed_site_hydr_type),pointer :: csite_hydr
-
 
 
   if ( hlm_use_planthydro.eq.ifalse ) return
@@ -2027,9 +2019,9 @@ subroutine BTranForHLMDiagnosticsFromCohortHydr(nsites,sites,bc_out)
         ccohort=>cpatch%tallest
         do while(associated(ccohort))
            balive_patch = balive_patch +  &
-                (cCohort%prt%GetState(fnrt_organ, all_carbon_elements) + &
-                cCohort%prt%GetState(sapw_organ, all_carbon_elements) + &
-                cCohort%prt%GetState(leaf_organ, all_carbon_elements))* ccohort%n
+                (cCohort%prt%GetState(fnrt_organ, carbon12_element) + &
+                cCohort%prt%GetState(sapw_organ, carbon12_element) + &
+                cCohort%prt%GetState(leaf_organ, carbon12_element))* ccohort%n
            ccohort => ccohort%shorter
         enddo !cohort
 
@@ -2038,9 +2030,9 @@ subroutine BTranForHLMDiagnosticsFromCohortHydr(nsites,sites,bc_out)
         do while(associated(ccohort))
            bc_out(s)%btran_pa(ifp) =  bc_out(s)%btran_pa(ifp) + &
                 ccohort%co_hydr%btran * &
-                (cCohort%prt%GetState(fnrt_organ, all_carbon_elements) + &
-                cCohort%prt%GetState(sapw_organ, all_carbon_elements) + &
-                cCohort%prt%GetState(leaf_organ, all_carbon_elements)) * &
+                (cCohort%prt%GetState(fnrt_organ, carbon12_element) + &
+                cCohort%prt%GetState(sapw_organ, carbon12_element) + &
+                cCohort%prt%GetState(leaf_organ, carbon12_element)) * &
                 ccohort%n / balive_patch
            ccohort => ccohort%shorter
         enddo !cohort
