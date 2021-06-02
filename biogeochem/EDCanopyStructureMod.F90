@@ -1950,10 +1950,10 @@ contains
             ! thus we do not set any of the following vegetation properities for bare ground patchs.
             ifp = ifp+1
             bc_out(s)%nocomp_pft_label_pa(ifp) = currentPatch%nocomp_pft_label
-            if ( currentPatch%total_canopy_area-currentPatch%area > 0.000001_r8 ) then
-               write(fates_log(),*) 'ED: canopy area bigger than area',currentPatch%total_canopy_area ,currentPatch%area
-               currentPatch%total_canopy_area = currentPatch%area
-            endif
+            ! if ( currentPatch%total_canopy_area-currentPatch%area > 0.000001_r8 ) then
+            !    write(fates_log(),*) 'ED: canopy area bigger than area',currentPatch%total_canopy_area ,currentPatch%area
+            !    currentPatch%total_canopy_area = currentPatch%area
+            ! endif
 
 
           if (associated(currentPatch%tallest)) then
