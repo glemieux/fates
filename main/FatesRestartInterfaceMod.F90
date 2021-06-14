@@ -17,7 +17,7 @@ module FatesRestartInterfaceMod
   use FatesInterfaceTypesMod,       only : nlevcoage
   use FatesInterfaceTypesMod,       only : bc_in_type 
   use FatesInterfaceTypesMod,       only : bc_out_type
-  use FatesInterfaceTypesMod,       only : hlm_use_planthydro
+  use FatesInterfaceTypesMod,       only : hlm_use_planthydro, hlm_use_sp
   use FatesInterfaceTypesMod,       only : fates_maxElementsPerSite
   use EDCohortDynamicsMod,     only : UpdateCohortBioPhysRates
   use FatesHydraulicsMemMod,   only : nshell
@@ -2325,6 +2325,7 @@ contains
      use EDTypesMod, only : numWaterMem
      use EDTypesMod, only : num_vegtemp_mem
      use FatesSizeAgeTypeIndicesMod, only : get_age_class_index
+     use FatesAllometryMod, only : carea_allom
 
      ! !ARGUMENTS:
      class(fates_restart_interface_type) , intent(inout) :: this
@@ -2652,6 +2653,11 @@ contains
                 ccohort%isnew        = ( rio_isnew_co(io_idx_co) .eq. new_cohort )
 
                 call UpdateCohortBioPhysRates(ccohort)
+
+                ! Calculate the cohort area during restart for satellite phenology mode
+                if (hlm_use_sp) then 
+                   call carea_allom(ccohort%dbh,ccohort%n,sites(s)%spread,ccohort%pft,ccohort%c_area)
+                end if
 
 
                 ! Initialize Plant Hydraulics
