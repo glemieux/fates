@@ -228,7 +228,7 @@ module FatesRestartInterfaceMod
   real(r8), parameter, public :: flushone  = 1.0
   
   ! Local debug flag
-  logical, parameter, public :: debug=.false.
+  logical, parameter, public :: debug=.true.
 
   character(len=*), parameter :: sourcefile = &
        __FILE__
@@ -2326,6 +2326,7 @@ contains
      use EDTypesMod, only : num_vegtemp_mem
      use FatesSizeAgeTypeIndicesMod, only : get_age_class_index
      use FatesAllometryMod, only : carea_allom
+     use FatesConstantsMod, only : nearzero
 
      ! !ARGUMENTS:
      class(fates_restart_interface_type) , intent(inout) :: this
@@ -2342,6 +2343,7 @@ contains
      type(litter_type), pointer   :: litt        ! litter object on the current patch
      ! loop indices
      integer :: s, i, j, k
+     real(r8) :: oldcarea
 
      ! ----------------------------------------------------------------------------------
      ! The following group of integers indicate the positional index (idx)
@@ -2654,12 +2656,6 @@ contains
 
                 call UpdateCohortBioPhysRates(ccohort)
 
-                ! Calculate the cohort area during restart for satellite phenology mode
-                if (hlm_use_sp) then 
-                   call carea_allom(ccohort%dbh,ccohort%n,sites(s)%spread,ccohort%pft,ccohort%c_area)
-                end if
-
-
                 ! Initialize Plant Hydraulics
 
                 if(hlm_use_planthydro==itrue)then
@@ -2686,6 +2682,7 @@ contains
                 end if
                 
                 io_idx_co = io_idx_co + 1
+                write(fates_log(),*) 'FatesRestartInterfaceMod: s, ccohort%c_area: ', s, ccohort%c_area
              
                 ccohort => ccohort%taller
                 
@@ -2706,6 +2703,37 @@ contains
              cpatch%age_since_anthro_disturbance   = rio_agesinceanthrodist_pa(io_idx_co_1st)
              cpatch%nocomp_pft_label               = rio_nocomp_pft_label_pa(io_idx_co_1st)
              cpatch%area               = rio_area_pa(io_idx_co_1st)
+
+             ! Calculate the cohort area during restart for satellite phenology mode
+             ! This is necessary to avoid NaN in patch%wt_ed
+             if (hlm_use_sp) then 
+                ! There should only be one cohort perpatch
+                if (cohortsperpatch .eq. 1) then
+                   ccohort => cpatch%shortest
+                   call carea_allom(ccohort%dbh,ccohort%n,sites(s)%spread,ccohort%pft,ccohort%c_area)
+                   ! Check that the c_area is the same as the current patch area
+                   if (abs(cpatch%area - ccohort%c_area) .gt. nearzero) then
+                      if (abs(cpatch%area - ccohort%c_area) .lt. 1.0e-9) then
+                         oldcarea = ccohort%c_area
+                         !generate new cohort area
+                         ccohort%c_area = ccohort%c_area - (ccohort%c_area- cpatch%area)
+                         ccohort%n = ccohort%n * (ccohort%c_area/oldcarea)
+                         if(abs(ccohort%c_area-cpatch%area).gt.nearzero)then
+                           write(fates_log(),*) 'get_restart_var: c_area still broken'
+                           call endrun(msg=errMsg(sourcefile, __LINE__))
+                         end if 
+                      else
+                         write(fates_log(),*) 'get_restart_vec: sp mode patch area is very different from cohort area'
+                         call endrun(msg=errMsg(sourcefile, __LINE__))
+                      end if
+                   end if
+                else
+                   write(fates_log(),*) 'get_restart_vec: cohorts per patch is not 1: ',s,cohortsperpatch 
+                end if
+             end if
+
+             write(fates_log(),*) 'FatesRestartInterfaceMod: s, cpatch%area: ', s, cpatch%area
+
              cpatch%age_class          = get_age_class_index(cpatch%age)
 
              ! Set zenith angle info
