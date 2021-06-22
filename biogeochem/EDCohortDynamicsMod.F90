@@ -123,7 +123,7 @@ module EDCohortDynamicsMod
   public :: DeallocateCohort
   public :: EvaluateAndCorrectDBH
 
-  logical, parameter :: debug  = .false. ! local debug flag
+  logical, parameter :: debug  = .true. ! local debug flag
 
   character(len=*), parameter, private :: sourcefile = &
        __FILE__

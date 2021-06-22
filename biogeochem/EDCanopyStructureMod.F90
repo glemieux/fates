@@ -1344,6 +1344,11 @@ contains
                    currentPatch%total_tree_area = currentPatch%total_tree_area + currentCohort%c_area
                 endif
              endif
+                
+
+             if ( isnan(currentPatch%total_canopy_area) ) write(fates_log(),*) 'canopy_summarization1: total_canopy_fraction_pa is nan'
+             if ( isnan(currentCohort%c_area) ) write(fates_log(),*) 'canopy_summarization1: currentCohort%c_area,currentCohort%canopy_layer: ',&
+                                                                      currentCohort%c_area,currentCohort%canopy_layer
 
              ! adding checks for SP and NOCOMP modes. 
              if(currentPatch%nocomp_pft_label.eq.0)then
@@ -1396,7 +1401,11 @@ contains
                 call endrun(msg=errMsg(sourcefile, __LINE__))
              end if
              currentPatch%total_canopy_area = currentPatch%area
+             if ( isnan(currentPatch%total_canopy_area) ) write(fates_log(),*) 'canopy_summarization2: total_canopy_fraction_pa is nan'
           endif
+
+          if ( isnan(currentPatch%total_canopy_area) ) write(fates_log(),*) 'canopy_summarization3: total_canopy_fraction_pa is nan'
+
 
           currentPatch => currentPatch%younger
        end do !patch loop
@@ -1945,12 +1954,18 @@ contains
           !if(currentPatch%nocomp_pft_label.ne.0)then 
              ! only increase ifp for veg patches, not bareground (in SP mode)
              ifp = ifp+1
+
+          if ( isnan(currentPatch%total_canopy_area)) write(fates_log(),*) 'update_hlm_dynamics1: currentPatch%total_canopy_area is nan'
+          if ( isnan(currentPatch%area)) write(fates_log(),*) 'update_hlm_dynamics1: currentPatch%area is nan'
+
           !endif ! stay with ifp=0 for bareground patch. 
           if ( currentPatch%total_canopy_area-currentPatch%area > 0.000001_r8 ) then
              write(fates_log(),*) 'ED: canopy area bigger than area',currentPatch%total_canopy_area ,currentPatch%area
              currentPatch%total_canopy_area = currentPatch%area
           endif
 
+          if ( isnan(currentPatch%total_canopy_area)) write(fates_log(),*) 'update_hlm_dynamics2: currentPatch%total_canopy_area is nan'
+          if ( isnan(currentPatch%area)) write(fates_log(),*) 'update_hlm_dynamics2: currentPatch%area is nan'
 
           if (associated(currentPatch%tallest)) then
              bc_out(s)%htop_pa(ifp) = currentPatch%tallest%hite
@@ -2003,6 +2018,11 @@ contains
           total_canopy_area = total_canopy_area + bc_out(s)%canopy_fraction_pa(ifp)
 
           bc_out(s)%nocomp_pft_label_pa(ifp) = currentPatch%nocomp_pft_label
+
+          if ( isnan(bc_out(s)%canopy_fraction_pa(ifp)) ) write(fates_log(),*) 'update_hlm_dynamics1: canopy_fraction_pa is nan'
+          if ( isnan(bc_out(s)%canopy_fraction_pa(ifp)) ) write(fates_log(),*) 'update_hlm_dynamics1: c,s,ifp: ',c,s,ifp
+          if ( isnan(bc_out(s)%canopy_fraction_pa(ifp)) ) write(fates_log(),*) 'update_hlm_dynamics1: total_patch_area,bare_frac_area,total_patch_area: ',&
+                                                                               total_patch_area,bare_frac_area,total_patch_area
 
           ! Calculate area indices for output boundary to HLM
           ! It is assumed that cpatch%canopy_area_profile and cpat%xai_profiles
@@ -2063,6 +2083,8 @@ contains
                 bc_out(s)%canopy_fraction_pa(ifp) =0.0_r8
              endif ! veg patch
 
+          if ( isnan(bc_out(s)%canopy_fraction_pa(ifp)) ) write(fates_log(),*) 'update_hlm_dynamics2: canopy_fraction_pa is nan'
+          if ( isnan(bc_out(s)%canopy_fraction_pa(ifp)) ) write(fates_log(),*) 'update_hlm_dynamics2: c,s,ifp,total_patch_area: ',c,s,ifp,total_patch_area
 
              currentPatch => currentPatch%younger
           end do
