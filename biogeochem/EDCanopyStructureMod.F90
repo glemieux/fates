@@ -2149,7 +2149,9 @@ contains
        call endrun(msg=errMsg(sourcefile, __LINE__))
     end if
 
+    write(fates_log(),*) 'calc_areaindex: pre-max: ai_min, ai: ', ai_min, ai
     ai = max(ai_min,ai)
+    write(fates_log(),*) 'calc_areaindex: post-max: ai: ', ai
 
     return
 
