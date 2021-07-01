@@ -1547,14 +1547,14 @@ contains
                currentPatch%canopy_layer_tlai, currentCohort%treelai , &
                currentCohort%vcmax25top,4)
 
-               if ( debug ) write(fates_log(), *) 'SP mode: sai check: ', saicheck
+               if ( debug ) write(fates_log(), *) 'leaf_area_profile(): SP mode: sai check: ', saicheck
 
             end if
 
-            if ( debug ) write(fates_log(), *) 'currentCohort%canopy_layer: ', cl
-            if ( debug ) write(fates_log(), *) 'currentCohort%pft: ', ft
-            if ( debug ) write(fates_log(), *) 'currentCohort%treesai: ', currentCohort%treesai
-            if ( debug ) write(fates_log(), *) 'currentCohort%treelai: ', currentCohort%treelai
+            if ( debug ) write(fates_log(), *) 'leaf_area_profile(): currentCohort%canopy_layer: ', cl
+            if ( debug ) write(fates_log(), *) 'leaf_area_profile(): currentCohort%pft: ', ft
+            if ( debug ) write(fates_log(), *) 'leaf_area_profile(): currentCohort%treesai: ', currentCohort%treesai
+            if ( debug ) write(fates_log(), *) 'leaf_area_profile(): currentCohort%treelai: ', currentCohort%treelai
 
              currentCohort%lai =  currentCohort%treelai *currentCohort%c_area/currentPatch%total_canopy_area
              currentCohort%sai =  currentCohort%treesai *currentCohort%c_area/currentPatch%total_canopy_area
@@ -1573,6 +1573,7 @@ contains
 
           enddo !currentCohort
 
+          write(fates_log(), *) 'leaf_area_profile(): smooth_leaf_distribution: ', smooth_leaf_distribution
           if(smooth_leaf_distribution == 1)then
 
              ! -----------------------------------------------------------------------------
@@ -1774,6 +1775,7 @@ contains
                    currentPatch%esai_profile(cl,ft,iv) = currentPatch%esai_profile(cl,ft,iv) + &
                         remainder * (1._r8 - fleaf) * currentCohort%c_area/currentPatch%total_canopy_area * &
                         fraction_exposed
+                   write(fates_log(), *) 'leaf_area_profile(): esai_profile(cl,ft,iv) 1: ', currentPatch%esai_profile(cl,ft,iv)
 
                    currentPatch%canopy_area_profile(cl,ft,iv) = currentPatch%canopy_area_profile(cl,ft,iv) + &
                         currentCohort%c_area/currentPatch%total_canopy_area
@@ -1868,6 +1870,7 @@ contains
 
                          currentPatch%esai_profile(cl,ft,iv) = currentPatch%esai_profile(cl,ft,iv) / &
                               currentPatch%canopy_area_profile(cl,ft,iv)
+                         write(fates_log(), *) 'leaf_area_profile(): esai_profile(cl,ft,iv) 2: ', currentPatch%esai_profile(cl,ft,iv)
                       end if
 
                       if(currentPatch%tlai_profile(cl,ft,iv)>nearzero )then
