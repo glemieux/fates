@@ -150,6 +150,8 @@ contains
 
                    if ( check_layer_water(bc_in(s)%h2o_liqvol_sl(j),bc_in(s)%tempk_sl(j)) )  then
 
+                      if (bc_in(s)%eff_porosity_sl(j) .eq. -999._r8) write(fates_log(),*) 'ed_btran: undef eff_porosity_sl: ', s, j 
+
                       smp_node = max(smpsc(ft), bc_in(s)%smp_sl(j))
 
                       rresis  = min( (bc_in(s)%eff_porosity_sl(j)/bc_in(s)%watsat_sl(j))*               &
