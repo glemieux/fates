@@ -1248,7 +1248,7 @@ contains
 
   ! =====================================================================================
 
-  subroutine canopy_summarization( nsites, sites, bc_in )
+  subroutine canopy_summarization( nsites, sites, bc_in, startcase_flag )
 
     ! ----------------------------------------------------------------------------------
     ! Much of this routine was once ed_clm_link minus all the IO and history stuff
@@ -1266,6 +1266,7 @@ contains
     integer                 , intent(in)            :: nsites
     type(ed_site_type)      , intent(inout), target :: sites(nsites)
     type(bc_in_type)        , intent(in)            :: bc_in(nsites)
+    logical, optional, intent(in)                   :: startcase_flag
     !
     ! !LOCAL VARIABLES:
     type (ed_patch_type)  , pointer :: currentPatch
@@ -1280,12 +1281,19 @@ contains
     real(r8) :: sapw_c           ! sapwood carbon [kg]
     real(r8) :: store_c          ! storage carbon [kg]
     real(r8) :: struct_c         ! structure carbon [kg]
+    logical  :: restart_flag
 
     !----------------------------------------------------------------------
 
     if ( debug ) then
        write(fates_log(),*) 'in canopy_summarization'
     endif
+
+    if (present(startcase_flag)) then
+      restart_flag = .true.
+    else
+      restart_flag = .false.
+    end if
 
     do s = 1,nsites
 
@@ -1296,112 +1304,116 @@ contains
        ! --------------------------------------------------------------------------------
        call set_patchno( sites(s) )
 
-       currentPatch => sites(s)%oldest_patch
+       if ( .not.restart_flag ) then
 
-       do while(associated(currentPatch))
+         currentPatch => sites(s)%oldest_patch
 
-          !zero cohort-summed variables.
-          currentPatch%total_canopy_area = 0.0_r8
-          currentPatch%total_tree_area = 0.0_r8
-          canopy_leaf_area = 0.0_r8
+         do while(associated(currentPatch))
 
-          !update cohort quantitie s
-          currentCohort => currentPatch%shortest
-          do while(associated(currentCohort))
+            !zero cohort-summed variables.
+            currentPatch%total_canopy_area = 0.0_r8
+            currentPatch%total_tree_area = 0.0_r8
+            canopy_leaf_area = 0.0_r8
 
-             ft = currentCohort%pft
+            !update cohort quantitie s
+            currentCohort => currentPatch%shortest
+            do while(associated(currentCohort))
+
+               ft = currentCohort%pft
 
 
-             leaf_c   = currentCohort%prt%GetState(leaf_organ, all_carbon_elements)
-             sapw_c   = currentCohort%prt%GetState(sapw_organ, all_carbon_elements)
-             struct_c = currentCohort%prt%GetState(struct_organ, all_carbon_elements)
-             fnrt_c   = currentCohort%prt%GetState(fnrt_organ, all_carbon_elements)
-             store_c  = currentCohort%prt%GetState(store_organ, all_carbon_elements)
+               leaf_c   = currentCohort%prt%GetState(leaf_organ, all_carbon_elements)
+               sapw_c   = currentCohort%prt%GetState(sapw_organ, all_carbon_elements)
+               struct_c = currentCohort%prt%GetState(struct_organ, all_carbon_elements)
+               fnrt_c   = currentCohort%prt%GetState(fnrt_organ, all_carbon_elements)
+               store_c  = currentCohort%prt%GetState(store_organ, all_carbon_elements)
 
-             ! Update the cohort's index within the size bin classes
-             ! Update the cohort's index within the SCPF classification system
-             call sizetype_class_index(currentCohort%dbh,currentCohort%pft, &
-                  currentCohort%size_class,currentCohort%size_by_pft_class)
+               ! Update the cohort's index within the size bin classes
+               ! Update the cohort's index within the SCPF classification system
+               call sizetype_class_index(currentCohort%dbh,currentCohort%pft, &
+                     currentCohort%size_class,currentCohort%size_by_pft_class)
 
-             if (hlm_use_cohort_age_tracking .eq. itrue) then
-                call coagetype_class_index(currentCohort%coage,currentCohort%pft, &
-                     currentCohort%coage_class,currentCohort%coage_by_pft_class)
-             end if
+               if (hlm_use_cohort_age_tracking .eq. itrue) then
+                  call coagetype_class_index(currentCohort%coage,currentCohort%pft, &
+                        currentCohort%coage_class,currentCohort%coage_by_pft_class)
+               end if
 
-             if(hlm_use_sp.eq.ifalse)then
-                call carea_allom(currentCohort%dbh,currentCohort%n,sites(s)%spread,&
-                     currentCohort%pft,currentCohort%c_area)
-             endif
-             currentCohort%treelai = tree_lai(leaf_c,             &
-                  currentCohort%pft, currentCohort%c_area, currentCohort%n, &
-                  currentCohort%canopy_layer, currentPatch%canopy_layer_tlai,currentCohort%vcmax25top )
+               if(hlm_use_sp.eq.ifalse)then
+                  call carea_allom(currentCohort%dbh,currentCohort%n,sites(s)%spread,&
+                        currentCohort%pft,currentCohort%c_area)
+               endif
+               currentCohort%treelai = tree_lai(leaf_c,             &
+                     currentCohort%pft, currentCohort%c_area, currentCohort%n, &
+                     currentCohort%canopy_layer, currentPatch%canopy_layer_tlai,currentCohort%vcmax25top )
 
-             canopy_leaf_area = canopy_leaf_area + currentCohort%treelai *currentCohort%c_area
+               canopy_leaf_area = canopy_leaf_area + currentCohort%treelai *currentCohort%c_area
 
-             if(currentCohort%canopy_layer==1)then
-                currentPatch%total_canopy_area = currentPatch%total_canopy_area + currentCohort%c_area
-                if( int(prt_params%woody(ft))==itrue)then
-                   currentPatch%total_tree_area = currentPatch%total_tree_area + currentCohort%c_area
-                endif
-             endif
+               if(currentCohort%canopy_layer==1)then
+                  currentPatch%total_canopy_area = currentPatch%total_canopy_area + currentCohort%c_area
+                  if( int(prt_params%woody(ft))==itrue)then
+                     currentPatch%total_tree_area = currentPatch%total_tree_area + currentCohort%c_area
+                  endif
+               endif
 
-             ! adding checks for SP and NOCOMP modes.
-             if(currentPatch%nocomp_pft_label.eq.0)then
-                write(fates_log(),*) 'cohorts in barepatch',currentPatch%total_canopy_area,currentPatch%nocomp_pft_label
-                call endrun(msg=errMsg(sourcefile, __LINE__))
-             end if
+               ! adding checks for SP and NOCOMP modes.
+               if(currentPatch%nocomp_pft_label.eq.0)then
+                  write(fates_log(),*) 'cohorts in barepatch',currentPatch%total_canopy_area,currentPatch%nocomp_pft_label
+                  call endrun(msg=errMsg(sourcefile, __LINE__))
+               end if
 
-             if(hlm_use_sp.eq.itrue)then
+               if(hlm_use_sp.eq.itrue)then
 
-                if(associated(currentPatch%tallest%shorter))then
-                   write(fates_log(),*) 'more than one cohort in SP mode',s,currentPatch%nocomp_pft_label
-                   call endrun(msg=errMsg(sourcefile, __LINE__))
-                end if
+                  if(associated(currentPatch%tallest%shorter))then
+                     write(fates_log(),*) 'more than one cohort in SP mode',s,currentPatch%nocomp_pft_label
+                     call endrun(msg=errMsg(sourcefile, __LINE__))
+                  end if
 
-                if(currentPatch%total_canopy_area-currentPatch%area.gt.1.0e-16)then
-                   write(fates_log(),*) 'too much canopy in summary',s, &
-                        currentPatch%nocomp_pft_label, currentPatch%total_canopy_area-currentPatch%area
-                   call endrun(msg=errMsg(sourcefile, __LINE__))
-                end if
-             end if  !sp mode
+                  if(currentPatch%total_canopy_area-currentPatch%area.gt.1.0e-16)then
+                     write(fates_log(),*) 'too much canopy in summary',s, &
+                           currentPatch%nocomp_pft_label, currentPatch%total_canopy_area-currentPatch%area
+                     call endrun(msg=errMsg(sourcefile, __LINE__))
+                  end if
+               end if  !sp mode
 
-             ! Check for erroneous zero values.
-             if(currentCohort%dbh <= 0._r8 .or. currentCohort%n == 0._r8)then
-                write(fates_log(),*) 'FATES: dbh or n is zero in canopy_summarization', &
-                     currentCohort%dbh,currentCohort%n
-                call endrun(msg=errMsg(sourcefile, __LINE__))
-             endif
+               ! Check for erroneous zero values.
+               if(currentCohort%dbh <= 0._r8 .or. currentCohort%n == 0._r8)then
+                  write(fates_log(),*) 'FATES: dbh or n is zero in canopy_summarization', &
+                        currentCohort%dbh,currentCohort%n
+                  call endrun(msg=errMsg(sourcefile, __LINE__))
+               endif
 
-             if(currentCohort%pft == 0.or.currentCohort%canopy_trim <= 0._r8)then
-                write(fates_log(),*) 'FATES: PFT or trim is zero in canopy_summarization', &
-                     currentCohort%pft,currentCohort%canopy_trim
-                call endrun(msg=errMsg(sourcefile, __LINE__))
-             endif
-             if( (sapw_c + leaf_c + fnrt_c) <= 0._r8)then
-                write(fates_log(),*) 'FATES: alive biomass is zero in canopy_summarization', &
-                     sapw_c + leaf_c + fnrt_c
-                call endrun(msg=errMsg(sourcefile, __LINE__))
-             endif
+               if(currentCohort%pft == 0.or.currentCohort%canopy_trim <= 0._r8)then
+                  write(fates_log(),*) 'FATES: PFT or trim is zero in canopy_summarization', &
+                        currentCohort%pft,currentCohort%canopy_trim
+                  call endrun(msg=errMsg(sourcefile, __LINE__))
+               endif
+               if( (sapw_c + leaf_c + fnrt_c) <= 0._r8)then
+                  write(fates_log(),*) 'FATES: alive biomass is zero in canopy_summarization', &
+                        sapw_c + leaf_c + fnrt_c
+                  call endrun(msg=errMsg(sourcefile, __LINE__))
+               endif
 
-             currentCohort => currentCohort%taller
+               currentCohort => currentCohort%taller
 
-          enddo ! ends 'do while(associated(currentCohort))
+            enddo ! ends 'do while(associated(currentCohort))
 
-          if ( currentPatch%total_canopy_area>currentPatch%area ) then
-             if ( currentPatch%total_canopy_area-currentPatch%area > 0.001_r8 ) then
-                write(fates_log(),*) 'FATES: canopy area bigger than area', &
-                     currentPatch%total_canopy_area ,currentPatch%area, &
-                     currentPatch%total_canopy_area -currentPatch%area,&
-                     currentPatch%nocomp_pft_label
-                call endrun(msg=errMsg(sourcefile, __LINE__))
-             end if
-             currentPatch%total_canopy_area = currentPatch%area
-          endif
+            if ( currentPatch%total_canopy_area>currentPatch%area ) then
+               if ( currentPatch%total_canopy_area-currentPatch%area > 0.001_r8 ) then
+                  write(fates_log(),*) 'FATES: canopy area bigger than area', &
+                        currentPatch%total_canopy_area ,currentPatch%area, &
+                        currentPatch%total_canopy_area -currentPatch%area,&
+                        currentPatch%nocomp_pft_label
+                  call endrun(msg=errMsg(sourcefile, __LINE__))
+               end if
+               currentPatch%total_canopy_area = currentPatch%area
+            endif
 
-          currentPatch => currentPatch%younger
-       end do !patch loop
+            currentPatch => currentPatch%younger
+         end do !patch loop
 
-       call leaf_area_profile(sites(s),bc_in(s)%snow_depth_si,bc_in(s)%frac_sno_eff_si)
+         call leaf_area_profile(sites(s),bc_in(s)%snow_depth_si,bc_in(s)%frac_sno_eff_si)
+
+       end if
 
     end do ! site loop
 
