@@ -1411,9 +1411,6 @@ contains
 
        call leaf_area_profile(sites(s),bc_in(s)%snow_depth_si,bc_in(s)%frac_sno_eff_si)
 
-       write(fates_log(), *) 'canopy_summarization 3: total_canopy_area: ', currentPatch%total_canopy_area
-       write(fates_log(), *) 'canopy_summarization 3: area: ', currentPatch%area
-
     end do ! site loop
 
     return
