@@ -1294,11 +1294,16 @@ contains
        ! driving model.  Loops through all patches and sets cpatch%patchno to the integer
        ! order of oldest to youngest where the oldest is 1.
        ! --------------------------------------------------------------------------------
+       write(fates_log(), *) 'canopy_summarization: '
        call set_patchno( sites(s) )
 
        currentPatch => sites(s)%oldest_patch
 
        do while(associated(currentPatch))
+
+
+          write(fates_log(), *) 'canopy_summarization 1: total_canopy_area: 'currentPatch%total_canopy_area
+          write(fates_log(), *) 'canopy_summarization 1: area: 'currentPatch%area
 
           !zero cohort-summed variables.
           currentPatch%total_canopy_area = 0.0_r8
@@ -1398,10 +1403,16 @@ contains
              currentPatch%total_canopy_area = currentPatch%area
           endif
 
+          write(fates_log(), *) 'canopy_summarization 2: total_canopy_area: 'currentPatch%total_canopy_area
+          write(fates_log(), *) 'canopy_summarization 2: area: 'currentPatch%area
+
           currentPatch => currentPatch%younger
        end do !patch loop
 
        call leaf_area_profile(sites(s),bc_in(s)%snow_depth_si,bc_in(s)%frac_sno_eff_si)
+
+       write(fates_log(), *) 'canopy_summarization 3: total_canopy_area: 'currentPatch%total_canopy_area
+       write(fates_log(), *) 'canopy_summarization 3: area: 'currentPatch%area
 
     end do ! site loop
 
@@ -1510,6 +1521,9 @@ contains
        currentPatch%layer_height_profile(:,:,:) = 0._r8
        currentPatch%canopy_area_profile(:,:,:)  = 0._r8
        currentPatch%canopy_mask(:,:)            = 0
+
+       write(fates_log(), *) 'leaf_area_profile 1: total_canopy_area: 'currentPatch%total_canopy_area
+       write(fates_log(), *) 'leaf_area_profile 1: area: 'currentPatch%area
 
        ! ------------------------------------------------------------------------------
        ! It is remotely possible that in deserts we will not have any canopy
@@ -1790,6 +1804,9 @@ contains
 
              enddo !cohort
 
+             write(fates_log(), *) 'leaf_area_profile 2: total_canopy_area: 'currentPatch%total_canopy_area
+             write(fates_log(), *) 'leaf_area_profile 2: area: 'currentPatch%area
+
              ! --------------------------------------------------------------------------
 
              ! If there is an upper-story, the top canopy layer
@@ -1816,6 +1833,9 @@ contains
                 call endrun(msg=errMsg(sourcefile, __LINE__))
 
              end if
+
+             write(fates_log(), *) 'leaf_area_profile 3: total_canopy_area: 'currentPatch%total_canopy_area
+             write(fates_log(), *) 'leaf_area_profile 3: area: 'currentPatch%area
 
 
              ! --------------------------------------------------------------------------
@@ -1883,6 +1903,9 @@ contains
                 enddo
              enddo
 
+             write(fates_log(), *) 'leaf_area_profile 4: total_canopy_area: 'currentPatch%total_canopy_area
+             write(fates_log(), *) 'leaf_area_profile 4: area: 'currentPatch%area
+
              ! --------------------------------------------------------------------------
              ! Set the mask that identifies which PFT x can-layer combinations have
              ! scattering elements in them.
@@ -1897,6 +1920,9 @@ contains
                    end do !iv
                 enddo !ft
              enddo ! loop over cl
+
+             write(fates_log(), *) 'leaf_area_profile 5: total_canopy_area: 'currentPatch%total_canopy_area
+             write(fates_log(), *) 'leaf_area_profile 5: area: 'currentPatch%area
 
           endif !leaf distribution
 
@@ -1952,6 +1978,10 @@ contains
              ! only increase ifp for veg patches, not bareground (in SP mode)
              ifp = ifp+1
           !endif ! stay with ifp=0 for bareground patch.
+
+          write(fates_log(), *) 'update_hlm_dynamics 1: total_canopy_area: 'currentPatch%total_canopy_area
+          write(fates_log(), *) 'update_hlm_dynamics 1: area: 'currentPatch%area
+
           if ( currentPatch%total_canopy_area-currentPatch%area > 0.000001_r8 ) then
              write(fates_log(),*) 'ED: canopy area bigger than area',currentPatch%total_canopy_area ,currentPatch%area
              currentPatch%total_canopy_area = currentPatch%area
