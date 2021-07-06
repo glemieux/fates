@@ -1792,7 +1792,7 @@ contains
                    write(fates_log(), *) 'leaf_area_profile(): currentPatch%total_canopy_area 1: ', currentPatch%total_canopy_area
                    write(fates_log(), *) 'leaf_area_profile(): remainder 1: ', remainder
                    write(fates_log(), *) 'leaf_area_profile(): fleaf 1: ', fleaf
-                   write(fates_log(), *) 'leaf_area_profile(): remainder 1: ', fraction_exposed
+                   write(fates_log(), *) 'leaf_area_profile(): fraction_exposed 1: ', fraction_exposed
 
                    currentPatch%canopy_area_profile(cl,ft,iv) = currentPatch%canopy_area_profile(cl,ft,iv) + &
                         currentCohort%c_area/currentPatch%total_canopy_area

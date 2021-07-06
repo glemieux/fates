@@ -1406,6 +1406,12 @@ contains
                 currentSite%sp_htop(fates_pft) = currentSite%sp_htop(fates_pft) + &
                      bc_in%hlm_sp_htop(hlm_pft) * bc_in%pft_areafrac(hlm_pft) &
                      * EDPftvarcon_inst%hlm_pft_map(fates_pft,hlm_pft)
+
+                write(fates_log(),*) 'satellite_phenology: weighting: currentSite%sp_tsai: ', currentSite%sp_tsai(fates_pft)
+                write(fates_log(),*) 'satellite_phenology: weighting: bc_in%hlm_sp_tsai(hlm_pft): ', bc_in%hlm_sp_tsai(hlm_pft)
+                write(fates_log(),*) 'satellite_phenology: weighting: bc_in%pft_areafrac(hlm_pft): ', bc_in%pft_areafrac(hlm_pft)
+                write(fates_log(),*) 'satellite_phenology: weighting: EDPftvarcon_inst%hlm_pft_map: ', EDPftvarcon_inst%hlm_pft_map(fates_pft,hlm_pft)
+
              end if ! there is some area in this patch
           end do !hlm_pft
 
@@ -1418,6 +1424,10 @@ contains
                   /(currentPatch%area/area)
              currentSite%sp_htop(fates_pft) = currentSite%sp_htop(fates_pft) &
                   /(currentPatch%area/area)
+
+            write(fates_log(),*) 'satellite_phenology: more weighting: currentSite%sp_tsai: ', currentSite%sp_tsai(fates_pft)
+            write(fates_log(),*) 'satellite_phenology: more weighting: currentPatch%area: ', currentPatch%area
+
           endif
 
        end if ! not bare patch
@@ -1452,8 +1462,18 @@ contains
           end if
 
           write(fates_log(),*) 'satellite_phenology: pre-assign: currentSite%sp_tsai: ', currentSite%sp_tsai(fates_pft)
+          write(fates_log(),*) 'satellite_phenology: pre-assign: currentSite%sp_tlai: ', currentSite%sp_tlai(fates_pft)
+          write(fates_log(),*) 'satellite_phenology: pre-assign: currentSite%sp_htop: ', currentSite%sp_htop(fates_pft)
+          write(fates_log(),*) 'satellite_phenology: pre-assign: currentPatch%area: ', currentPatch%area
+
           ! Call routine to invert SP drivers into cohort properites.
-          call assign_cohort_SP_properties(currentCohort, currentSite%sp_htop(fates_pft), currentSite%sp_tlai(fates_pft)     , currentSite%sp_tsai(fates_pft),currentPatch%area,ifalse,leaf_c)
+          call assign_cohort_SP_properties(currentCohort, currentSite%sp_htop(fates_pft), currentSite%sp_tlai(fates_pft), &
+                                           currentSite%sp_tsai(fates_pft),currentPatch%area,ifalse,leaf_c)
+
+          write(fates_log(),*) 'satellite_phenology: post-assign: currentSite%sp_tsai: ', currentSite%sp_tsai(fates_pft)
+          write(fates_log(),*) 'satellite_phenology: post-assign: currentSite%sp_tlai: ', currentSite%sp_tlai(fates_pft)
+          write(fates_log(),*) 'satellite_phenology: post-assign: currentSite%sp_htop: ', currentSite%sp_htop(fates_pft)
+          write(fates_log(),*) 'satellite_phenology: pre-assign: currentPatch%area: ', currentPatch%area
 
           currentCohort => currentCohort%shorter
        end do !cohort loop
