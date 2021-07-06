@@ -1498,6 +1498,18 @@ contains
        call endrun(msg=errMsg(sourcefile, __LINE__))
     end if
 
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%dbh: ', currentCohort%dbh
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%pft: ', currentCohort%pft
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%nv: ', currentCohort%nv
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%c_area: ', currentCohort%c_area
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%canopy_layer: ', currentCohort%canopy_layer
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%vcmax25top: ', currentCohort%vcmax25top
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%treelai: ', currentCohort%treelai
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%treesai: ', currentCohort%treesai
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%lai: ', currentCohort%lai
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%sai: ', currentCohort%sai
+    write(fates_log(), *) 'assign...(): pre-calc currentCohort%hite: ', currentCohort%hite
+
     !------------------------------------------
     !  Calculate dbh from input height, and c_area from dbh
     !------------------------------------------
@@ -1506,11 +1518,16 @@ contains
     fates_pft = currentCohort%pft
     call h2d_allom(currentCohort%hite,fates_pft,currentCohort%dbh)
 
+    write(fates_log(), *) 'assign...(): post-calc 1 currentCohort%dbh: ', currentCohort%dbh
+
     dummy_n = 1.0_r8 ! make n=1 to get area of one tree.
     spread = 1.0_r8  ! fix this to 0 to remove dynamics of canopy closure, assuming a closed canopy.
     ! n.b. the value of this will only affect 'n', which isn't/shouldn't be a diagnostic in
     ! SP mode.
     call carea_allom(currentCohort%dbh,dummy_n,spread,currentCohort%pft,currentCohort%c_area)
+
+    write(fates_log(), *) 'assign...(): post-calc 2 currentCohort%dbh: ', currentCohort%dbh
+    write(fates_log(), *) 'assign...(): post-calc 2 currentCohort%c_area: ', currentCohort%c_area
 
     !------------------------------------------
     !  Calculate canopy N assuming patch area is full
@@ -1519,6 +1536,10 @@ contains
 
     ! correct c_area for the new nplant
     call carea_allom(currentCohort%dbh,currentCohort%n,spread,currentCohort%pft,currentCohort%c_area)
+
+    write(fates_log(), *) 'assign...(): post-calc 3 currentCohort%dbh: ', currentCohort%dbh
+    write(fates_log(), *) 'assign...(): post-calc 3 currentCohort%c_area: ', currentCohort%c_area
+    write(fates_log(), *) 'assign...(): post-calc 3 currentCohort%n: ', currentCohort%n
 
     ! ------------------------------------------
     ! Calculate leaf carbon from target treelai
@@ -1568,6 +1589,18 @@ contains
     currentCohort%treesai = tsai
     write(fates_log(),*) 'assign_cohort_SP_properties: init: ', init
     write(fates_log(),*) 'assign_cohort_SP_properties: tsai: ', tsai
+
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%dbh: ', currentCohort%dbh
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%pft: ', currentCohort%pft
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%nv: ', currentCohort%nv
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%c_area: ', currentCohort%c_area
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%canopy_layer: ', currentCohort%canopy_layer
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%vcmax25top: ', currentCohort%vcmax25top
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%treelai: ', currentCohort%treelai
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%treesai: ', currentCohort%treesai
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%lai: ', currentCohort%lai
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%sai: ', currentCohort%sai
+    write(fates_log(), *) 'assign...(): post-calc 4 currentCohort%hite: ', currentCohort%hite
 
   end subroutine assign_cohort_SP_properties
 
