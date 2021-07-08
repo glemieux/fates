@@ -1473,7 +1473,7 @@ contains
           write(fates_log(),*) 'satellite_phenology: post-assign: currentSite%sp_tsai: ', currentSite%sp_tsai(fates_pft)
           write(fates_log(),*) 'satellite_phenology: post-assign: currentSite%sp_tlai: ', currentSite%sp_tlai(fates_pft)
           write(fates_log(),*) 'satellite_phenology: post-assign: currentSite%sp_htop: ', currentSite%sp_htop(fates_pft)
-          write(fates_log(),*) 'satellite_phenology: pre-assign: currentPatch%area: ', currentPatch%area
+          write(fates_log(),*) 'satellite_phenology: post-assign: currentPatch%area: ', currentPatch%area
 
           currentCohort => currentCohort%shorter
        end do !cohort loop

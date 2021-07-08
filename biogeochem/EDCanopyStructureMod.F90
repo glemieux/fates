@@ -1314,8 +1314,13 @@ contains
           currentCohort => currentPatch%shortest
           do while(associated(currentCohort))
 
-             ft = currentCohort%pft
+            write(fates_log(), *) 'canopy_summarization 1: canopysum_start dbh: ', currentCohort%dbh
+            write(fates_log(), *) 'canopy_summarization 1: canopysum_start pft: ', currentCohort%pft
+            write(fates_log(), *) 'canopy_summarization 1: canopysum_start n: ', currentCohort%n
+            write(fates_log(), *) 'canopy_summarization 1: canopysum_start c_area: ', currentCohort%c_area
+            write(fates_log(), *) 'canopy_summarization 1: canopysum_start canopy_layer: ', currentCohort%canopy_layer
 
+             ft = currentCohort%pft
 
              leaf_c   = currentCohort%prt%GetState(leaf_organ, all_carbon_elements)
              sapw_c   = currentCohort%prt%GetState(sapw_organ, all_carbon_elements)
@@ -1388,6 +1393,12 @@ contains
                 call endrun(msg=errMsg(sourcefile, __LINE__))
              endif
 
+             write(fates_log(), *) 'canopy_summarization 2: canopysum_start dbh: ', currentCohort%dbh
+             write(fates_log(), *) 'canopy_summarization 2: canopysum_start pft: ', currentCohort%pft
+             write(fates_log(), *) 'canopy_summarization 2: canopysum_start n: ', currentCohort%n
+             write(fates_log(), *) 'canopy_summarization 2: canopysum_start c_area: ', currentCohort%c_area
+             write(fates_log(), *) 'canopy_summarization 2: canopysum_start canopy_layer: ', currentCohort%canopy_layer
+
              currentCohort => currentCohort%taller
 
           enddo ! ends 'do while(associated(currentCohort))
@@ -1403,8 +1414,8 @@ contains
              currentPatch%total_canopy_area = currentPatch%area
           endif
 
-          write(fates_log(), *) 'canopy_summarization 2: total_canopy_area: ', currentPatch%total_canopy_area
-          write(fates_log(), *) 'canopy_summarization 2: area: ', currentPatch%area
+          write(fates_log(), *) 'canopy_summarization 3: total_canopy_area: ', currentPatch%total_canopy_area
+          write(fates_log(), *) 'canopy_summarization 3: area: ', currentPatch%area
 
           currentPatch => currentPatch%younger
        end do !patch loop
