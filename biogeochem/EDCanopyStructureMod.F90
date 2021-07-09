@@ -2206,6 +2206,14 @@ contains
           do ft = 1,numpft
              ai = ai + sum(cpatch%canopy_area_profile(cl,ft,1:cpatch%nrad(cl,ft)) * &
                   cpatch%esai_profile(cl,ft,1:cpatch%nrad(cl,ft)))
+
+             write(fates_log(),*) 'calc_areaindex: post-esai calc: cl,ft', cl,ft
+             write(fates_log(),*) 'calc_areaindex: post-esai calc: cpatch%nrad', cpatch%nrad(cl,ft)
+             write(fates_log(),*) 'calc_areaindex: post-esai calc: canopy_area_profile', &
+                                  cpatch%canopy_area_profile(cl,ft,1:cpatch%nrad(cl,ft))
+             write(fates_log(),*) 'calc_areaindex: post-esai calc: esai_profile', &
+                                  cpatch%esai_profile(cl,ft,1:cpatch%nrad(cl,ft))
+
           enddo
        enddo
     elseif (trim(ai_type) == 'tsai') then
