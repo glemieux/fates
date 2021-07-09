@@ -1537,8 +1537,6 @@ contains
        currentPatch%canopy_mask(:,:)            = 0
 
        write(fates_log(), *) 'leaf_area_profile 1: total_canopy_area: ', currentPatch%total_canopy_area
-       write(fates_log(), *) 'leaf_area_profile 1: elai_profile: ', currentPatch%elai_profile
-       write(fates_log(), *) 'leaf_area_profile 1: esai_profile: ', currentPatch%esai_profile
        write(fates_log(), *) 'leaf_area_profile 1: canopy_layer_tlai: ', currentPatch%canopy_layer_tlai
 
        ! ------------------------------------------------------------------------------
@@ -1686,9 +1684,10 @@ contains
                    currentPatch%elai_profile(1,ft,iv) = currentPatch%tlai_profile(1,ft,iv) * fraction_exposed
                    currentPatch%esai_profile(1,ft,iv) = currentPatch%tsai_profile(1,ft,iv) * fraction_exposed
 
-                   write(fates_log(), *) 'leaf_area_profile(): esai_profile(1,ft,iv)', currentPatch%esai_profile(1,ft,iv)
-                   write(fates_log(), *) 'leaf_area_profile(): tlai_profile(1,ft,iv)', currentPatch%tlai_profile(1,ft,iv)
-                   write(fates_log(), *) 'leaf_area_profile(): fraction_exposed', fraction_exposed
+                   write(fates_log(), *) 'leaf_area_profile() 1: ft,iv', ft,iv
+                   write(fates_log(), *) 'leaf_area_profile() 1: esai_profile(1,ft,iv)', currentPatch%esai_profile(1,ft,iv)
+                   write(fates_log(), *) 'leaf_area_profile() 1: tlai_profile(1,ft,iv)', currentPatch%tlai_profile(1,ft,iv)
+                   write(fates_log(), *) 'leaf_area_profile() 1: fraction_exposed', fraction_exposed
 
 
                 enddo ! (iv) hite bins
@@ -1818,13 +1817,6 @@ contains
                    currentPatch%esai_profile(cl,ft,iv) = currentPatch%esai_profile(cl,ft,iv) + &
                         remainder * (1._r8 - fleaf) * currentCohort%c_area/currentPatch%total_canopy_area * &
                         fraction_exposed
-                   write(fates_log(), *) 'leaf_area_profile(): e1ai_profile(cl,ft,iv) 1: ', currentPatch%elai_profile(cl,ft,iv)
-                   write(fates_log(), *) 'leaf_area_profile(): esai_profile(cl,ft,iv) 1: ', currentPatch%esai_profile(cl,ft,iv)
-                   write(fates_log(), *) 'leaf_area_profile(): currentCohort%c_area 1: ', currentCohort%c_area
-                   write(fates_log(), *) 'leaf_area_profile(): currentPatch%total_canopy_area 1: ', currentPatch%total_canopy_area
-                   write(fates_log(), *) 'leaf_area_profile(): remainder 1: ', remainder
-                   write(fates_log(), *) 'leaf_area_profile(): fleaf 1: ', fleaf
-                   write(fates_log(), *) 'leaf_area_profile(): fraction_exposed 1: ', fraction_exposed
 
                    currentPatch%canopy_area_profile(cl,ft,iv) = currentPatch%canopy_area_profile(cl,ft,iv) + &
                         currentCohort%c_area/currentPatch%total_canopy_area
@@ -1832,6 +1824,16 @@ contains
                    currentPatch%layer_height_profile(cl,ft,iv) = currentPatch%layer_height_profile(cl,ft,iv) + &
                         (remainder * fleaf * currentCohort%c_area/currentPatch%total_canopy_area * &
                         (layer_top_hite+layer_bottom_hite)/2.0_r8) !average height of layer.
+
+                  write(fates_log(), *) 'leaf_area_profile() 2: cl,ft,iv: ', cl,ft,iv
+                  write(fates_log(), *) 'leaf_area_profile() 2: elai_profile(cl,ft,iv): ', currentPatch%elai_profile(cl,ft,iv)
+                  write(fates_log(), *) 'leaf_area_profile() 2: esai_profile(cl,ft,iv): ', currentPatch%esai_profile(cl,ft,iv)
+                  write(fates_log(), *) 'leaf_area_profile() 2: canopy_area_profile(cl,ft,iv): ', currentPatch%canopy_area_profile(cl,ft,iv)
+                  write(fates_log(), *) 'leaf_area_profile() 2: currentCohort%c_area: ', currentCohort%c_area
+                  write(fates_log(), *) 'leaf_area_profile() 2: currentPatch%total_canopy_area: ', currentPatch%total_canopy_area
+                  write(fates_log(), *) 'leaf_area_profile() 2: remainder: ', remainder
+                  write(fates_log(), *) 'leaf_area_profile() 2: fleaf: ', fleaf
+                  write(fates_log(), *) 'leaf_area_profile() 2: fraction_exposed: ', fraction_exposed
 
                 end do
 
@@ -1926,6 +1928,7 @@ contains
                          currentPatch%esai_profile(cl,ft,iv) = currentPatch%esai_profile(cl,ft,iv) / &
                               currentPatch%canopy_area_profile(cl,ft,iv)
 
+                         write(fates_log(), *) 'leaf_area_profile 4: cl,ft,iv: ', cl,ft,iv
                          write(fates_log(), *) 'leaf_area_profile 4: currentPatch%elai_profile(cl,ft,iv): ', &
                               currentPatch%elai_profile(cl,ft,iv)
                          write(fates_log(), *) 'leaf_area_profile 4: currentPatch%esai_profile(cl,ft,iv): ', &
