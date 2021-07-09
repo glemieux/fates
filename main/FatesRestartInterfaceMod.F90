@@ -1017,6 +1017,10 @@ contains
              long_name='area of the fates cohort', &
              units='m2', flushval = flushzero, &
              hlms='CLM:ALM', initialize=initialize_variables, ivar=ivar, index = ir_c_area_co )
+         call this%set_restart_var(vname='fates_cohort_treelai', vtype=cohort_r8, &
+             long_name='area of the fates cohort', &
+             units='m2', flushval = flushzero, &
+             hlms='CLM:ALM', initialize=initialize_variables, ivar=ivar, index = ir_c_area_co )
     end if
 
 

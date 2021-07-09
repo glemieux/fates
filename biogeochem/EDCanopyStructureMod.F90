@@ -1304,6 +1304,8 @@ contains
 
           write(fates_log(), *) 'canopy_summarization 1: total_canopy_area: ', currentPatch%total_canopy_area
           write(fates_log(), *) 'canopy_summarization 1: area: ', currentPatch%area
+          write(fates_log(), *) 'canopy_summarization 1: total_tree_area: ', currentPatch%total_tree_area
+          write(fates_log(), *) 'canopy_summarization 1: canopy_layer_tlai: ', currentPatch%canopy_layer_tlai
 
           !zero cohort-summed variables.
           currentPatch%total_canopy_area = 0.0_r8
@@ -1319,6 +1321,8 @@ contains
             write(fates_log(), *) 'canopy_summarization 1: canopysum_start n: ', currentCohort%n
             write(fates_log(), *) 'canopy_summarization 1: canopysum_start c_area: ', currentCohort%c_area
             write(fates_log(), *) 'canopy_summarization 1: canopysum_start canopy_layer: ', currentCohort%canopy_layer
+            write(fates_log(), *) 'canopy_summarization 1: canopysum_start treelai: ', currentCohort%treelai
+            write(fates_log(), *) 'canopy_summarization 1: canopysum_start vcmax25top: ', currentCohort%vcmax25top
 
              ft = currentCohort%pft
 
@@ -1398,6 +1402,7 @@ contains
              write(fates_log(), *) 'canopy_summarization 2: canopysum_start n: ', currentCohort%n
              write(fates_log(), *) 'canopy_summarization 2: canopysum_start c_area: ', currentCohort%c_area
              write(fates_log(), *) 'canopy_summarization 2: canopysum_start canopy_layer: ', currentCohort%canopy_layer
+             write(fates_log(), *) 'canopy_summarization 2: canopysum_start treelai: ', currentCohort%treelai
 
              currentCohort => currentCohort%taller
 
@@ -1416,6 +1421,7 @@ contains
 
           write(fates_log(), *) 'canopy_summarization 3: total_canopy_area: ', currentPatch%total_canopy_area
           write(fates_log(), *) 'canopy_summarization 3: area: ', currentPatch%area
+          write(fates_log(), *) 'canopy_summarization 3: total_tree_area: ', currentPatch%total_tree_area
 
           currentPatch => currentPatch%younger
        end do !patch loop
@@ -1531,7 +1537,9 @@ contains
        currentPatch%canopy_mask(:,:)            = 0
 
        write(fates_log(), *) 'leaf_area_profile 1: total_canopy_area: ', currentPatch%total_canopy_area
-       write(fates_log(), *) 'leaf_area_profile 1: area: ', currentPatch%area
+       write(fates_log(), *) 'leaf_area_profile 1: elai_profile: ', currentPatch%elai_profile
+       write(fates_log(), *) 'leaf_area_profile 1: esai_profile: ', currentPatch%esai_profile
+       write(fates_log(), *) 'leaf_area_profile 1: canopy_layer_tlai: ', currentPatch%canopy_layer_tlai
 
        ! ------------------------------------------------------------------------------
        ! It is remotely possible that in deserts we will not have any canopy
@@ -1573,29 +1581,41 @@ contains
 
             end if
 
-            if ( debug ) write(fates_log(), *) 'leaf_area_profile(): currentCohort%canopy_layer: ', cl
-            if ( debug ) write(fates_log(), *) 'leaf_area_profile(): currentCohort%pft: ', ft
-            if ( debug ) write(fates_log(), *) 'leaf_area_profile(): currentCohort%treesai: ', currentCohort%treesai
-            if ( debug ) write(fates_log(), *) 'leaf_area_profile(): currentCohort%treelai: ', currentCohort%treelai
+             write(fates_log(), *) 'leaf_area_profile(): currentCohort%canopy_layer: ', cl
+             write(fates_log(), *) 'leaf_area_profile(): currentCohort%pft: ', ft
+             write(fates_log(), *) 'leaf_area_profile(): currentCohort%treesai: ', currentCohort%treesai
+             write(fates_log(), *) 'leaf_area_profile(): currentCohort%treelai: ', currentCohort%treelai
+             write(fates_log(), *) 'leaf_area_profile(): currentCohort%c_area: ', currentCohort%c_area
+             write(fates_log(), *) 'leaf_area_profile(): currentCohort%vcmax25top: ', currentCohort%vcmax25top
 
              currentCohort%lai =  currentCohort%treelai *currentCohort%c_area/currentPatch%total_canopy_area
              currentCohort%sai =  currentCohort%treesai *currentCohort%c_area/currentPatch%total_canopy_area
+
              write(fates_log(), *) 'leaf_area_profile(): currentCohort%sai', currentCohort%sai
+             write(fates_log(), *) 'leaf_area_profile(): currentCohort%lai', currentCohort%lai
 
              ! Number of actual vegetation layers in this cohort's crown
              currentCohort%nv =  ceiling((currentCohort%treelai+currentCohort%treesai)/dinc_ed)
 
+             write(fates_log(), *) 'leaf_area_profile(): currentCohort%nv: ', currentCohort%nv
+             write(fates_log(), *) 'leaf_area_profile(): pre-currentPatch%ncan(cl,ft): ', currentPatch%ncan(cl,ft)
+
              currentPatch%ncan(cl,ft) = max(currentPatch%ncan(cl,ft),currentCohort%NV)
+
+             write(fates_log(), *) 'leaf_area_profile(): post-currentPatch%ncan(cl,ft): ', currentPatch%ncan(cl,ft)
 
              patch_lai = patch_lai + currentCohort%lai
 
              currentPatch%canopy_layer_tlai(cl) = currentPatch%canopy_layer_tlai(cl) + currentCohort%lai
+
+             write(fates_log(), *) 'leaf_area_profile(): currentPatch%canopy_layer_tlai(cl): ', currentPatch%canopy_layer_tlai(cl)
 
              currentCohort => currentCohort%shorter
 
           enddo !currentCohort
 
           write(fates_log(), *) 'leaf_area_profile(): smooth_leaf_distribution: ', smooth_leaf_distribution
+
           if(smooth_leaf_distribution == 1)then
 
              ! -----------------------------------------------------------------------------
@@ -1798,6 +1818,7 @@ contains
                    currentPatch%esai_profile(cl,ft,iv) = currentPatch%esai_profile(cl,ft,iv) + &
                         remainder * (1._r8 - fleaf) * currentCohort%c_area/currentPatch%total_canopy_area * &
                         fraction_exposed
+                   write(fates_log(), *) 'leaf_area_profile(): e1ai_profile(cl,ft,iv) 1: ', currentPatch%elai_profile(cl,ft,iv)
                    write(fates_log(), *) 'leaf_area_profile(): esai_profile(cl,ft,iv) 1: ', currentPatch%esai_profile(cl,ft,iv)
                    write(fates_log(), *) 'leaf_area_profile(): currentCohort%c_area 1: ', currentCohort%c_area
                    write(fates_log(), *) 'leaf_area_profile(): currentPatch%total_canopy_area 1: ', currentPatch%total_canopy_area
@@ -1904,6 +1925,11 @@ contains
 
                          currentPatch%esai_profile(cl,ft,iv) = currentPatch%esai_profile(cl,ft,iv) / &
                               currentPatch%canopy_area_profile(cl,ft,iv)
+
+                         write(fates_log(), *) 'leaf_area_profile 4: currentPatch%elai_profile(cl,ft,iv): ', &
+                              currentPatch%elai_profile(cl,ft,iv)
+                         write(fates_log(), *) 'leaf_area_profile 4: currentPatch%esai_profile(cl,ft,iv): ', &
+                                             currentPatch%esai_profile(cl,ft,iv)
                       end if
 
                       if(currentPatch%tlai_profile(cl,ft,iv)>nearzero )then
