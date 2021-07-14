@@ -69,6 +69,8 @@ module FatesHistoryInterfaceMod
   use PRTGenericMod            , only : nitrogen_element, phosphorus_element
   use PRTGenericMod            , only : prt_carbon_allom_hyp
 
+  use clm_time_manager         , only : get_nstep
+
   implicit none
   private          ! By default everything is private
 
@@ -1132,7 +1134,7 @@ contains
     if (this%dim_kinds(ityp)%ndims < idim) then
        write(fates_log(), *) 'Trying to define dimension size to a dim-type structure'
        write(fates_log(), *) 'but the dimension index does not exist'
-       write(fates_log(), *) 'type: ',dk_name,' ndims: ',this%dim_kinds(ityp)%ndims,' input dim:',idim
+       write((), *) 'type: ',dk_name,' ndims: ',this%dim_kinds(ityp)%ndims,' input dim:',idim
        stop
        !end_run
     end if
