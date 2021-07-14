@@ -4885,9 +4885,6 @@ end subroutine update_history_hifrq
          long='gross primary production',  use_default='active',                &
          avgflag='A', vtype=site_r8, hlms='CLM:ALM', flushval=0.0_r8, upfreq=2,   &
          ivar=ivar, initialize=initialize_variables, index = ih_gpp_si )
-         if ( get_nstep() .eq. 1440 ) then
-          write (fates_log(),*) 'FatesHistoryInterface: hio_gpp_si: ', hio_gpp_si
-        end if
 
     call this%set_history_var(vname='AR', units='gC/m^2/s',                 &
          long='autotrophic respiration', use_default='active',                  &
