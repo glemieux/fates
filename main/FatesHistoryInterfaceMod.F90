@@ -3523,6 +3523,7 @@ end subroutine flush_hvars
                         ccohort%gpp_tstep * g_per_kg * n_perm2 * per_dt_tstep
                   if ( get_nstep() .eq. 1440 ) then
                     write (fates_log(),*) 'FatesHistoryInterface: ccohort%gpp_tstep: ', ccohort%gpp_tstep
+                    write (fates_log(),*) 'FatesHistoryInterface: io_si, hio_gpp_si(io_si): ', io_si, hio_gpp_si(io_si)
                   end if
 
                   hio_aresp_si(io_si) = hio_aresp_si(io_si) + &
