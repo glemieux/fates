@@ -1603,43 +1603,58 @@ contains
              ! this is a crude way of dividing up the bins. Should it be a function of actual maximum height?
              dh = 1.0_r8*(HITEMAX/N_HITE_BINS)
              do iv = 1,N_HITE_BINS
-                frac_canopy(iv) = 0.0_r8
-                ! this layer is in the middle of the canopy
-                if(max_chite > maxh(iv).and.min_chite < minh(iv))then
-                   frac_canopy(iv)= min(1.0_r8,dh / (currentCohort%hite*EDPftvarcon_inst%crown(ft)))
-                   ! this is the layer with the bottom of the canopy in it.
-                elseif(min_chite < maxh(iv).and.min_chite > minh(iv).and.max_chite > maxh(iv))then
-                   frac_canopy(iv) = (maxh(iv) -min_chite ) / (currentCohort%hite*EDPftvarcon_inst%crown(ft))
-                   ! this is the layer with the top of the canopy in it.
-                elseif(max_chite > minh(iv).and.max_chite < maxh(iv).and.min_chite < minh(iv))then
-                   frac_canopy(iv) = (max_chite - minh(iv)) / (currentCohort%hite*EDPftvarcon_inst%crown(ft))
-                elseif(max_chite < maxh(iv).and.min_chite > minh(iv))then !the whole cohort is within this layer.
-                   frac_canopy(iv) = 1.0_r8
+                if (iv == 1) then
+                   minh(iv) = 0.0_r8
+                   maxh(iv) = dh
+                else
+                   minh(iv) = (iv-1)*dh
+                   maxh(iv) = (iv)*dh
                 endif
+             enddo
 
-                ! no m2 of leaf per m2 of ground in each height class
-                currentPatch%tlai_profile(1,ft,iv) = currentPatch%tlai_profile(1,ft,iv) + frac_canopy(iv) * &
-                      currentCohort%lai
-                currentPatch%tsai_profile(1,ft,iv) = currentPatch%tsai_profile(1,ft,iv) + frac_canopy(iv) * &
-                      currentCohort%sai
+             currentCohort => currentPatch%shortest
+             do while(associated(currentCohort))
+                ft = currentCohort%pft
+                min_chite = currentCohort%hite - currentCohort%hite * EDPftvarcon_inst%crown(ft)
+                max_chite = currentCohort%hite
+                do iv = 1,N_HITE_BINS
+                  frac_canopy(iv) = 0.0_r8
+                  ! this layer is in the middle of the canopy
+                  if(max_chite > maxh(iv).and.min_chite < minh(iv))then
+                     frac_canopy(iv)= min(1.0_r8,dh / (currentCohort%hite*EDPftvarcon_inst%crown(ft)))
+                     ! this is the layer with the bottom of the canopy in it.
+                  elseif(min_chite < maxh(iv).and.min_chite > minh(iv).and.max_chite > maxh(iv))then
+                     frac_canopy(iv) = (maxh(iv) -min_chite ) / (currentCohort%hite*EDPftvarcon_inst%crown(ft))
+                     ! this is the layer with the top of the canopy in it.
+                  elseif(max_chite > minh(iv).and.max_chite < maxh(iv).and.min_chite < minh(iv))then
+                     frac_canopy(iv) = (max_chite - minh(iv)) / (currentCohort%hite*EDPftvarcon_inst%crown(ft))
+                  elseif(max_chite < maxh(iv).and.min_chite > minh(iv))then !the whole cohort is within this layer.
+                     frac_canopy(iv) = 1.0_r8
+                  endif
 
-                !snow burial
-                if(currentSite%snow_depth  > maxh(iv))then
-                   fraction_exposed = 0._r8
-                endif
-                if(currentSite%snow_depth < minh(iv))then
-                   fraction_exposed = 1._r8
-                endif
-                if(currentSite%snow_depth >= minh(iv) .and. currentSite%snow_depth <= maxh(iv)) then !only partly hidden...
-                   fraction_exposed = 1._r8 - max(0._r8,(min(1.0_r8,(currentSite%snow_depth-minh(iv))/dh)))
-                endif
+                  ! no m2 of leaf per m2 of ground in each height class
+                  currentPatch%tlai_profile(1,ft,iv) = currentPatch%tlai_profile(1,ft,iv) + frac_canopy(iv) * &
+                        currentCohort%lai
+                  currentPatch%tsai_profile(1,ft,iv) = currentPatch%tsai_profile(1,ft,iv) + frac_canopy(iv) * &
+                        currentCohort%sai
 
-                if ( debug ) write(fates_log(), *) 'leaf_area_profile()', currentPatch%elai_profile(1,ft,iv)
+                  !snow burial
+                  if(currentSite%snow_depth  > maxh(iv))then
+                     fraction_exposed = 0._r8
+                  endif
+                  if(currentSite%snow_depth < minh(iv))then
+                     fraction_exposed = 1._r8
+                  endif
+                  if(currentSite%snow_depth >= minh(iv) .and. currentSite%snow_depth <= maxh(iv)) then !only partly hidden...
+                     fraction_exposed = 1._r8 - max(0._r8,(min(1.0_r8,(currentSite%snow_depth-minh(iv))/dh)))
+                  endif
 
-                currentPatch%elai_profile(1,ft,iv) = currentPatch%tlai_profile(1,ft,iv) * fraction_exposed
-                currentPatch%esai_profile(1,ft,iv) = currentPatch%tsai_profile(1,ft,iv) * fraction_exposed
+                  if ( debug ) write(fates_log(), *) 'leaf_area_profile()', currentPatch%elai_profile(1,ft,iv)
 
-                if ( debug ) write(fates_log(), *) 'leaf_area_profile()', currentPatch%elai_profile(1,ft,iv)
+                  currentPatch%elai_profile(1,ft,iv) = currentPatch%tlai_profile(1,ft,iv) * fraction_exposed
+                  currentPatch%esai_profile(1,ft,iv) = currentPatch%tsai_profile(1,ft,iv) * fraction_exposed
+
+                  if ( debug ) write(fates_log(), *) 'leaf_area_profile()', currentPatch%elai_profile(1,ft,iv)
 
              enddo ! (iv) hite bins
 
@@ -1662,9 +1677,15 @@ contains
 
        else ! smooth leaf distribution
 
+          ! -----------------------------------------------------------------------------
+          ! Standard canopy layering model.
+          ! Go through all cohorts and add their leaf area
+          ! and canopy area to the accumulators.
+          ! -----------------------------------------------------------------------------
 
              currentCohort => currentPatch%shortest
              do while(associated(currentCohort))
+
                 ft = currentCohort%pft
                 cl = currentCohort%canopy_layer
 
@@ -1678,6 +1699,7 @@ contains
                 else
                    fleaf = 0._r8
                 endif
+
                 currentPatch%nrad(cl,ft) = currentPatch%ncan(cl,ft)
 
                 if (currentPatch%nrad(cl,ft) > nlevleaf ) then
