@@ -1238,9 +1238,6 @@ contains
 
                    if(store_c>nearzero) then
 
-                      store_c_transfer_frac = &
-                           min(EDPftvarcon_inst%phenflush_fraction(ipft)*currentCohort%laimemory, store_c)/store_c
-
                      store_c_transfer_frac = &
                           min((EDPftvarcon_inst%phenflush_fraction(ipft)*currentCohort%laimemory)/store_c, &
                           (1.0_r8-carbon_store_buffer))
@@ -1882,6 +1879,23 @@ contains
        temp_cohort%sapwmemory = 0.0_r8
        temp_cohort%structmemory = 0.0_r8
 
+       ! But if the plant is seasonally (cold) deciduous, and the site status is flagged
+       ! as "cold", then set the cohort's status to leaves_off, and remember the leaf biomass
+       if ((prt_params%season_decid(ft) == itrue) .and. &
+             (any(currentSite%cstatus == [phen_cstat_nevercold,phen_cstat_iscold]))) then
+         temp_cohort%laimemory = c_leaf
+         c_leaf = 0.0_r8
+
+         ! If plant is not woody then set sapwood and structural biomass as well
+         if (prt_params%woody(ft).ne.itrue) then
+            temp_cohort%sapwmemory = c_sapw * stem_drop_fraction
+            temp_cohort%structmemory = c_struct * stem_drop_fraction
+            c_sapw = (1.0_r8 - stem_drop_fraction) * c_sapw
+            c_struct = (1.0_r8 - stem_drop_fraction) * c_struct
+         endif
+         cohortstatus = leaves_off
+       endif
+
           ! Or.. if the plant is drought deciduous, and the site status is flagged as
           ! "in a drought", then likewise, set the cohort's status to leaves_off, and remember leaf
           ! biomass
@@ -1899,31 +1913,6 @@ contains
              endif
              cohortstatus = leaves_off
           endif
-
-
-          ! Cycle through available carbon and nutrients, find the limiting element
-          ! to dictate the total number of plants that can be generated
-
-          if ( (hlm_use_ed_prescribed_phys .eq. ifalse) .or. &
-               (EDPftvarcon_inst%prescribed_recruitment(ft) .lt. 0._r8) ) then
-
-             temp_cohort%n = 1.e10_r8
-
-             do el = 1,num_elements
-
-                element_id = element_list(el)
-                select case(element_id)
-                case(carbon12_element)
-
-                   mass_demand = (c_struct+c_leaf+c_fnrt+c_sapw+c_store)
-
-                case(nitrogen_element)
-
-                   mass_demand = c_struct*prt_params%nitr_stoich_p1(ft,struct_organ) + &
-                        c_leaf*prt_params%nitr_stoich_p1(ft,leaf_organ) + &
-                        c_fnrt*prt_params%nitr_stoich_p1(ft,fnrt_organ) + &
-                        c_sapw*prt_params%nitr_stoich_p1(ft,sapw_organ) + &
-                        c_store*prt_params%nitr_stoich_p1(ft,store_organ)
 
        ! Cycle through available carbon and nutrients, find the limiting element
        ! to dictate the total number of plants that can be generated
@@ -1980,8 +1969,14 @@ contains
 
                 temp_cohort%n = min(temp_cohort%n, mass_avail/mass_demand)
 
-             end do
+           end do
 
+       else
+            ! prescribed recruitment rates. number per sq. meter per year
+            temp_cohort%n  = currentPatch%area * &
+                  EDPftvarcon_inst%prescribed_recruitment(ft) * &
+                  hlm_freq_day
+       endif
 
        ! Only bother allocating a new cohort if there is a reasonable amount of it
        any_recruits: if (temp_cohort%n > min_n_safemath )then
@@ -2076,11 +2071,38 @@ contains
                         temp_cohort%n / currentPatch%area * &
                         (m_struct + m_leaf + m_fnrt + m_sapw + m_store + m_repro)
 
+                end if
+
+
+
+                  end do
+
+                  ! This call cycles through the initial conditions, and makes sure that they
+                  ! are all initialized.
+                  ! -----------------------------------------------------------------------------------
+
+                  call prt%CheckInitialConditions()
+                  ! This initializes the cohort
+                  call create_cohort(currentSite,currentPatch, temp_cohort%pft, temp_cohort%n, &
+                       temp_cohort%hite, temp_cohort%coage, temp_cohort%dbh, prt, &
+                       temp_cohort%laimemory, temp_cohort%sapwmemory, temp_cohort%structmemory, &
+                       cohortstatus, recruitstatus, &
+                       temp_cohort%canopy_trim,temp_cohort%c_area, &
+                       currentPatch%NCL_p, currentSite%spread, bc_in)
+
+                  ! Note that if hydraulics is on, the number of cohorts may had
+                  ! changed due to hydraulic constraints.
+                  ! This constaint is applied during "create_cohort" subroutine.
+
+                  ! keep track of how many individuals were recruited for passing to history
+                  currentSite%recruitment_rate(ft) = currentSite%recruitment_rate(ft) + temp_cohort%n
+
+
         endif any_recruits
       endif !use_this_pft
-     enddo  !pft loop
+    enddo  !pft loop
 
-     deallocate(temp_cohort) ! delete temporary cohort
+    deallocate(temp_cohort) ! delete temporary cohort
 
   end subroutine recruitment
 
