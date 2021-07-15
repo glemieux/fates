@@ -2,11 +2,11 @@ module EDBtranMod
 
   !-------------------------------------------------------------------------------------
   ! Description:
-  ! 
+  !
   ! ------------------------------------------------------------------------------------
 
   use EDPftvarcon       , only : EDPftvarcon_inst
-  use FatesConstantsMod , only : tfrz => t_water_freeze_k_1atm 
+  use FatesConstantsMod , only : tfrz => t_water_freeze_k_1atm
   use FatesConstantsMod , only : itrue,ifalse,nearzero
   use EDTypesMod        , only : ed_site_type,       &
        ed_patch_type,      &
@@ -28,7 +28,7 @@ module EDBtranMod
   public :: get_active_suction_layers
   public :: check_layer_water
 
-contains 
+contains
 
   ! ====================================================================================
 
@@ -83,7 +83,6 @@ contains
 
     use FatesPlantHydraulicsMod, only : BTranForHLMDiagnosticsFromCohortHydr
 
-
     ! ---------------------------------------------------------------------------------
     ! Calculate the transpiration wetness function (BTRAN) and the root uptake
     ! distribution (ROOTR).
@@ -132,7 +131,7 @@ contains
 
        ifp = 0
        cpatch => sites(s)%oldest_patch
-       do while (associated(cpatch))                 
+       do while (associated(cpatch))
           if(cpatch%nocomp_pft_label.ne.0)then ! only for veg patches
              ifp=ifp+1
 
@@ -140,7 +139,8 @@ contains
 
              do ft = 1,numpft
 
-                call set_root_fraction(sites(s)%rootfrac_scr, ft, sites(s)%zi_soil ) 
+               call set_root_fraction(sites(s)%rootfrac_scr, ft, sites(s)%zi_soil, &
+               bc_in(s)%max_rooting_depth_index_col )
 
                 cpatch%btran_ft(ft) = 0.0_r8
                 do j = 1,bc_in(s)%nlevsoil
@@ -169,7 +169,7 @@ contains
                 end do !j
 
                 ! Normalize root resistances to get layer contribution to ET
-                do j = 1,bc_in(s)%nlevsoil  
+                do j = 1,bc_in(s)%nlevsoil
                    if (cpatch%btran_ft(ft)  >  nearzero) then
                       root_resis(ft,j) = root_resis(ft,j)/cpatch%btran_ft(ft)
                    else
@@ -200,7 +200,7 @@ contains
                 bc_out(s)%rootr_pasl(ifp,j) = 0._r8
                 do ft = 1,numpft
                    if( sum_pftgs > 0._r8)then !prevent problem with the first timestep - might fail
-                      !bit-retart test as a result? FIX(RF,032414)  
+                      !bit-retart test as a result? FIX(RF,032414)
                       bc_out(s)%rootr_pasl(ifp,j) = bc_out(s)%rootr_pasl(ifp,j) + &
                            root_resis(ft,j) * pftgs(ft)/sum_pftgs
                    else
@@ -219,7 +219,7 @@ contains
                 bc_out(s)%btran_pa(ifp) = 0.0_r8
                 do ft = 1,numpft
                    if( sum_pftgs > 0._r8)then !prevent problem with the first timestep - might fail
-                      !bit-retart test as a result? FIX(RF,032414)   
+                      !bit-retart test as a result? FIX(RF,032414)
                       bc_out(s)%btran_pa(ifp)   = bc_out(s)%btran_pa(ifp) + cpatch%btran_ft(ft)  * pftgs(ft)/sum_pftgs
                    else
                       bc_out(s)%btran_pa(ifp)   = bc_out(s)%btran_pa(ifp) + cpatch%btran_ft(ft) * 1./numpft
@@ -235,7 +235,7 @@ contains
                    bc_out(s)%rootr_pasl(ifp,j) = bc_out(s)%rootr_pasl(ifp,j)/temprootr
                 enddo
              end if
-          endif ! not bare ground              
+          endif ! not bare ground
           cpatch => cpatch%younger
        end do
 
