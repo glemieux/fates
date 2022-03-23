@@ -1,17 +1,16 @@
-module adjacencymod
+module AdjacencyMod
    
    implicit none
    private
    
-   ! public :: geometric, unitdecay
-   public :: adjacencymatrix
+   public :: AdjacencyMatrix
 
    logical, parameter :: debug = .false.  ! uncomment for additional output
    
    contains
    
       
-   subroutine geometric(a,r,n,g,len)
+   subroutine Geometric(a,r,n,g,len)
       double precision, intent(in) :: a,r                   ! initial value, rate
       integer, intent(in) :: n                              ! length of array
       integer, intent(in), optional :: len                  ! length of series, could be smaller than input array
@@ -40,23 +39,23 @@ module adjacencymod
          g(i) = a*(r**i);
       end do
       
-   end subroutine geometric
+   end subroutine Geometric
    
-   subroutine unitdecay(a,n,g,len)
+   subroutine UnitDecay(a,n,g,len)
       double precision, intent(in) :: a               ! initial value
       integer, intent(in) :: n                        ! length of input array
       integer, intent(in), optional :: len            ! length of series, could be smaller than input array
       double precision, intent(inout) :: g(0:n-1)     ! input array
       
       if (present(len)) then
-         call geometric(a,1.0-a,n,g,len)
+         call Geometric(a,1.0-a,n,g,len)
       else
-         call geometric(a,1.0-a,n,g)
+         call Geometric(a,1.0-a,n,g)
       end if
             
-   end subroutine unitdecay
+   end subroutine UnitDecay
    
-   subroutine adjacencymatrix(a00,r,d,A)
+   subroutine AdjacencyMatrix(a00,r,d,A)
          
       double precision, intent(in)    :: a00          ! zero age class self-adjacency, i.e A(0,0)
       double precision, intent(in)    :: r            ! rate of decay for diagonals
@@ -77,11 +76,14 @@ module adjacencymod
       if (debug) print *, 'a0: ', a0(0:d-1)
       if (debug) print *, 'sum of a0 check: ', 1.0-sum(a0) == 0.0
       
+      ! To Do: The following do loops could be refactored into generic matrix functions of
+      ! possibly replaced by an existing fortran library
+      
       ! Construct the upper diagonal matrix using a geometric decay of 'r'
       upper: do i = 0,d-1
 
          ! Generate the off-diagonal based on the first row entries
-         call geometric(a0(i),r,d,temp,d-i)
+         call Geometric(a0(i),r,d,temp,d-i)
          if (debug) print *, 'temp up: ', temp(0:d-1)
          if (debug) print *, 'd-i: ', d-i
 
@@ -101,7 +103,7 @@ module adjacencymod
          if (debug) print *, 'first entry lower diag: ', 1.0-sum(A(i,:))
       
          ! Generate the off-diagonal based on the first row entries
-         call geometric(1.0-sum(A(i,:)),r,d,temp,d-i)
+         call Geometric(1.0-sum(A(i,:)),r,d,temp,d-i)
          
          if (debug) print *, 'temp lower: ', temp(0:d-1)
          if (debug) print *, 'd-i: ', d-i
@@ -116,7 +118,7 @@ module adjacencymod
       
       if (debug) print *, 'lower done'
           
-   end subroutine adjacencymatrix
+   end subroutine AdjacencyMatrix
       
 
-end module adjacencymod
+end module AdjacencyMod
