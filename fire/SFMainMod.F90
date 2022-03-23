@@ -47,7 +47,8 @@
   use PRTGenericMod,          only : SetState
   use FatesInterfaceTypesMod     , only : numpft
   use FatesAllometryMod,      only : CrownDepth
-
+  use AdjacencyMod,           only : adjacencymatrix
+  
   implicit none
   private
 
