@@ -22,7 +22,8 @@ module AdjacencyMod
       ! Initialize the maximum iteration as the max index
       d = n-1
       
-      ! If len is present use that instead
+      ! Using len as an optional argument allows the procedure to use an input
+      ! array that is larger than necessary fostering array reuse
       if (present(len)) then
          if (len < n) then
             d = len-1
@@ -35,6 +36,7 @@ module AdjacencyMod
       
       if (debug) print *, 'd: ', d 
       
+      ! Geometric series calculation
       do i =0,d
          g(i) = a*(r**i);
       end do
