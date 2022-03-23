@@ -31,6 +31,7 @@ module EDInitMod
   use EDTypesMod                , only : init_spread_inventory
   use EDTypesMod                , only : leaves_on
   use EDTypesMod                , only : leaves_off
+  use EDTypesMod                , only : adjbins
   use PRTGenericMod             , only : num_elements
   use PRTGenericMod             , only : element_list
   use EDTypesMod                , only : phen_cstat_nevercold
@@ -74,6 +75,7 @@ module EDInitMod
   use PRTGenericMod,          only : nitrogen_element
   use PRTGenericMod,          only : phosphorus_element
   use PRTGenericMod,          only : SetState
+  use AdjacencyMod,           only : AdjacencyMatrix
   use FatesSizeAgeTypeIndicesMod,only : get_age_class_index
   
   ! CIME GLOBALS
@@ -142,7 +144,6 @@ contains
 
     allocate(site_in%use_this_pft(1:numpft))
     allocate(site_in%area_by_age(1:nlevage))
-
     
     ! SP mode
     allocate(site_in%sp_tlai(1:numpft))
@@ -156,6 +157,10 @@ contains
        allocate(site_in%flux_diags(el)%nutrient_uptake_scpf(nlevsclass*numpft))
         allocate(site_in%flux_diags(el)%nutrient_need_scpf(nlevsclass*numpft))
     end do
+    
+    if (hlm_spitfire_mode .gt. 0) then
+      allocate(site_in%adjacency(0:adjbins-1,0:adjbins-1))  
+    end if
 
     ! Initialize the static soil
     ! arrays from the boundary (initial) condition
@@ -214,6 +219,7 @@ contains
     site_in%FDI              = 0.0_r8     ! daily fire danger index (0-1)
     site_in%NF               = 0.0_r8     ! daily lightning strikes per km2
     site_in%NF_successful    = 0.0_r8     ! daily successful iginitions per km2
+    site_in%adjacency(:,:)   = 0.0_r8     ! patch-to-patch age-class adjacency matrix
 
     do el=1,num_elements
        ! Zero the state variables used for checking mass conservation
@@ -287,6 +293,11 @@ contains
     real(r8) :: sumarea    ! area of PFTs in nocomp mode.
     integer  :: hlm_pft    ! used in fixed biogeog mode
     integer  :: fates_pft  ! used in fixed biogeog mode
+    
+    real(r8) :: adj(0:adjbins-1,0:adjbins-1) ! adjancency matrix
+    real(r8) :: adjinit = 0.6_r8             ! age-class zero self adjacency
+    real(r8) :: decayrate = 0.8_r8           ! adjacency geometric series decay rate   
+    
     !----------------------------------------------------------------------
 
 
@@ -306,7 +317,10 @@ contains
        dleafoff = 300
        dleafon  = 100
        watermem = 0.5_r8
-
+       
+       ! Set the adjacency matrix from each site
+       call AdjacencyMatrix(adjinit,decayrate,adjbins,adj)
+       
        do s = 1,nsites
           sites(s)%nchilldays    = 0
           sites(s)%ncolddays     = 0        ! recalculated in phenology
@@ -329,6 +343,8 @@ contains
           sites(s)%acc_NI     = acc_NI
           sites(s)%NF         = 0.0_r8
           sites(s)%NF_successful  = 0.0_r8
+          
+          site(s)%adjacency(:,:) = adj(:,:)
 
           if(hlm_use_fixed_biogeog.eq.itrue)then
              ! MAPPING OF FATES PFTs on to HLM_PFTs

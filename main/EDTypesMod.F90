@@ -155,6 +155,8 @@ module EDTypesMod
   integer,  parameter, public :: tr_sf                = 4          ! array index of dead trunk pool for spitfire
   integer,  parameter, public :: dl_sf                = 5          ! array index of dead leaf pool for spitfire (dead grass and dead leaves)
   integer,  parameter, public :: lg_sf                = 6          ! array index of live grass pool for spitfire
+  
+  integer, parameter, public :: adjbins               = 10         ! Number of patch age-class bins for the site-level adjacency matrix
 
   ! PATCH FUSION 
   real(r8), parameter, public :: force_patchfuse_min_biomass = 0.005_r8   ! min biomass (kg / m2 patch area) below which to force-fuse patches
@@ -714,7 +716,7 @@ module EDTypesMod
 
      ! Total area of patches in each age bin [m2]
      real(r8), allocatable :: area_by_age(:)
-
+     
      ! SP mode target PFT level variables
      real(r8), allocatable :: sp_tlai(:)                      ! target TLAI per FATES pft
      real(r8), allocatable :: sp_tsai(:)                      ! target TSAI per FATES pft
@@ -759,6 +761,10 @@ module EDTypesMod
      real(r8) ::  fdi                                          ! daily probability an ignition event will start a fire
      real(r8) ::  NF                                           ! daily ignitions in km2
      real(r8) ::  NF_successful                                ! daily ignitions in km2 that actually lead to fire
+     
+     ! Patch-to-patch contagious spread
+     real(r8), allocatable :: adjacency(:,:)                   ! Adjacency of patch age-classes at a given site
+
 
      ! PLANT HYDRAULICS
      type(ed_site_hydr_type), pointer :: si_hydr
