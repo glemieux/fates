@@ -158,9 +158,8 @@ contains
         allocate(site_in%flux_diags(el)%nutrient_need_scpf(nlevsclass*numpft))
     end do
     
-    if (hlm_spitfire_mode .gt. 0) then
-      allocate(site_in%adjacency(0:adjbins-1,0:adjbins-1))  
-    end if
+    ! Patch-to-patch contagious spread
+    allocate(site_in%adjacency(0:adjbins-1,0:adjbins-1))  
 
     ! Initialize the static soil
     ! arrays from the boundary (initial) condition
@@ -297,6 +296,8 @@ contains
     real(r8) :: adj(0:adjbins-1,0:adjbins-1) ! adjancency matrix
     real(r8) :: adjinit = 0.6_r8             ! age-class zero self adjacency
     real(r8) :: decayrate = 0.8_r8           ! adjacency geometric series decay rate   
+    integer  :: i                            ! diagnostic index
+    real(r8) :: adjsum                       ! diagnostic sum for adjacency check
     
     !----------------------------------------------------------------------
 
@@ -320,6 +321,16 @@ contains
        
        ! Set the adjacency matrix from each site
        call AdjacencyMatrix(adjinit,decayrate,adjbins,adj)
+
+       ! Check to see if adjacency matrix rows sum to unity
+       if (debug) then
+          do i = 0,adjbins-1
+             adjsum = sum(adj(i,:))
+             if (abs(adjsum - 1.0_r8) .gt. nearzero) then
+                write(fates_log(),*)  'adjsum not equal to unity: ', i, adjsum
+             end if
+          end do
+       end if
        
        do s = 1,nsites
           sites(s)%nchilldays    = 0
@@ -344,7 +355,7 @@ contains
           sites(s)%NF         = 0.0_r8
           sites(s)%NF_successful  = 0.0_r8
           
-          site(s)%adjacency(:,:) = adj(:,:)
+          sites(s)%adjacency(:,:) = adj(:,:)
 
           if(hlm_use_fixed_biogeog.eq.itrue)then
              ! MAPPING OF FATES PFTs on to HLM_PFTs

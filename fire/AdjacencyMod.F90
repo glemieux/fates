@@ -1,5 +1,7 @@
 module AdjacencyMod
-   
+  
+   use FatesConstantsMod, only : r8 => fates_r8
+
    implicit none
    private
    
@@ -11,10 +13,10 @@ module AdjacencyMod
    
       
    subroutine Geometric(a,r,n,g,len)
-      double precision, intent(in) :: a,r                   ! initial value, rate
-      integer, intent(in) :: n                              ! length of array
-      integer, intent(in), optional :: len                  ! length of series, could be smaller than input array
-      double precision, intent(inout) :: g(0:n-1)           ! input array
+      real(r8), intent(in) :: a,r                   ! initial value, rate
+      integer,  intent(in) :: n                              ! length of array
+      integer,  intent(in), optional :: len                  ! length of series, could be smaller than input array
+      real(r8), intent(inout) :: g(0:n-1)           ! input array
       
       ! Local
       integer :: i,d
@@ -38,16 +40,16 @@ module AdjacencyMod
       
       ! Geometric series calculation
       do i =0,d
-         g(i) = a*(r**i);
+         g(i) = a*(r**real(i,r8));
       end do
       
    end subroutine Geometric
    
    subroutine UnitDecay(a,n,g,len)
-      double precision, intent(in) :: a               ! initial value
-      integer, intent(in) :: n                        ! length of input array
-      integer, intent(in), optional :: len            ! length of series, could be smaller than input array
-      double precision, intent(inout) :: g(0:n-1)     ! input array
+      real(r8), intent(in) :: a               ! initial value
+      integer,  intent(in) :: n                        ! length of input array
+      integer,  intent(in), optional :: len            ! length of series, could be smaller than input array
+      real(r8), intent(inout) :: g(0:n-1)     ! input array
       
       if (present(len)) then
          call Geometric(a,1.0-a,n,g,len)
@@ -59,20 +61,20 @@ module AdjacencyMod
    
    subroutine AdjacencyMatrix(a00,r,d,A)
          
-      double precision, intent(in)    :: a00          ! zero age class self-adjacency, i.e A(0,0)
-      double precision, intent(in)    :: r            ! rate of decay for diagonals
+      real(r8), intent(in)    :: a00          ! zero age class self-adjacency, i.e A(0,0)
+      real(r8), intent(in)    :: r            ! rate of decay for diagonals
       integer, intent(in)             :: d            ! matrix dimension, output is square
-      double precision, intent(inout) :: A(0:d-1,0:d-1)   ! adjacency matrix
+      real(r8), intent(inout) :: A(0:d-1,0:d-1)   ! adjacency matrix
    
       ! Local
-      double precision :: a0(0:d-1)
-      double precision :: temp(0:d-1)
+      real(r8) :: a0(0:d-1)
+      real(r8) :: temp(0:d-1)
       integer          :: i,j
      
       A(:,:) = 0.0
      
       ! Define the ageclass zero adjacencies row vector to follow a unit decay series, i.e. sums to 1
-      call unitdecay(a00,d,a0)
+      call UnitDecay(a00,d,a0)
       a0(d-1) = a0(d-1) + (1.0-sum(a0))
       
       if (debug) print *, 'a0: ', a0(0:d-1)
