@@ -687,12 +687,15 @@ contains
     real(r8), parameter :: m_per_min__to__km_per_hour = 0.06_r8  ! convert wind speed from m/min to km/hr
     real(r8), parameter :: forest_grassland_lengthtobreadth_threshold = 0.55_r8 ! tree canopy cover below which to use grassland length-to-breadth eqn
     
-    integer :: lastageclass
-    real(r8) :: totalsitefrac(0:adjbins-1)
+    integer :: patchcount(0:adjbins-1)       ! Total number of patches for a given age-class
+    integer :: NFcount(0:adjbins-1)          ! Total number of patches with fire for a given age-class
+    real(r8) :: totalsitefrac(0:adjbins-1)   ! Total burnt fraction
     
     !  ---initialize site parameters to zero--- 
     currentSite%NF_successful = 0._r8
     totalsitefrac(:) = 0._r8
+    patchcount(:) = 0._r8
+    NFcount(:) = 0._r8
     
     ! Equation 7 from Venevsky et al GCB 2002 (modification of equation 8 in Thonicke et al. 2010) 
     ! FDI 0.1 = low, 0.3 moderate, 0.75 high, and 1 = extreme ignition potential for alpha 0.000337
@@ -827,14 +830,18 @@ contains
             currentSite%NF_successful = currentSite%NF_successful + &
                  currentSite%NF * currentSite%FDI * currentPatch%area / area
                  
+            NFcount(currentPatch%age_class) = NFcount(currentPatch%age_class) + 1
+                 
          else     
             currentPatch%fire       = 0 ! No fire... :-/
             currentPatch%FD         = 0.0_r8
             currentPatch%frac_burnt = 0.0_r8
          endif         
          
-         ! Accumulate the fractions for the given age-class
+         ! Accumulate the successful burn fractions for the given age-class 
+         ! and the total number of patches in an age-class
          totalsitefrac(currentPatch%age_class) = totalsitefrac(currentPatch%age_class) + currentPatch%frac_burnt
+         patchcount(currentPatch%age_class) = patchcount(currentPatch%age_class) + 1
           
        endif! NF ignitions check
        
@@ -847,12 +854,13 @@ contains
   end subroutine area_burnt_intensity
 
   !*****************************************************************
-  subroutine  PatchToPatchSpread (currentSite, totalsitefrac) 
+  subroutine  PatchToPatchSpread (currentSite, totalsitefrac, patchcount) 
   !*****************************************************************
  
     ! Input
     type(ed_site_type), intent(inout), target :: currentSite
-    real(r8), intent(in) :: totalsitefrac
+    real(r8), intent(in) :: totalsitefrac(0:adjbins-1)
+    integer, intent(in) :: patchcount(0:adjbins-1)
     
     ! Local
     type(ed_patch_type), pointer :: currentPatch
@@ -866,13 +874,19 @@ contains
     
       ! Determine the age_class of the patch
     
-      ! If there has been a successful fire in this age-class index (if totalfracburnt(index) > 0) then distribute frac_burnt
+      ! If there has been a successful fire in this age-class index (if totalfracburnt(index) > 0)
+    
+      ! If the current patch didn't have a successful fire (patch%fire != 1) then evenly distrubute a portion of the frac_burnt
+      ! based on the number of patches not on fire in that age-class
+    
+      ! After distribution, set currentPatch%fire to one.  So everything will get fire, 
+      ! but it may not be the biggest disturbance on the patch
+    
+      ! Additional idea, do we want to compare the unsucessful frac_burnt against the distributed fraction?
     
       ! If the age_class has changed get the next adjacency
     
-      ! Determine the number of patches in a given age-class to determine the fraction of patches to spread to
-     
-      ! Use counter to determine if this patch gets fire
+      ! 
               
       currentPatch => currentPatch%older
     enddo p2p_spread
