@@ -156,7 +156,8 @@ module EDTypesMod
   integer,  parameter, public :: dl_sf                = 5          ! array index of dead leaf pool for spitfire (dead grass and dead leaves)
   integer,  parameter, public :: lg_sf                = 6          ! array index of live grass pool for spitfire
   
-  integer, parameter, public :: adjbins               = 10         ! Number of patch age-class bins for the site-level adjacency matrix
+  integer, parameter, public :: adjbins               = 7          ! Number of patch age-class bins for the site-level adjacency matrix
+                                                                   ! This is currently pegged to the param file fates_history_ageclass_bin_edges
 
   ! PATCH FUSION 
   real(r8), parameter, public :: force_patchfuse_min_biomass = 0.005_r8   ! min biomass (kg / m2 patch area) below which to force-fuse patches

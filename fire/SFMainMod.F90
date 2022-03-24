@@ -33,6 +33,7 @@
   use FatesLitterMod        , only : ncwd
   use EDtypesMod            , only : NFSC
   use EDtypesMod            , only : TR_SF
+  use EDTypesMod            , only : adjbins
   use FatesLitterMod        , only : litter_type
 
   use PRTGenericMod,          only : leaf_organ
@@ -685,9 +686,13 @@ contains
     real(r8), parameter :: km2_to_m2 = 1000000.0_r8 !area conversion for square km to square m
     real(r8), parameter :: m_per_min__to__km_per_hour = 0.06_r8  ! convert wind speed from m/min to km/hr
     real(r8), parameter :: forest_grassland_lengthtobreadth_threshold = 0.55_r8 ! tree canopy cover below which to use grassland length-to-breadth eqn
-
+    
+    integer :: lastageclass
+    real(r8) :: totalsitefrac(0:adjbins-1)
+    
     !  ---initialize site parameters to zero--- 
     currentSite%NF_successful = 0._r8
+    totalsitefrac(:) = 0._r8
     
     ! Equation 7 from Venevsky et al GCB 2002 (modification of equation 8 in Thonicke et al. 2010) 
     ! FDI 0.1 = low, 0.3 moderate, 0.75 high, and 1 = extreme ignition potential for alpha 0.000337
@@ -817,25 +822,62 @@ contains
          !'decide_fire' subroutine 
          if (currentPatch%FI > SF_val_fire_threshold) then !track fires greater than kW/m energy threshold
             currentPatch%fire = 1 ! Fire...    :D
-            !
+            
+            ! Accumulate the number of succesful fires for the site
             currentSite%NF_successful = currentSite%NF_successful + &
                  currentSite%NF * currentSite%FDI * currentPatch%area / area
-            !
+                 
          else     
             currentPatch%fire       = 0 ! No fire... :-/
             currentPatch%FD         = 0.0_r8
             currentPatch%frac_burnt = 0.0_r8
          endif         
+         
+         ! Accumulate the fractions for the given age-class
+         totalsitefrac(currentPatch%age_class) = totalsitefrac(currentPatch%age_class) + currentPatch%frac_burnt
           
        endif! NF ignitions check
        
        currentPatch => currentPatch%younger
 
     enddo !end patch loop
+    
+    call PatchToPatchSpread(currentSite, totalsitefrac)
 
   end subroutine area_burnt_intensity
 
-
+  !*****************************************************************
+  subroutine  PatchToPatchSpread (currentSite, totalsitefrac) 
+  !*****************************************************************
+ 
+    ! Input
+    type(ed_site_type), intent(inout), target :: currentSite
+    real(r8), intent(in) :: totalsitefrac
+    
+    ! Local
+    type(ed_patch_type), pointer :: currentPatch
+    
+   
+    ! Patch-to-patch spread (self-adjacency only)
+    currentPatch => currentSite%youngest_patch  
+    lastageclass = currentPatch%age_class
+   
+    p2p_spread: do while(associated(currentPatch))
+    
+      ! Determine the age_class of the patch
+    
+      ! If there has been a successful fire in this age-class index (if totalfracburnt(index) > 0) then distribute frac_burnt
+    
+      ! If the age_class has changed get the next adjacency
+    
+      ! Determine the number of patches in a given age-class to determine the fraction of patches to spread to
+     
+      ! Use counter to determine if this patch gets fire
+              
+      currentPatch => currentPatch%older
+    enddo p2p_spread
+    
+  end subroutine PatchToPatchSpread
 
   !*****************************************************************
   subroutine  crown_scorching ( currentSite ) 
