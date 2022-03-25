@@ -67,8 +67,8 @@
   ! The following parameter represents one of the values of hlm_spitfire_mode
   ! and more of these appear in subroutine area_burnt_intensity below
   ! NB. The same parameters are set in /src/biogeochem/CNFireFactoryMod
-  integer :: write_SF = 0     ! for debugging
-  logical :: debug = .false.  ! for debugging
+  integer :: write_SF = 1     ! for debugging
+  logical :: debug = .true.  ! for debugging
 
   ! ============================================================================
   ! ============================================================================
@@ -825,12 +825,13 @@ contains
          !'decide_fire' subroutine 
          if (currentPatch%FI > SF_val_fire_threshold) then !track fires greater than kW/m energy threshold
             currentPatch%fire = 1 ! Fire...    :D
+
             
             ! Accumulate the number of succesful fires for the site
             currentSite%NF_successful = currentSite%NF_successful + &
                  currentSite%NF * currentSite%FDI * currentPatch%area / area
                  
-            NFcount(currentPatch%age_class) = NFcount(currentPatch%age_class) + 1
+            NFcount(currentPatch%age_class-1) = NFcount(currentPatch%age_class-1) + 1
                  
          else     
             currentPatch%fire       = 0 ! No fire... :-/
@@ -840,27 +841,33 @@ contains
          
          ! Accumulate the successful burn fractions for the given age-class 
          ! and the total number of patches in an age-class
-         totalsitefrac(currentPatch%age_class) = totalsitefrac(currentPatch%age_class) + currentPatch%frac_burnt
-         patchcount(currentPatch%age_class) = patchcount(currentPatch%age_class) + 1
+         totalsitefrac(currentPatch%age_class-1) = totalsitefrac(currentPatch%age_class-1) + currentPatch%frac_burnt
+         patchcount(currentPatch%age_class-1) = patchcount(currentPatch%age_class-1) + 1
+         write(fates_log(),*) 'currentPatch%FI: ',currentPatch%FI 
           
        endif! NF ignitions check
        
        currentPatch => currentPatch%younger
 
     enddo !end patch loop
+
+    write(fates_log(),*) 'totalsitefrac: ', totalsitefrac
+    write(fates_log(),*) 'patchcount: ', patchcount
+    write(fates_log(),*) 'NFcount: ', NFcount
     
-    call PatchToPatchSpread(currentSite, totalsitefrac)
+    !call PatchToPatchSpread(currentSite, totalsitefrac, patchcount, NFcount)
 
   end subroutine area_burnt_intensity
 
   !*****************************************************************
-  subroutine  PatchToPatchSpread (currentSite, totalsitefrac, patchcount) 
+  subroutine  PatchToPatchSpread (currentSite, totalsitefrac, patchcount, NFcount) 
   !*****************************************************************
  
     ! Input
     type(ed_site_type), intent(inout), target :: currentSite
     real(r8), intent(in) :: totalsitefrac(0:adjbins-1)
     integer, intent(in) :: patchcount(0:adjbins-1)
+    integer,intent(in)  :: NFcount(0:adjbins-1)
     
     ! Local
     type(ed_patch_type), pointer :: currentPatch
@@ -868,7 +875,7 @@ contains
    
     ! Patch-to-patch spread (self-adjacency only)
     currentPatch => currentSite%youngest_patch  
-    lastageclass = currentPatch%age_class
+    !lastageclass = currentPatch%age_class
    
     p2p_spread: do while(associated(currentPatch))
     
