@@ -855,7 +855,7 @@ contains
     write(fates_log(),*) 'patchcount: ', patchcount
     write(fates_log(),*) 'NFcount: ', NFcount
     
-    !call PatchToPatchSpread(currentSite, totalsitefrac, patchcount, NFcount)
+    call PatchToPatchSpread(currentSite, totalsitefrac, patchcount, NFcount)
 
   end subroutine area_burnt_intensity
 
@@ -899,7 +899,7 @@ contains
             else  ! If the current patch had no successful fires
                
                ! Distribute the frac_burnt donation to the current patch
-               currentPatch%frac_burnt = totalsitefrac(iage-1) * currentSite%adjacency(iage-1,iage-1)) / &
+               currentPatch%frac_burnt = (totalsitefrac(iage-1) * currentSite%adjacency(iage-1,iage-1)) / &
                                          (patchcount(iage-1) - NFcount(iage-1))
                ! Current patch is now on fire
                currentPatch%fire = itrue
