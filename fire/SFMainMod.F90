@@ -865,37 +865,51 @@ contains
  
     ! Input
     type(ed_site_type), intent(inout), target :: currentSite
-    real(r8), intent(in) :: totalsitefrac(0:adjbins-1)
-    integer, intent(in) :: patchcount(0:adjbins-1)
-    integer,intent(in)  :: NFcount(0:adjbins-1)
+    real(r8), intent(in) :: totalsitefrac(0:adjbins-1)         ! Total burnt fraction across site by age-class
+    integer,  intent(in) :: patchcount(0:adjbins-1)            ! Total number of patches for a given age-class
+    integer,  intent(in) :: NFcount(0:adjbins-1)               ! Total number of patches with fire for a given age-class
     
     ! Local
     type(ed_patch_type), pointer :: currentPatch
+    integer                      :: prevageclass   ! Previous age-class
+    integer, pointer             :: iage
     
-   
-    ! Patch-to-patch spread (self-adjacency only)
+    ! Start from youngest patch on site 
+    ! NOTE: this assumes that patches are age-ordered, where is this?
     currentPatch => currentSite%youngest_patch  
-    !lastageclass = currentPatch%age_class
-   
+    iage => currentPatch%age_class
+    
+    ! Loop through patches
     p2p_spread: do while(associated(currentPatch))
+
+      ! NOTE: below is only for self-adjacency
     
-      ! Determine the age_class of the patch
-    
-      ! If there has been a successful fire in this age-class index (if totalfracburnt(index) > 0)
-    
-      ! If the current patch didn't have a successful fire (patch%fire != 1) then evenly distrubute a portion of the frac_burnt
-      ! based on the number of patches not on fire in that age-class
-    
-      ! After distribution, set currentPatch%fire to one.  So everything will get fire, 
-      ! but it may not be the biggest disturbance on the patch
-    
-      ! Additional idea, do we want to compare the unsucessful frac_burnt against the distributed fraction?
-    
-      ! If the age_class has changed get the next adjacency
-    
-      ! 
-              
+      ! If there has been a successful fire in this age-class index distribute frac_burnt among patches
+      if (totalsitefrac(iage-1) .gt. 0.0_r8) then
+
+         ! Skip the next steps if the current age-class patches are all on fire
+         if (patchcount(iage-1) .gt. NFcount(iage-1)) then
+
+            ! If the current patch has a successful fire
+            if (currentPatch%fire .eq. itrue) then
+               
+               ! Reduce the patch frac_burnt by the self-adjacency
+               currentPatch%frac_burnt = currentPatch%frac_burnt * (1.0_r8 - currentSite%adjacency(iage-1,iage-1))
+               
+            ! If the current patch had no successful fires
+            else
+               
+                  ! Distribute the frac_burnt donation to the current patch
+                  currentPatch%frac_burnt = totalsitefrac(iage-1) * currentSite%adjacency(iage-1,iage-1)) / &
+                                            (patchcount(iage-1) - NFcount(iage-1))
+                  
+                  ! Current patch is now on fire
+                  currentPatch%fire = itrue
+            end if
+         end if
+      end if
       currentPatch => currentPatch%older
+      iage => currentPatch%age_class
     enddo p2p_spread
     
   end subroutine PatchToPatchSpread
