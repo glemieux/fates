@@ -727,18 +727,64 @@ contains
       anthro_ign_count = pot_hmn_ign_counts_alpha * 6.8_r8 * bc_in%pop_density(iofp)**0.43_r8 / 30._r8
                            
        currentSite%NF = currentSite%NF + anthro_ign_count
-
     end if
 
     currentPatch => currentSite%oldest_patch;  
-    do while(associated(currentPatch))
+    threshold_loop: do while(associated(currentPatch))
+
+       ROS   = currentPatch%ROS_front / 60.0_r8 !m/min to m/sec 
+       W     = currentPatch%TFC_ROS / 0.45_r8 !kgC/m2 of burned area to kgbiomass/m2 of burned area
+
+       ! EQ 15 Thonicke et al 2010
+       !units of fire intensity = (kJ/kg)*(kgBiomass/m2)*(m/min)
+       currentPatch%FI = SF_val_fuel_energy * W * ROS !kj/m/s, or kW/m
+     
+       if(write_sf == itrue)then
+           if( hlm_masterproc == itrue ) write(fates_log(),*) 'fire_intensity',currentPatch%fi,W,currentPatch%ROS_front
+       endif
+
+       !'decide_fire' subroutine 
+       if (currentPatch%FI > SF_val_fire_threshold) then !track fires greater than kW/m energy threshold
+          currentPatch%fire = 1 ! Fire...    :D
+
+          ! Calculate the number of successful ignitions on this patch
+          ! Set the distributionvariable to be a function of patch area at first
+         !  currentPatch%successful_ignitions = currentSite%NF * currentSite%FDI * distributionvariable
+          
+          ! Accumulate the number of succesful fires for the site
+          currentSite%NF_successful = currentSite%NF_successful + &
+               currentSite%NF * currentSite%FDI * currentPatch%area / area
+               
+          NFcount(currentPatch%age_class-1) = NFcount(currentPatch%age_class-1) + 1
+       endif         
+       
+       ! Accumulate the successful burn fractions for the given age-class 
+       ! and the total number of patches in an age-class
+       totalsitefrac(currentPatch%age_class-1) = totalsitefrac(currentPatch%age_class-1) + currentPatch%frac_burnt
+       patchcount(currentPatch%age_class-1) = patchcount(currentPatch%age_class-1) + 1
+       
+       write(fates_log(),*) 'currentPatch%FI: ',currentPatch%FI 
+       
+       currentPatch => currentPatch%younger
+
+    end do threshold_loop
+   
+    write(fates_log(),*) 'totalsitefrac: ', totalsitefrac
+    write(fates_log(),*) 'patchcount: ', patchcount
+    write(fates_log(),*) 'NFcount: ', NFcount
+    
+   !  call PatchToPatchSpread(currentSite, totalsitefrac, patchcount, NFcount)
+   
+    ! Loop through patches again to determine the fraction of the patch that has burnt
+    currentPatch => currentSite%oldest_patch;  
+    frac_burnt_loop: do while(associated(currentPatch))
        !  ---initialize patch parameters to zero---
        currentPatch%FI         = 0._r8
        currentPatch%fire       = 0
        currentPatch%FD         = 0.0_r8
        currentPatch%frac_burnt = 0.0_r8
-       
-       if (currentSite%NF > 0.0_r8) then
+      
+      if (currentPatch%successful_ignitions > 0.0_r8) then
           
           ! Equation 14 in Thonicke et al. 2010
           ! fire duration in minutes
@@ -796,7 +842,7 @@ contains
              ! the denominator in the units of currentSite%NF is total gridcell area, but since we assume that ignitions 
              ! are equally probable across patches, currentSite%NF is equivalently per area of a given patch
              ! thus AB has units of m2 burned area per km2 patch area per day
-             AB = size_of_fire * currentSite%NF * currentSite%FDI
+             AB = size_of_fire * currentPatch%successful_ignitions * currentSite%FDI
 
              ! frac_burnt 
              ! just a unit conversion from AB, to become area burned per area patch per day, 
@@ -806,56 +852,15 @@ contains
              if(write_SF == itrue)then
                 if ( hlm_masterproc == itrue ) write(fates_log(),*) 'frac_burnt',currentPatch%frac_burnt
              endif
-
-          else
-             currentPatch%frac_burnt = 0._r8
           endif ! lb
 
-         ROS   = currentPatch%ROS_front / 60.0_r8 !m/min to m/sec 
-         W     = currentPatch%TFC_ROS / 0.45_r8 !kgC/m2 of burned area to kgbiomass/m2 of burned area
-
-         ! EQ 15 Thonicke et al 2010
-         !units of fire intensity = (kJ/kg)*(kgBiomass/m2)*(m/min)
-         currentPatch%FI = SF_val_fuel_energy * W * ROS !kj/m/s, or kW/m
-       
-         if(write_sf == itrue)then
-             if( hlm_masterproc == itrue ) write(fates_log(),*) 'fire_intensity',currentPatch%fi,W,currentPatch%ROS_front
-         endif
-
-         !'decide_fire' subroutine 
-         if (currentPatch%FI > SF_val_fire_threshold) then !track fires greater than kW/m energy threshold
-            currentPatch%fire = 1 ! Fire...    :D
-
-            
-            ! Accumulate the number of succesful fires for the site
-            currentSite%NF_successful = currentSite%NF_successful + &
-                 currentSite%NF * currentSite%FDI * currentPatch%area / area
-                 
-            NFcount(currentPatch%age_class-1) = NFcount(currentPatch%age_class-1) + 1
-                 
-         else     
-            currentPatch%fire       = 0 ! No fire... :-/
-            currentPatch%FD         = 0.0_r8
-            currentPatch%frac_burnt = 0.0_r8
-         endif         
-         
-         ! Accumulate the successful burn fractions for the given age-class 
-         ! and the total number of patches in an age-class
-         totalsitefrac(currentPatch%age_class-1) = totalsitefrac(currentPatch%age_class-1) + currentPatch%frac_burnt
-         patchcount(currentPatch%age_class-1) = patchcount(currentPatch%age_class-1) + 1
-         write(fates_log(),*) 'currentPatch%FI: ',currentPatch%FI 
+       !--------------------
           
        endif! NF ignitions check
        
        currentPatch => currentPatch%younger
 
-    enddo !end patch loop
-
-    write(fates_log(),*) 'totalsitefrac: ', totalsitefrac
-    write(fates_log(),*) 'patchcount: ', patchcount
-    write(fates_log(),*) 'NFcount: ', NFcount
-    
-    !call PatchToPatchSpread(currentSite, totalsitefrac, patchcount, NFcount)
+    enddo frac_burnt_loop
 
   end subroutine area_burnt_intensity
 
@@ -893,14 +898,16 @@ contains
             ! If the current patch has a successful fire it is donating fire
             if (currentPatch%fire .eq. itrue) then
                
+               ! PASS AROUND THE NUMBER OF SUCCESSFUL IGNITIONS
+               
                ! Reduce the patch frac_burnt by the self-adjacency
-               currentPatch%frac_burnt = currentPatch%frac_burnt * (1.0_r8 - currentSite%adjacency(iage-1,iage-1))
+               ! currentPatch%frac_burnt = currentPatch%frac_burnt * (1.0_r8 - currentSite%adjacency(iage-1,iage-1))
             
             else  ! If the current patch had no successful fires
                
                ! Distribute the frac_burnt donation to the current patch
-               currentPatch%frac_burnt = totalsitefrac(iage-1) * currentSite%adjacency(iage-1,iage-1)) / &
-                                         (patchcount(iage-1) - NFcount(iage-1))
+               ! currentPatch%frac_burnt = totalsitefrac(iage-1) * currentSite%adjacency(iage-1,iage-1)) / &
+                                       !   (patchcount(iage-1) - NFcount(iage-1))
                ! Current patch is now on fire
                currentPatch%fire = itrue
                
