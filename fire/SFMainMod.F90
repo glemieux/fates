@@ -890,21 +890,22 @@ contains
          ! Skip the next steps if the current age-class patches are all on fire
          if (patchcount(iage-1) .gt. NFcount(iage-1)) then
 
-            ! If the current patch has a successful fire
+            ! If the current patch has a successful fire it is donating fire
             if (currentPatch%fire .eq. itrue) then
                
                ! Reduce the patch frac_burnt by the self-adjacency
                currentPatch%frac_burnt = currentPatch%frac_burnt * (1.0_r8 - currentSite%adjacency(iage-1,iage-1))
+            
+            else  ! If the current patch had no successful fires
                
-            ! If the current patch had no successful fires
-            else
+               ! Distribute the frac_burnt donation to the current patch
+               currentPatch%frac_burnt = totalsitefrac(iage-1) * currentSite%adjacency(iage-1,iage-1)) / &
+                                         (patchcount(iage-1) - NFcount(iage-1))
+               ! Current patch is now on fire
+               currentPatch%fire = itrue
                
-                  ! Distribute the frac_burnt donation to the current patch
-                  currentPatch%frac_burnt = totalsitefrac(iage-1) * currentSite%adjacency(iage-1,iage-1)) / &
-                                            (patchcount(iage-1) - NFcount(iage-1))
-                  
-                  ! Current patch is now on fire
-                  currentPatch%fire = itrue
+               ! HOW SHOULD WE HANDLE UPSTREAM AND DOWNSTREAM CALCULATIONS FROM HERE?
+               
             end if
          end if
       end if
