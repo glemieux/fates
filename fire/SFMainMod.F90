@@ -747,9 +747,10 @@ contains
        if (currentPatch%FI > SF_val_fire_threshold) then !track fires greater than kW/m energy threshold
           currentPatch%fire = 1 ! Fire...    :D
 
-          ! Calculate the number of successful ignitions on this patch
-          ! Set the distributionvariable to be a function of patch area at first
-         !  currentPatch%successful_ignitions = currentSite%NF * currentSite%FDI * distributionvariable
+          ! FOR future p2p spread
+          ! Calculate the number of successful ignitions on this patch as a function of the site NF and the p2p spread
+          ! Set the p2pspread to be a function of patch area (and eventually) at first
+         !  currentPatch%successful_ignitions = currentSite%NF * currentSite%FDI * p2pspread
           
           ! Accumulate the number of succesful fires for the site
           currentSite%NF_successful = currentSite%NF_successful + &
@@ -784,7 +785,7 @@ contains
        currentPatch%FD         = 0.0_r8
        currentPatch%frac_burnt = 0.0_r8
       
-      if (currentPatch%successful_ignitions > 0.0_r8) then
+      if (currentPatch%fire == 1) then
           
           ! Equation 14 in Thonicke et al. 2010
           ! fire duration in minutes

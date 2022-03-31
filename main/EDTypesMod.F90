@@ -567,6 +567,7 @@ module EDTypesMod
      real(r8) ::  litter_moisture(nfsc)
 
      ! FIRE SPREAD
+     real(r8) ::  successful_ignitions                             ! number of successful ignitions on the patch
      real(r8) ::  ros_front                                        ! rate of forward  spread of fire: m/min
      real(r8) ::  ros_back                                         ! rate of backward spread of fire: m/min
      real(r8) ::  effect_wspeed                                    ! windspeed modified by fraction of relative grass and tree cover: m/min
