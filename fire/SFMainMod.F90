@@ -785,7 +785,8 @@ contains
        currentPatch%FD         = 0.0_r8
        currentPatch%frac_burnt = 0.0_r8
       
-      if (currentPatch%fire == 1) then
+      ! if (currentPatch%fire == 1) then
+      if (currentSite%NF > 0.0_r8) then
           
           ! Equation 14 in Thonicke et al. 2010
           ! fire duration in minutes
@@ -843,7 +844,8 @@ contains
              ! the denominator in the units of currentSite%NF is total gridcell area, but since we assume that ignitions 
              ! are equally probable across patches, currentSite%NF is equivalently per area of a given patch
              ! thus AB has units of m2 burned area per km2 patch area per day
-             AB = size_of_fire * currentPatch%successful_ignitions * currentSite%FDI
+             !AB = size_of_fire * currentPatch%successful_ignitions * currentSite%FDI
+             AB = size_of_fire * currentSite%NF * currentSite%FDI
 
              ! frac_burnt 
              ! just a unit conversion from AB, to become area burned per area patch per day, 
