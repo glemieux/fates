@@ -140,26 +140,30 @@ contains
     ! are available at the patch level. We are currently using a simplification where the whole site
     ! is simply using the values associated with the first patch.
     ! which probably won't have much inpact, unless we decide to ever calculated the NI for each patch.  
-    
-    iofp = currentSite%oldest_patch%patchno
-    
-    temp_in_C  = currentSite%oldest_patch%tveg24%GetMean() - tfrz
-    rainfall   = bc_in%precip24_pa(iofp)*sec_per_day
-    rh         = bc_in%relhumid24_pa(iofp)
-    
-    if (rainfall > 3.0_r8) then !rezero NI if it rains... 
-       d_NI = 0.0_r8
-       currentSite%acc_NI = 0.0_r8
-    else 
-       yipsolon = (SF_val_fdi_a* temp_in_C)/(SF_val_fdi_b+ temp_in_C)+log(max(1.0_r8,rh)/100.0_r8) 
-       dewpoint = (SF_val_fdi_b*yipsolon)/(SF_val_fdi_a-yipsolon) !Standard met. formula
-       d_NI = ( temp_in_C-dewpoint)* temp_in_C !follows Nesterov 1968.  Equation 5. Thonicke et al. 2010.
-       if (d_NI < 0.0_r8) then !Change in NI cannot be negative. 
-          d_NI = 0.0_r8 !check 
-       endif
-    endif
-    currentSite%acc_NI = currentSite%acc_NI + d_NI        !Accumulate Nesterov index over the fire season. 
+    ! Attempting patch-level NI
 
+    currentPatch => currentSite%oldest_patch
+    do while(associated(currentPatch))
+      iofp = currentPatch%patchno
+      
+      temp_in_C  = currentPatch%tveg24%GetMean() - tfrz
+      rainfall   = bc_in%precip24_pa(iofp)*sec_per_day
+      rh         = bc_in%relhumid24_pa(iofp)
+      
+      if (rainfall > 3.0_r8) then !rezero NI if it rains... 
+         d_NI = 0.0_r8
+         currentPatch%acc_NI = 0.0_r8
+      else 
+         yipsolon = (SF_val_fdi_a* temp_in_C)/(SF_val_fdi_b+ temp_in_C)+log(max(1.0_r8,rh)/100.0_r8) 
+         dewpoint = (SF_val_fdi_b*yipsolon)/(SF_val_fdi_a-yipsolon) !Standard met. formula
+         d_NI = ( temp_in_C-dewpoint)* temp_in_C !follows Nesterov 1968.  Equation 5. Thonicke et al. 2010.
+         if (d_NI < 0.0_r8) then !Change in NI cannot be negative. 
+            d_NI = 0.0_r8 !check 
+         endif
+      endif
+      currentPatch%acc_NI = currentPatch%acc_NI + d_NI        !Accumulate Nesterov index over the fire season. 
+
+    end do
   end subroutine fire_danger_index
 
 

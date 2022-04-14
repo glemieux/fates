@@ -571,6 +571,7 @@ module EDTypesMod
      real(r8) ::  fi                                               ! average fire intensity of flaming front:  kj/m/s or kw/m
      integer  ::  fire                                             ! Is there a fire? 1=yes 0=no
      real(r8) ::  fd                                               ! fire duration: mins
+     real(r8) ::  acc_NI                                           ! daily nesterov index accumulating over time
 
      ! FIRE EFFECTS     
      real(r8) ::  scorch_ht(maxpft)                                ! scorch height: m 
