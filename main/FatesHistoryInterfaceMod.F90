@@ -79,6 +79,7 @@ module FatesHistoryInterfaceMod
   use PRTGenericMod            , only : carbon12_element
   use PRTGenericMod            , only : nitrogen_element, phosphorus_element
   use PRTGenericMod            , only : prt_carbon_allom_hyp
+  use perf_mod                 , only : t_startf, t_stopf
 
   implicit none
   private          ! By default everything is private
@@ -3590,6 +3591,9 @@ end subroutine flush_hvars
          patch_area_by_age(1:nlevage) = 0._r8
          canopy_area_by_age(1:nlevage) = 0._r8
 
+         
+         call t_startf('update_history_hifrq_patchloop')
+         
          do while(associated(cpatch))
 
             patch_area_by_age(cpatch%age_class)  = &
@@ -3619,6 +3623,7 @@ end subroutine flush_hvars
             hio_tveg(io_si) = hio_tveg(io_si) + &
                  (bc_in(s)%t_veg_pa(cpatch%patchno) - t_water_freeze_k_1atm)*cpatch%area*area_inv
           
+            call t_startf('update_history_hifrq_cohortloop')
             ccohort => cpatch%shortest
             do while(associated(ccohort))
 
@@ -3758,7 +3763,9 @@ end subroutine flush_hvars
 
                ccohort => ccohort%taller
             enddo ! cohort loop
+            call t_stopf('update_history_hifrq_cohortloop')
 
+            call t_startf('update_history_hifrq_pftloop')
             ! summarize radiation profiles through the canopy
             do ipft=1,numpft
                do ican=1,cpatch%ncl_p
@@ -3836,7 +3843,8 @@ end subroutine flush_hvars
                   !
                end do
             end do
-
+            call t_stopf('update_history_hifrq_pftloop')
+            
             ! PFT-mean radiation profiles
             do ican = 1, cpatch%ncl_p
                do ileaf = 1, maxval(cpatch%nrad(ican,:))
@@ -3855,6 +3863,9 @@ end subroutine flush_hvars
             cpatch => cpatch%younger
          end do !patch loop
 
+         call t_stopf('update_history_hifrq_patchloop')
+         
+         
          do ipa2 = 1, nlevage
             if (patch_area_by_age(ipa2) .gt. tiny) then
                hio_gpp_si_age(io_si, ipa2) = hio_gpp_si_age(io_si, ipa2) / (patch_area_by_age(ipa2))
