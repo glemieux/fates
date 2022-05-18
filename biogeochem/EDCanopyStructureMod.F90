@@ -2217,13 +2217,14 @@ contains
    ! we could iterate through each cohort in any direction as long as we go down through
    ! the canopy layers.
    
-   canopyloop: do cl = 1,nclmax
+   !canopyloop: do cl = 1,nclmax
       currentCohort => currentPatch%tallest
       cohortloop: do while(associated(currentCohort))
 
          ! Only update the current cohort tree lai if lai of the above layers have been calculated
-         if (currentCohort%canopy_layer .eq. cl) then
+         !if (currentCohort%canopy_layer .eq. cl) then
             ft     = currentCohort%pft
+            cl = currentCohort%canopy_layer
             
             ! Update the cohort level lai and related variables
             call UpdateCohortLAI(currentCohort,currentPatch%canopy_layer_tlai,currentPatch%total_canopy_area)
@@ -2236,11 +2237,11 @@ contains
             
             ! Calculate the total patch lai
             patch_lai = patch_lai + currentCohort%lai
-         end if
+         !end if
          currentCohort => currentCohort%shorter
 
       end do cohortloop
-   end do canopyloop
+   !end do canopyloop
 
   end subroutine UpdatePatchLAI
   ! ===============================================================================================
