@@ -2987,6 +2987,10 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
 
   ! Stem Maximum Hydraulic Conductance
 
+  write(fates_log(),*) 'ccohort_hydr%z_node_ag:', sum(ccohort_hydr%z_node_ag(:))
+  write(fates_log(),*) 'ccohort_hydr%z_lower_ag:', sum(ccohort_hydr%z_lower_ag(:))
+  write(fates_log(),*) 'ccohort_hydr%z_upper_ag:', sum(ccohort_hydr%z_upper_ag(:))
+
   do k=1, n_hypool_stem
 
      ! index for "above-ground" arrays, that contain stem and leaf
@@ -3093,6 +3097,12 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
   ! The max conductance of each layer is in parallel, therefore
   ! the kmax terms of each layer, should sum to kmax_bg
   sum_l_aroot = sum(ccohort_hydr%l_aroot_layer(:))
+
+
+  write(fates_log(),*) 'rmin_ag:', rmin_ag
+  write(fates_log(),*) 'kmax_bg:', kmax_bg
+  write(fates_log(),*) 'sum_l_aroot:', sum_l_aroot
+
   do j=1,csite_hydr%nlevrhiz
 
      kmax_layer = kmax_bg*ccohort_hydr%l_aroot_layer(j)/sum_l_aroot
