@@ -2672,6 +2672,9 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
               ! Remember the error for the cohort
               ccohort_hydr%errh2o  = ccohort_hydr%errh2o + wb_err_plant
 
+              write(fates_log(),*) 'ccohort_hydr%errh2o: ', ccohort_hydr%errh2o
+              write(fates_log(),*) 'wb_err_plant: ', wb_err_plant
+
               ! Update total error in [kg/m2 ground]
               csite_hydr%errh2o_hyd = csite_hydr%errh2o_hyd + wb_err_plant*ccohort%n*AREA_INV
 
@@ -3849,6 +3852,8 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
            ! for diagnostic purposes
            ! [kg/m2]
            wb_err_layer = wb_err_layer + wb_step_err
+
+           write(fates_log(),*) 'wb_step_err: ', wb_step_err
 
            ! -------------------------------------------------------------------------
            ! Diagnostics
