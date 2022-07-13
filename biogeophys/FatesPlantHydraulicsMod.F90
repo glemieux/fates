@@ -2672,6 +2672,8 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
               ! Remember the error for the cohort
               ccohort_hydr%errh2o  = ccohort_hydr%errh2o + wb_err_plant
 
+              write(fates_log(),*) 'sum kbg_layer,: ', sum(kbg_layer)
+              write(fates_log(),*) 'qflx_tran_veg_indiv: ', qflx_tran_veg_indiv
               write(fates_log(),*) 'ccohort_hydr%errh2o: ', ccohort_hydr%errh2o
               write(fates_log(),*) 'wb_err_plant: ', wb_err_plant
 
