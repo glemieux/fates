@@ -2313,10 +2313,10 @@ contains
           !-------------------------------------------------------------------------------!
           ! Loop round current & target (currentPatch,tpp) patches to assess combinations !
           !-------------------------------------------------------------------------------!   
-          currentPatch => currentSite%youngest_patch
-          currentpatch_loop: do while(associated(currentPatch))      
-             tpp => currentSite%youngest_patch
-             tpp_loop: do while(associated(tpp))
+          tpp => currentSite%youngest_patch
+          tpp_loop: do while(associated(tpp))
+             currentPatch => currentSite%youngest_patch
+             currentpatch_loop: do while(associated(currentPatch))      
 
                 if(.not.associated(currentPatch))then
                    write(fates_log(),*) 'FATES fuse_patches(): currentPatch is not associated?'
@@ -2446,13 +2446,13 @@ contains
                    endif anthro_dist_labels_match_if
                 endif both_associated_if
 
-                tpp => tpp%older
-             enddo tpp_loop
+                currentPatch => currentPatch%older
+             enddo currentPatch_loop 
 
-             if(associated(currentPatch))then 
-                currentPatch => currentPatch%older 
+             if(associated(tpp))then 
+                tpp => tpp%older 
              else
-                currentPatch => null()
+                tpp => null()
              endif !associated currentPatch
 
           enddo currentpatch_loop
