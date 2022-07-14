@@ -3634,6 +3634,9 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
                 A_term(j),                        &
                 B_term(j))
 
+           write(fates_log(),*) 'kmax_dn A: ', kmax_dn
+           write(fates_log(),*) 'kmax_up A: ', kmax_up
+
 
            ! Path is between stem nodes
            ! -------------------------------------------------------------------------------
@@ -3664,6 +3667,8 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
 
            end do
 
+           write(fates_log(),*) 'kmax_dn B: ', kmax_dn
+           write(fates_log(),*) 'kmax_up B: ', kmax_up
 
            ! Path is between lowest stem and transporting root
 
@@ -3672,6 +3677,9 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
            i_dn  = j
            kmax_dn  = rootfr_scaler*cohort_hydr%kmax_stem_lower(n_hypool_stem)
            kmax_up  = rootfr_scaler*cohort_hydr%kmax_troot_upper
+
+           write(fates_log(),*) 'kmax_dn C: ', kmax_dn
+           write(fates_log(),*) 'kmax_up C: ', kmax_up
 
            call GetImTaylorKAB(kmax_up,kmax_dn,        &
                 ftc_node(i_up),ftc_node(i_dn),        &
@@ -3692,6 +3700,9 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
            i_dn    = j
            kmax_dn = cohort_hydr%kmax_troot_lower(ilayer)
            kmax_up = cohort_hydr%kmax_aroot_upper(ilayer)
+
+           write(fates_log(),*) 'kmax_dn D: ', kmax_dn
+           write(fates_log(),*) 'kmax_up D: ', kmax_up
 
            call GetImTaylorKAB(kmax_up,kmax_dn,        &
                 ftc_node(i_up),ftc_node(i_dn),        &
@@ -3721,6 +3732,9 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
 
            kmax_up = csite_hydr%kmax_upper_shell(ilayer,1)*aroot_frac_plant
 
+           write(fates_log(),*) 'kmax_dn E: ', kmax_dn
+           write(fates_log(),*) 'kmax_up E: ', kmax_up
+
            call GetImTaylorKAB(kmax_up,kmax_dn,        &
                 ftc_node(i_up),ftc_node(i_dn),        &
                 h_node(i_up),h_node(i_dn),            &
@@ -3742,6 +3756,7 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
               kmax_dn = csite_hydr%kmax_lower_shell(ilayer,ishell_dn)*aroot_frac_plant
               kmax_up = csite_hydr%kmax_upper_shell(ilayer,ishell_up)*aroot_frac_plant
 
+
               call GetImTaylorKAB(kmax_up,kmax_dn,        &
                    ftc_node(i_up),ftc_node(i_dn),        &
                    h_node(i_up),h_node(i_dn),            &
@@ -3752,6 +3767,9 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
                    B_term(j))
 
            end do
+
+           write(fates_log(),*) 'kmax_dn F: ', kmax_dn
+           write(fates_log(),*) 'kmax_up F: ', kmax_up
 
            write(fates_log(),*) 'sum k_eff: ', sum(k_eff)
            write(fates_log(),*) 'sum A_term: ', sum(A_term)
