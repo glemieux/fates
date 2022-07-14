@@ -3753,6 +3753,10 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
 
            end do
 
+           write(fates_log(),*) 'sum k_eff: ', sum(k_eff)
+           write(fates_log(),*) 'sum A_term: ', sum(A_term)
+           write(fates_log(),*) 'sum B_term: ', sum(B_term)
+
            ! -------------------------------------------------------------------------------
            ! Part 3.
            ! Loop through nodes again, build matrix
@@ -3799,9 +3803,15 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
 
            th_node(:) = th_node(:) + dth_node(:)
 
+           write(fates_log(),*) 'sum dth_node: ', sum(dth_node)
+
            ! Mass error (flux - change)
            ! Total water mass in the plant at the beginning of this solve [kg h2o]
            w_tot_end = sum(th_node(:)*v_node(:))*denh2o
+
+           write(fates_log(),*) 'sum th_node: ', sum(th_node)
+           write(fates_log(),*) 'sum v_node: ', sum(v_node)
+           write(fates_log(),*) 'denh2o: ', denh2o
 
            wb_step_err = (q_top_eff*dt_substep) - (w_tot_beg-w_tot_end)
 
@@ -3809,6 +3819,7 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
            write(fates_log(),*) 'q_top_eff: ', q_top_eff
            write(fates_log(),*) 'w_tot_beg: ', w_tot_beg
            write(fates_log(),*) 'w_tot_end: ', w_tot_end
+           write(fates_log(),*) 'w_tot_beg-w_tot_end: ', w_tot_beg-w_tot_end
            write(fates_log(),*) 'dt_substep: ', dt_substep
 
            if(abs(wb_step_err)>max_wb_step_err .or. any(dth_node(:).ne.dth_node(:)) )then
