@@ -2997,9 +2997,9 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
 
   ! Stem Maximum Hydraulic Conductance
 
-  write(fates_log(),*) 'ccohort_hydr%z_node_ag:', sum(ccohort_hydr%z_node_ag(:))
-  write(fates_log(),*) 'ccohort_hydr%z_lower_ag:', sum(ccohort_hydr%z_lower_ag(:))
-  write(fates_log(),*) 'ccohort_hydr%z_upper_ag:', sum(ccohort_hydr%z_upper_ag(:))
+  write(fates_log(),*) 'sum ccohort_hydr%z_node_ag:', sum(ccohort_hydr%z_node_ag(:))
+  write(fates_log(),*) 'sum ccohort_hydr%z_lower_ag:', sum(ccohort_hydr%z_lower_ag(:))
+  write(fates_log(),*) 'sum ccohort_hydr%z_upper_ag:', sum(ccohort_hydr%z_upper_ag(:))
 
   do k=1, n_hypool_stem
 
@@ -3014,6 +3014,10 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
      z_upper = max( min_pet_stem_dz,ccohort_hydr%z_node_ag(n_hypool_leaf) - &
           ccohort_hydr%z_upper_ag(k_ag))
 
+     write(fates_log(),*) 'index k:', k
+     write(fates_log(),*) 'ccohort_hydr%z_node_ag:', ccohort_hydr%z_node_ag(n_hypool_leaf)
+     write(fates_log(),*) 'ccohort_hydr%z_lower_ag:', ccohort_hydr%z_lower_ag(k_ag)
+     write(fates_log(),*) 'ccohort_hydr%z_upper_ag:', ccohort_hydr%z_upper_ag(k_ag)
 
      ! Then we calculate the maximum conductance from each the lower, node and upper
      ! edges of the compartment to the petiole. The xylem taper factor requires
@@ -3044,6 +3048,9 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
 
      ! Max conductance over the path on the loewr side of the compartment
      ccohort_hydr%kmax_stem_lower(k) = (1._r8/kmax_lower - 1._r8/kmax_node)**(-1._r8)
+     
+     write(fates_log(),*) 'ccohort_hydr%kmax_stem_upper:', ccohort_hydr%kmax_stem_upper(k)
+     write(fates_log(),*) 'ccohort_hydr%kmax_stem_lower:', ccohort_hydr%kmax_stem_lower(k)
 
      if(debug) then
         ! The following clauses should never be true:
@@ -3064,6 +3071,9 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
   z_upper = ccohort_hydr%z_lower_ag(n_hypool_leaf)
   z_node  = ccohort_hydr%z_lower_ag(n_hypool_leaf)-ccohort_hydr%z_node_troot
 
+  write(fates_log(),*) 'ccohort_hydr%z_lower_ag:', ccohort_hydr%z_lower_ag(n_hypool_leaf)
+  write(fates_log(),*) 'ccohort_hydr%z_node_troot:', ccohort_hydr%z_node_troot
+
   kmax_node = EDPftvarcon_inst%hydr_kmax_node(pft,2) * &
        xylemtaper(EDPftvarcon_inst%hydr_p_taper(pft), z_node) * &
        a_sapwood / z_node
@@ -3075,6 +3085,8 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
   write(fates_log(),*) 'xylemtaper calls done'
 
   ccohort_hydr%kmax_troot_upper = (1._r8/kmax_node - 1._r8/kmax_upper)**(-1._r8)
+
+  write(fates_log(),*) 'ccohort_hydr%kmax_troot_upper:', ccohort_hydr%kmax_troot_upper
 
   ! The maximum conductance between the center node of the transporting root
   ! compartment, and the center node of the absorbing root compartment, is calculated
@@ -3134,6 +3146,12 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
      ccohort_hydr%kmax_troot_lower(j) = 3.0_r8 * kmax_layer
      ccohort_hydr%kmax_aroot_upper(j) = 3.0_r8 * kmax_layer
      ccohort_hydr%kmax_aroot_lower(j) = 3.0_r8 * kmax_layer
+
+     write(fates_log(),*) 'index j:',  j
+     write(fates_log(),*) 'ccohort_hydr%l_aroot_layer:', ccohort_hydr%l_aroot_layer(j)
+     write(fates_log(),*) 'ccohort_hydr%kmax_troot_lower:', ccohort_hydr%kmax_troot_lower(j)
+     write(fates_log(),*) 'ccohort_hydr%kmax_aroot_upper:', ccohort_hydr%kmax_aroot_upper(j)
+     write(fates_log(),*) 'ccohort_hydr%kmax_aroot_lower:', ccohort_hydr%kmax_aroot_lower(j)
 
   end do
 
@@ -3706,6 +3724,7 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
            kmax_dn = cohort_hydr%kmax_troot_lower(ilayer)
            kmax_up = cohort_hydr%kmax_aroot_upper(ilayer)
 
+           write(fates_log(),*) 'ilayer D: ', ilayer
            write(fates_log(),*) 'kmax_dn D: ', kmax_dn
            write(fates_log(),*) 'kmax_up D: ', kmax_up
 
@@ -3737,6 +3756,7 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
 
            kmax_up = csite_hydr%kmax_upper_shell(ilayer,1)*aroot_frac_plant
 
+           write(fates_log(),*) 'ilayer E: ', ilayer
            write(fates_log(),*) 'kmax_dn E: ', kmax_dn
            write(fates_log(),*) 'kmax_up E: ', kmax_up
 
