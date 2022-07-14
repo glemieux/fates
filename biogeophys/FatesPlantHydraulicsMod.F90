@@ -2541,6 +2541,8 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
      !err_soil = delta_soil_storage - root_flux
      !err_plot = delta_plant_storage - (root_flux - transp_flux)
 
+     write(fates_log(),*) 'hydr_solver,: ', hydr_solver
+
      ifp = 0
      cpatch => sites(s)%oldest_patch
      do while (associated(cpatch))
@@ -2672,6 +2674,7 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
               ! Remember the error for the cohort
               ccohort_hydr%errh2o  = ccohort_hydr%errh2o + wb_err_plant
 
+              write(fates_log(),*) 'ifp: ', ifp
               write(fates_log(),*) 'sum kbg_layer,: ', sum(kbg_layer)
               write(fates_log(),*) 'qflx_tran_veg_indiv: ', qflx_tran_veg_indiv
               write(fates_log(),*) 'ccohort_hydr%errh2o: ', ccohort_hydr%errh2o
@@ -3553,6 +3556,9 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
 
         dt_substep = dt_step/real(nsteps,r8) ! This is the sub-stem length in seconds
 
+        write(fates_log(),*) 'dt_step: ', dt_step
+        write(fates_log(),*) 'nsteps: ', nsteps
+
         ! Walk through sub-steps
         do istep = 1,nsteps
 
@@ -3799,6 +3805,12 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
 
            wb_step_err = (q_top_eff*dt_substep) - (w_tot_beg-w_tot_end)
 
+           write(fates_log(),*) 'wb_step_err: ', wb_step_err
+           write(fates_log(),*) 'q_top_eff: ', q_top_eff
+           write(fates_log(),*) 'w_tot_beg: ', w_tot_beg
+           write(fates_log(),*) 'w_tot_end: ', w_tot_end
+           write(fates_log(),*) 'dt_substep: ', dt_substep
+
            if(abs(wb_step_err)>max_wb_step_err .or. any(dth_node(:).ne.dth_node(:)) )then
               solution_found = .false.
               error_code = 1
@@ -3855,7 +3867,6 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
            ! [kg/m2]
            wb_err_layer = wb_err_layer + wb_step_err
 
-           write(fates_log(),*) 'wb_step_err: ', wb_step_err
 
            ! -------------------------------------------------------------------------
            ! Diagnostics
