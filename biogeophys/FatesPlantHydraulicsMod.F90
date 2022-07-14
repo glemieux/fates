@@ -375,6 +375,7 @@ contains
 
              ! This updates the Kmax's of the plant's compartments
              call UpdatePlantKmax(ccohort_hydr,ccohort,sites(s)%si_hydr)
+             write(fates_log(),*) 'UpdatePlantKmax:calling UpdatePlantKmax'
 
              ! Since this is a newly initialized plant, we set the previous compartment-size
              ! equal to the ones we just calculated.
@@ -874,6 +875,7 @@ contains
 
     ! This updates the Kmax's of the plant's compartments
     call UpdatePlantKmax(ccohort_hydr,ccohort,currentsite%si_hydr)
+    write(fates_log(),*) 'UpdateSizeDepPlantHydProps:calling UpdatePlantKmax'
 
 
   end subroutine UpdateSizeDepPlantHydProps
@@ -3069,6 +3071,8 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
   kmax_upper = EDPftvarcon_inst%hydr_kmax_node(pft,2) * &
        xylemtaper(EDPftvarcon_inst%hydr_p_taper(pft), z_upper) * &
        a_sapwood / z_upper
+
+  write(fates_log(),*) 'xylemtaper calls done'
 
   ccohort_hydr%kmax_troot_upper = (1._r8/kmax_node - 1._r8/kmax_upper)**(-1._r8)
 

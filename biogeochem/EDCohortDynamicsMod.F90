@@ -341,6 +341,7 @@ contains
 
        ! This updates the Kmax's of the plant's compartments
        call UpdatePlantKmax(new_cohort%co_hydr,new_cohort,currentSite%si_hydr)
+       write(fates_log(),*) 'create_cohort:calling UpdatePlantKmax'
 
        ! Since this is a newly initialized plant, we set the previous compartment-size
        ! equal to the ones we just calculated.
