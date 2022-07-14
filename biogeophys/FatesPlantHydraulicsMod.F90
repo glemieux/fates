@@ -3073,6 +3073,8 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
 
   write(fates_log(),*) 'ccohort_hydr%z_lower_ag:', ccohort_hydr%z_lower_ag(n_hypool_leaf)
   write(fates_log(),*) 'ccohort_hydr%z_node_troot:', ccohort_hydr%z_node_troot
+  write(fates_log(),*) 'z_upper: ', z_upper
+  write(fates_log(),*) 'z_node: ', z_node
 
   kmax_node = EDPftvarcon_inst%hydr_kmax_node(pft,2) * &
        xylemtaper(EDPftvarcon_inst%hydr_p_taper(pft), z_node) * &
@@ -3081,6 +3083,12 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
   kmax_upper = EDPftvarcon_inst%hydr_kmax_node(pft,2) * &
        xylemtaper(EDPftvarcon_inst%hydr_p_taper(pft), z_upper) * &
        a_sapwood / z_upper
+
+  write(fates_log(),*) 'ipft:', ipft
+  write(fates_log(),*) 'EDPftvarcon_inst%hydr_kmax_node:', EDPftvarcon_inst%hydr_kmax_node(pft,2)
+  write(fates_log(),*) 'EDPftvarcon_inst%hydr_p_taper:', EDPftvarcon_inst%hydr_p_taper(pft)
+  write(fates_log(),*) 'kmax_node: ', kmax_node
+  write(fates_log(),*) 'kmax_upper: ', kmax_upper
 
   write(fates_log(),*) 'xylemtaper calls done'
 
@@ -3656,8 +3664,8 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
                 A_term(j),                        &
                 B_term(j))
 
-           write(fates_log(),*) 'kmax_dn A: ', kmax_dn
-           write(fates_log(),*) 'kmax_up A: ', kmax_up
+           write(fates_log(),*) 'A cohort_hydr%kmax_petiole_to_leaf: ', cohort_hydr%kmax_petiole_to_leaf
+           write(fates_log(),*) 'A cohort_hydr%kmax_stem_upper: ', cohort_hydr%kmax_stem_upper(1)
 
 
            ! Path is between stem nodes
@@ -3678,8 +3686,8 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
               kmax_dn  = rootfr_scaler*cohort_hydr%kmax_stem_lower(i_dn-n_hypool_leaf)
               kmax_up  = rootfr_scaler*cohort_hydr%kmax_stem_upper(i_up-n_hypool_leaf)
 
-              write(fates_log(),*) 'kmax_dn B: ', kmax_dn
-              write(fates_log(),*) 'kmax_up B: ', kmax_up
+              write(fates_log(),*) 'B cohort_hydr%kmax_stem_lower: ', cohort_hydr%kmax_stem_lower(i_dn-n_hypool_leaf)
+              write(fates_log(),*) 'B cohort_hydr%kmax_stem_upper: ', cohort_hydr%kmax_stem_upper(i_dn-n_hypool_leaf)
 
               call GetImTaylorKAB(kmax_up,kmax_dn,        &
                    ftc_node(i_up),ftc_node(i_dn),        &
@@ -3701,8 +3709,8 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
            kmax_dn  = rootfr_scaler*cohort_hydr%kmax_stem_lower(n_hypool_stem)
            kmax_up  = rootfr_scaler*cohort_hydr%kmax_troot_upper
 
-           write(fates_log(),*) 'kmax_dn C: ', kmax_dn
-           write(fates_log(),*) 'kmax_up C: ', kmax_up
+           write(fates_log(),*) 'C cohort_hydr%kmax_stem_lower: ', cohort_hydr%kmax_stem_lower(n_hypool_stem)
+           write(fates_log(),*) 'C cohort_hydr%kmax_troot_upper: ', cohort_hydr%kmax_troot_upper
 
            call GetImTaylorKAB(kmax_up,kmax_dn,        &
                 ftc_node(i_up),ftc_node(i_dn),        &
@@ -3725,8 +3733,8 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
            kmax_up = cohort_hydr%kmax_aroot_upper(ilayer)
 
            write(fates_log(),*) 'ilayer D: ', ilayer
-           write(fates_log(),*) 'kmax_dn D: ', kmax_dn
-           write(fates_log(),*) 'kmax_up D: ', kmax_up
+           write(fates_log(),*) 'D cohort_hydr%kmax_troot_lower: ', cohort_hydr%kmax_troot_lower(ilayer)
+           write(fates_log(),*) 'D cohort_hydr%kmax_aroot_upper: ', cohort_hydr%kmax_aroot_upper(ilayer)
 
            call GetImTaylorKAB(kmax_up,kmax_dn,        &
                 ftc_node(i_up),ftc_node(i_dn),        &
@@ -3757,8 +3765,10 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
            kmax_up = csite_hydr%kmax_upper_shell(ilayer,1)*aroot_frac_plant
 
            write(fates_log(),*) 'ilayer E: ', ilayer
-           write(fates_log(),*) 'kmax_dn E: ', kmax_dn
-           write(fates_log(),*) 'kmax_up E: ', kmax_up
+           write(fates_log(),*) 'E csite_hydr%kmax_upper_shell: ', csite_hydr%kmax_upper_shell(ilayer,1)
+           write(fates_log(),*) 'E cohort_hydr%kmax_aroot_lower: ', cohort_hydr%kmax_aroot_lower(ilayer)
+           write(fates_log(),*) 'E cohort_hydr%kmax_aroot_radial_in: ', cohort_hydr%kmax_aroot_radial_in(ilayer)
+           write(fates_log(),*) 'E cohort_hydr%kmax_aroot_radial_out: ', cohort_hydr%kmax_aroot_radial_out(ilayer)
 
            call GetImTaylorKAB(kmax_up,kmax_dn,        &
                 ftc_node(i_up),ftc_node(i_dn),        &
@@ -3781,8 +3791,8 @@ subroutine ImTaylorSolve1D(slat, slon,recruitflag,csite_hydr,cohort,cohort_hydr,
               kmax_dn = csite_hydr%kmax_lower_shell(ilayer,ishell_dn)*aroot_frac_plant
               kmax_up = csite_hydr%kmax_upper_shell(ilayer,ishell_up)*aroot_frac_plant
 
-              write(fates_log(),*) 'kmax_dn F: ', kmax_dn
-              write(fates_log(),*) 'kmax_up F: ', kmax_up
+              write(fates_log(),*) 'F csite_hydr%kmax_lower_shell: ', csite_hydr%kmax_lower_shell(ilayer,ishell_dn)
+              write(fates_log(),*) 'F csite_hydr%kmax_upper_shell: ', csite_hydr%kmax_upper_shell(ilayer,ishell_dn)
 
               call GetImTaylorKAB(kmax_up,kmax_dn,        &
                    ftc_node(i_up),ftc_node(i_dn),        &
@@ -4743,8 +4753,9 @@ function xylemtaper(pexp, dz) result(chi_tapnotap)
     a2 =  1.096488_r8
     a1 =  1.844792_r8
     a0 =  1.320732_r8
-    qexp         = a5*pexp**5 + a4*pexp**4 + a3*pexp**3 + a2*pexp**2 + a1*pexp + a0
+
     qexp_notap   = a0
+    qexp         = a5*pexp**5 + a4*pexp**4 + a3*pexp**3 + a2*pexp**2 + a1*pexp + qexp_notap
 
     num          = 3._r8*log(1._r8 - dz/lN * (1._r8-n_ext**(1._r8/3._r8)))
     den          = log(n_ext)
@@ -4753,6 +4764,18 @@ function xylemtaper(pexp, dz) result(chi_tapnotap)
     ktap         = kN * (r0rN**qexp)
     knotap       = kN * (r0rN**qexp_notap)
     chi_tapnotap = ktap / knotap
+
+    write(fates_log(),*) 'kN: ', kN
+    write(fates_log(),*) 'dz: ', dz
+    write(fates_log(),*) 'pexp: ', pexp
+    write(fates_log(),*) 'qexp: ', qexp 
+    write(fates_log(),*) 'num: ', num
+    write(fates_log(),*) 'den: ', den
+    write(fates_log(),*) 'big_N: ', big_N
+    write(fates_log(),*) 'r0rN: ', r0rN
+    write(fates_log(),*) 'ktap: ', ktap
+    write(fates_log(),*) 'knotap: ', knotap
+    write(fates_log(),*) 'chi_tapnotap: ', chi_tapnotap
 
     return
 
