@@ -3084,7 +3084,7 @@ subroutine UpdatePlantKmax(ccohort_hydr,ccohort,csite_hydr)
        xylemtaper(EDPftvarcon_inst%hydr_p_taper(pft), z_upper) * &
        a_sapwood / z_upper
 
-  write(fates_log(),*) 'ipft:', ipft
+  write(fates_log(),*) 'pft:', pft
   write(fates_log(),*) 'EDPftvarcon_inst%hydr_kmax_node:', EDPftvarcon_inst%hydr_kmax_node(pft,2)
   write(fates_log(),*) 'EDPftvarcon_inst%hydr_p_taper:', EDPftvarcon_inst%hydr_p_taper(pft)
   write(fates_log(),*) 'kmax_node: ', kmax_node
@@ -4722,6 +4722,7 @@ function xylemtaper(pexp, dz) result(chi_tapnotap)
     !
     ! !LOCAL VARIABLES:
     real(r8) :: qexp                ! total conductance exponent (as in Fig. 2b of Savage et al. (2010)
+    real(r8) :: qexp_pre            ! 
     real(r8) :: qexp_notap          ! same as qexp, but without xylem taper; i.e., pexp = 0
     real(r8) :: lN=0.005_r8         ! petiole length[m]
     real(r8) :: mu=1.0E-03_r8       ! viscosity[kg m-1 s-1]
@@ -4755,7 +4756,8 @@ function xylemtaper(pexp, dz) result(chi_tapnotap)
     a0 =  1.320732_r8
 
     qexp_notap   = a0
-    qexp         = a5*pexp**5 + a4*pexp**4 + a3*pexp**3 + a2*pexp**2 + a1*pexp + qexp_notap
+    qexp_pre     = a5*pexp**5 + a4*pexp**4 + a3*pexp**3 + a2*pexp**2 + a1*pexp
+    qexp         = qexp_pre + qexp_notap
 
     num          = 3._r8*log(1._r8 - dz/lN * (1._r8-n_ext**(1._r8/3._r8)))
     den          = log(n_ext)
@@ -4763,7 +4765,8 @@ function xylemtaper(pexp, dz) result(chi_tapnotap)
     r0rN         = n_ext**(big_N/2._r8)
     ktap         = kN * (r0rN**qexp)
     knotap       = kN * (r0rN**qexp_notap)
-    chi_tapnotap = ktap / knotap
+    !chi_tapnotap = ktap / knotap
+    chi_tapnotap = r0rN**qexp_pre
 
     write(fates_log(),*) 'kN: ', kN
     write(fates_log(),*) 'dz: ', dz
