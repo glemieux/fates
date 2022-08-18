@@ -195,6 +195,15 @@ module FatesInterfaceTypesMod
 
   integer, public ::  hlm_use_sp                                    !  Flag to use FATES satellite phenology (LAI) mode
                                                                     !  1 = TRUE, 0 = FALSE
+
+  integer, public :: hlm_dispersal_kernel_mode                      ! Flag to signal the use of grid cell seed dispersal
+                                                                    ! Setting this to greater than zero overrides seed rain
+
+  integer, public :: hlm_dispersal_kernel_none                      ! no dispersal (use seed rain)
+  integer, public :: hlm_dispersal_kernel_exponential               ! exponential dispersal kernel
+  integer, public :: hlm_dispersal_kernel_exppower                  ! exponential power (ExP) dispersal kernel
+  integer, public :: hlm_dispersal_kernel_logsech                   ! logistic-sech (LogS) dispersal kernel
+
    ! -------------------------------------------------------------------------------------
    ! Parameters that are dictated by FATES and known to be required knowledge
    !  needed by the HLMs
@@ -756,17 +765,21 @@ module FatesInterfaceTypesMod
    ! Neighbor node
    type, public :: neighbor_type
       
+      ! Procedure constructor 
+      class(dispersal_kernel_type), allocatable :: dispersal_method
+
       ! Grid cell neighbor
       type(neighbor_type), pointer :: next_neighbor => null() 
-   
+
       integer  :: gindex      ! grid cell index
       real(r8) :: gc_dist     ! distance between source and neighbor
       real(r8) :: dist_weight ! distance-based weight scalar
       
       contains
-        generic, public :: DistWeightCalc => SWC   
-        procedure, private :: SWC => SimpleWeightCalc
-  
+
+         generic, public :: DistWeightCalc => SWC   
+         procedure, private :: SWC => SimpleWeightCalc
+
    end type neighbor_type
 
    ! Neighborhood linked list
@@ -775,7 +788,7 @@ module FatesInterfaceTypesMod
       ! Linked list of neighbors for a given source grid cell
       type(neighbor_type), pointer :: first_neighbor => null()
       type(neighbor_type), pointer :: last_neighbor => null()
-     
+      
       integer  :: neighbor_count   ! total neighbors near source
       real(r8) :: dist_weight_tot  ! sum of dist weight scalars
       ! real(r8) :: gclat            ! source gridcell latitude (deg)
@@ -784,18 +797,17 @@ module FatesInterfaceTypesMod
    end type neighborhood_type
 
    type(neighborhood_type), public, pointer :: lneighbors(:)
-   
-   ! 
+
    interface DistWeightCalc
       module procedure SimpleWeightCalc
    end interface DistWeightCalc
 
  contains
-       
-    ! ======================================================================================
-   
-    function SimpleWeightCalc(this, g2g_dist, decay_rate) result(dist_weight)
+
+   ! ======================================================================================
       
+   function SimpleWeightCalc(this, g2g_dist, decay_rate) result(dist_weight)
+         
       ! Arguments
       class(neighbor_type) :: this
       real(r8), intent(in) :: g2g_dist
@@ -807,9 +819,8 @@ module FatesInterfaceTypesMod
       
       dist_weight = exp(-decay_rate*g2g_dist)
 
-    end function SimpleWeightCalc
-   
-    ! ====================================================================================
-   
+   end function SimpleWeightCalc
+
+   ! ====================================================================================
        
   end module FatesInterfaceTypesMod
