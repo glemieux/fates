@@ -1,30 +1,17 @@
-module FatesDispersalBaseMod
+module FatesDispersalMethodMod
 
    use shr_log_mod           , only : errMsg => shr_log_errMsg
    use FatesGlobals          , only : endrun => fates_endrun
    use FatesGlobals          , only : fates_log
    use FatesConstantsMod     , only : r8 => fates_r8
 
+   use FatesDispersalBaseMod, only : dispersal_kernel_type
+   use FatesDispersalOneParamMod, only : dispersal_one_param_type
+   use FatesDispersalTwoParamMod, only : dispersal_two_param_type
+
    implicit none
    private
    
-   ! Dispersal kernal type and associated abstract interface for pdf function
-   type, abstract :: dispersal_kernel_type
-      private
-      contains
-         procedure(ProbabilityDensity_interface), public, deferred :: ProbabilityDensity
-   end type dispersal_kernel_type
-
-   abstract interface
-      function ProbabilityDensity_interface(this) result (pdf)
-         import :: dispersal_kernel_type   ! Why do we need import here?
-         class(dispersal_kernel_type) :: this
-         real(r8) :: pdf
-      end function ProbabilityDensity_interface
-   end interface
-
-   procedure, public :: CreateDispersalKernelMethod
-
    character(len=*), parameter, private :: sourcefile = __FILE__
 
 contains
@@ -45,17 +32,15 @@ contains
       ! ARGUMENTS
       class(dispersal_kernel_type), allocatable, intent(inout) :: dispersal_kernel_method
 
-      ! LOCAL
-
       select case(hlm_dispersal_kernel_mode)
 
       ! For one parameter cases
       case(hlm_dispersal_kernel_exponential)
-         allocate(dispersal_one_param_type :: dispersal_kernel_type)
+         allocate(dispersal_one_param_type :: dispersal_kernel_method)
       
       ! For two parameter cases
       case(hlm_dispersal_kernel_exppower:hlm_dispersal_kernel_logsech)
-         allocate(dispersal_two_param_type :: dispersal_kernel_type)
+         allocate(dispersal_two_param_type :: dispersal_kernel_method)
 
       case default
          write(fates_log(),*) 'ERROR: unknown dispersal kernal method: ', hlm_dispersal_kernel_mode
@@ -63,27 +48,8 @@ contains
 
       end select
 
-      
    end subroutine CreateDispersalKernelMethod
 
    ! ======================================================================================
 
-   function ProbabilityDensity(this) result(pdf)
-            
-      ! Arguments
-      class(neighbor_type) :: this
-      real(r8), intent(in) :: g2g_dist
-      real(r8), intent(in) :: decay_rate
-      real(r8)             :: dist_weight
-      
-      ! Assuming simple exponential decay.  In the future perhaps this could be an interface
-      ! for different weight calculations (and could be held only in fates)
-      
-      dist_weight = exp(-decay_rate*g2g_dist)
-
-   end function ProbabilityDensity
-
-   ! ======================================================================================
-
-
-end module FatesDispersalBaseMod
+end module FatesDispersalMethodMod

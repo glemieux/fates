@@ -775,10 +775,10 @@ module FatesInterfaceTypesMod
       real(r8) :: gc_dist     ! distance between source and neighbor
       real(r8) :: dist_weight ! distance-based weight scalar
       
-      contains
+      ! contains
 
-         generic, public :: DistWeightCalc => SWC   
-         procedure, private :: SWC => SimpleWeightCalc
+      !    generic, public :: DistWeightCalc => SWC   
+      !    procedure, private :: SWC => SimpleWeightCalc
 
    end type neighbor_type
 
@@ -798,28 +798,28 @@ module FatesInterfaceTypesMod
 
    type(neighborhood_type), public, pointer :: lneighbors(:)
 
-   interface DistWeightCalc
-      module procedure SimpleWeightCalc
-   end interface DistWeightCalc
+   ! interface DistWeightCalc
+   !    module procedure SimpleWeightCalc
+   ! end interface DistWeightCalc
 
  contains
 
    ! ======================================================================================
       
-   function SimpleWeightCalc(this, g2g_dist, decay_rate) result(dist_weight)
+   ! function SimpleWeightCalc(this, g2g_dist, decay_rate) result(dist_weight)
          
-      ! Arguments
-      class(neighbor_type) :: this
-      real(r8), intent(in) :: g2g_dist
-      real(r8), intent(in) :: decay_rate
-      real(r8)             :: dist_weight
+   !    ! Arguments
+   !    class(neighbor_type) :: this
+   !    real(r8), intent(in) :: g2g_dist
+   !    real(r8), intent(in) :: decay_rate
+   !    real(r8)             :: dist_weight
       
-      ! Assuming simple exponential decay.  In the future perhaps this could be an interface
-      ! for different weight calculations (and could be held only in fates)
+   !    ! Assuming simple exponential decay.  In the future perhaps this could be an interface
+   !    ! for different weight calculations (and could be held only in fates)
       
-      dist_weight = exp(-decay_rate*g2g_dist)
+   !    dist_weight = exp(-decay_rate*g2g_dist)
 
-   end function SimpleWeightCalc
+   ! end function SimpleWeightCalc
 
    ! ====================================================================================
        
