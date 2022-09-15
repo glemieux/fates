@@ -36,7 +36,7 @@ module FatesRestartInterfaceMod
   use FatesLitterMod,          only : litter_type
   use FatesLitterMod,          only : ncwd
   use FatesLitterMod,          only : ndcmpy
-  use EDTypesMod,              only : nfsc
+  use EDTypesMod,              only : nfsc, nlevleaf
   use PRTGenericMod,           only : prt_global
   use PRTGenericMod,           only : num_elements
   use FatesRunningMeanMod,     only : rmean_type
@@ -131,7 +131,9 @@ module FatesRestartInterfaceMod
   integer :: ir_daily_n_need_co
   integer :: ir_daily_p_need_co
 
-  !Logging
+  integer :: ir_year_net_up_covec
+
+  ! Logging
   integer :: ir_lmort_direct_co
   integer :: ir_lmort_collateral_co
   integer :: ir_lmort_infra_co
@@ -934,6 +936,12 @@ contains
 
     ! Site Level Diagnostics over multiple nutrients
 
+    ! Cohort leaf level variables
+         
+    call this%RegisterCohortVector(symbol_base='fates_year_net_uptake', vtype=cohort_r8, &
+         long_name_base='yearly net uptake',  &
+         units='kgC/m2/year', veclength=nlevleaf, flushval = flushzero, &
+         hlms='CLM:ALM', initialize=initialize_variables, ivar=ivar, index = ir_year_net_up_covec)
 
     ! Patch Level Litter Pools are potentially multi-element
 
@@ -1362,7 +1370,7 @@ contains
     
     return
   end subroutine SetRMeanRestartVar
-
+    
  ! =====================================================================================
 
   subroutine DefinePRTRestartVars(this,initialize_variables,ivar)
@@ -1963,7 +1971,9 @@ contains
 
                    end do
                 end do
-
+                
+                call this%SetCohortRealVector(ccohort%year_net_uptake,nlevleaf, &
+                                              ir_year_net_up_covec,io_idx_co)
 
                 if(hlm_use_planthydro==itrue)then
 
@@ -2833,8 +2843,10 @@ contains
                 ccohort%status_coh   = rio_status_co(io_idx_co)
                 ccohort%isnew        = ( rio_isnew_co(io_idx_co) .eq. new_cohort )
 
-                call UpdateCohortBioPhysRates(ccohort)
+                call this%GetCohortRealVector(cccohort%year_net_uptake,nlevleaf, &
+                                              ir_year_net_up_covec,io_idx_co)
 
+                call UpdateCohortBioPhysRates(ccohort)
 
                 ! Initialize Plant Hydraulics
 
