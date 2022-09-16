@@ -2843,7 +2843,7 @@ contains
                 ccohort%status_coh   = rio_status_co(io_idx_co)
                 ccohort%isnew        = ( rio_isnew_co(io_idx_co) .eq. new_cohort )
 
-                call this%GetCohortRealVector(cccohort%year_net_uptake,nlevleaf, &
+                call this%GetCohortRealVector(ccohort%year_net_uptake,nlevleaf, &
                                               ir_year_net_up_covec,io_idx_co)
 
                 call UpdateCohortBioPhysRates(ccohort)
