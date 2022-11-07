@@ -50,7 +50,7 @@ module FATESPlantRespPhotosynthMod
   use PRTGenericMod,     only : store_organ
   use PRTGenericMod,     only : repro_organ
   use PRTGenericMod,     only : struct_organ
-  use EDParamsMod,       only : ED_val_base_mr_20, stomatal_model
+  use EDParamsMod,       only : ED_val_base_mr_20, stomatal_model, stomatal_assim_model
   use PRTParametersMod,  only : prt_params
   use EDPftvarcon         , only : EDPftvarcon_inst
   
@@ -93,12 +93,9 @@ module FATESPlantRespPhotosynthMod
   
   ! Alternatively, Gross Assimilation can be used to estimate
   ! leaf co2 partial pressure and therefore conductance. The default
-  !is to use anet
-  logical, parameter :: use_agross = .false.
-
-
-  
-
+  ! is to use anet
+  integer, parameter :: net_assim_model = 1
+  integer, parameter :: gross_assim_model = 2
   
   
 contains
@@ -139,6 +136,10 @@ contains
     use FatesAllometryMod, only : set_root_fraction
     use FatesAllometryMod, only : decay_coeff_kn
 
+    use DamageMainMod, only : GetCrownReduction
+
+    use FatesInterfaceTypesMod, only : hlm_use_tree_damage
+    
     ! ARGUMENTS:
     ! -----------------------------------------------------------------------------------
     integer,intent(in)                      :: nsites
@@ -244,6 +245,17 @@ contains
     real(r8) :: leaf_psi           ! leaf xylem matric potential [MPa] (only meaningful/used w/ hydro)
     real(r8), allocatable :: rootfr_ft(:,:)  ! Root fractions per depth and PFT
 
+    real(r8) :: agb_frac              ! fraction of biomass aboveground
+    real(r8) :: branch_frac           ! fraction of aboveground woody biomass in branches
+    real(r8) :: crown_reduction       ! reduction in crown biomass from damage
+    real(r8) :: sapw_c_bgw            ! belowground sapwood
+    real(r8) :: sapw_c_agw            ! aboveground sapwood
+    real(r8) :: sapw_c_undamaged      ! the target sapwood of an undamaged tree
+    real(r8) :: sapw_n                ! sapwood nitrogen
+    real(r8) :: sapw_n_bgw            ! nitrogen in belowground portion of sapwood
+    real(r8) :: sapw_n_agw            ! nitrogen in aboveground portion of sapwood
+    real(r8) :: sapw_n_undamaged      ! nitrogen in sapwood of undamaged tree
+
     ! -----------------------------------------------------------------------------------
     ! Keeping these two definitions in case they need to be added later
     !
@@ -272,6 +284,8 @@ contains
     ! Photosynthesis and stomatal conductance parameters, from:
     ! Bonan et al (2011) JGR, 116, doi:10.1029/2010JG001593
     ! -----------------------------------------------------------------------------------
+    
+    
 
     associate(  &
          c3psn     => EDPftvarcon_inst%c3psn  , &
@@ -390,7 +404,8 @@ contains
                       ft = currentCohort%pft
                       cl = currentCohort%canopy_layer
 
-                      call bleaf(currentCohort%dbh,currentCohort%pft,currentCohort%canopy_trim,store_c_target)
+                      call bleaf(currentCohort%dbh,currentCohort%pft,&
+                           currentCohort%crowndamage,currentCohort%canopy_trim,store_c_target)
                       !                     call bstore_allom(currentCohort%dbh,currentCohort%pft, &
                       !                                       currentCohort%canopy_trim,store_c_target)
 
@@ -505,6 +520,7 @@ contains
 
                                end select
 
+                               ! MLO - Shouldn't these numbers be parameters too?
                                lmr25top = 2.525e-6_r8 * (1.5_r8 ** ((25._r8 - 20._r8)/10._r8))
                                lmr25top = lmr25top * lnc_top / (umolC_to_kgC * g_per_kg)
 
@@ -642,17 +658,39 @@ contains
 
                       sapw_c   = currentCohort%prt%GetState(sapw_organ, all_carbon_elements)
                       fnrt_c   = currentCohort%prt%GetState(fnrt_organ, all_carbon_elements)
+                      
 
+                      if (hlm_use_tree_damage .eq. itrue) then
+                         
+                         ! Crown damage currenly only reduces the aboveground portion of 
+                         ! sapwood. Therefore we calculate the aboveground and the belowground portion 
+                         ! sapwood for use in stem respiration. 
+                         call GetCrownReduction(currentCohort%crowndamage, crown_reduction)
+                         
+                      else
+                         crown_reduction = 0.0_r8
+                      end if
+                    
+                      ! If crown reduction is zero, undamaged sapwood target will equal sapwood carbon
+                      agb_frac = prt_params%allom_agb_frac(currentCohort%pft)
+                      branch_frac = param_derived%branch_frac(currentCohort%pft)
+                      sapw_c_undamaged = sapw_c / (1.0_r8 - (agb_frac * branch_frac * crown_reduction))
+                      
+                      ! Undamaged below ground portion
+                      sapw_c_bgw = sapw_c_undamaged * (1.0_r8 - agb_frac)
+
+                      ! Damaged aboveground portion
+                      sapw_c_agw = sapw_c - sapw_c_bgw                         
+                     
+   
                       select case(hlm_parteh_mode)
                       case (prt_carbon_allom_hyp)
 
-                         live_stem_n = prt_params%allom_agb_frac(currentCohort%pft) * &
-                              sapw_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(sapw_organ))
+                         live_stem_n = sapw_c_agw * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(sapw_organ))
 
-                         live_croot_n = (1.0_r8-prt_params%allom_agb_frac(currentCohort%pft)) * &
-                              sapw_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(sapw_organ))
+                         live_croot_n = sapw_c_bgw * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(sapw_organ))
 
-                        fnrt_n = fnrt_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(fnrt_organ))
+                         fnrt_n = fnrt_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(fnrt_organ))
 
                       case(prt_cnp_flex_allom_hyp)
 
@@ -662,16 +700,33 @@ contains
                          live_croot_n = (1.0_r8-prt_params%allom_agb_frac(currentCohort%pft)) * &
                               currentCohort%prt%GetState(sapw_organ, nitrogen_element)
 
+
                          fnrt_n = currentCohort%prt%GetState(fnrt_organ, nitrogen_element)
+
+                         if (hlm_use_tree_damage .eq. itrue) then
+
+                            sapw_n = currentCohort%prt%GetState(sapw_organ, nitrogen_element)
+
+                            sapw_n_undamaged = sapw_n / &
+                                 (1.0_r8 - (agb_frac * branch_frac * crown_reduction))
+                            
+                            sapw_n_bgw = sapw_n_undamaged * (1.0_r8 - agb_frac)
+                            sapw_n_agw = sapw_n - sapw_n_bgw
+
+                            live_croot_n = sapw_n_bgw
+
+                            live_stem_n = sapw_n_agw
+
+                         end if
 
                          ! If one wants to break coupling with dynamic N conentrations,
                          ! use the stoichiometry parameter
                          !
                          ! live_stem_n = prt_params%allom_agb_frac(currentCohort%pft) * &
-                        !               sapw_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(sapw_organ))
+                         !               sapw_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(sapw_organ))
                          ! live_croot_n = (1.0_r8-prt_params%allom_agb_frac(currentCohort%pft)) * &
-                        !               sapw_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(sapw_organ))
-                        ! fnrt_n = fnrt_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(fnrt_organ))
+                         !               sapw_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(sapw_organ))
+                         ! fnrt_n = fnrt_c * prt_params%nitr_stoich_p1(ft,prt_params%organ_param_id(fnrt_organ))
 
 
                       case default
@@ -1152,7 +1207,7 @@ subroutine LeafLayerPhotosynthesis(f_sun_lsl,         &  ! in
               ! using anet in calculating gs this is version B  
               anet = agross  - lmr
 
-              if (use_agross) then
+              if ( stomatal_assim_model == gross_assim_model ) then
                  if ( stomatal_model == medlyn_model ) then
                     write (fates_log(),*) 'Gross Assimilation conductance is incompatible with the Medlyn model'
                     call endrun(msg=errMsg(sourcefile, __LINE__))
