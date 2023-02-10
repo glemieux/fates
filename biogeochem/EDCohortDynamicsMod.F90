@@ -184,7 +184,8 @@ contains
     real(r8), intent(in)      :: hite             ! height: meters
     real(r8), intent(in)      :: coage            ! cohort age in years
     real(r8), intent(in)      :: dbh              ! dbh: cm
-    class(prt_vartypes),target :: prt             ! The allocated PARTEH
+    class(prt_vartypes),intent(inout), pointer :: prt             ! The allocated PARTEH
+    !class(prt_vartypes),target :: prt             ! The allocated PARTEH
                                                   ! object
     real(r8), intent(in)      :: ctrim            ! What is the fraction of the maximum
                                                   ! leaf biomass that we are targeting?
