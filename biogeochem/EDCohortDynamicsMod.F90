@@ -1733,9 +1733,9 @@ contains
     ! !USES:
     !
     ! !ARGUMENTS
-    type(ed_cohort_type) , intent(inout), target          :: pcc
-    type(ed_cohort_type) , intent(inout), target          :: ptall
-    type(ed_cohort_type) , intent(inout), target          :: pshort
+    type(ed_cohort_type) , intent(inout), pointer :: pcc
+    type(ed_cohort_type) , intent(inout), pointer :: ptall
+    type(ed_cohort_type) , intent(inout), pointer :: pshort
     integer              , intent(in)                     :: tnull
     integer              , intent(in)                     :: snull
     type(ed_cohort_type) , intent(inout),pointer,optional :: storesmallcohort ! storage of the smallest cohort for insertion routine
