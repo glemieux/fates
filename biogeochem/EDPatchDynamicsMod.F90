@@ -473,6 +473,7 @@ contains
     real(r8) :: disturbance_rate             ! rate of disturbance being resolved [fraction of patch area / day]
     real(r8) :: oldarea                      ! old patch area prior to disturbance
     logical  :: clearing_matrix(n_landuse_cats,n_landuse_cats)  ! do we clear vegetation when transferring from one LU type to another?
+    integer  :: totalpatches
 
     !---------------------------------------------------------------------
 
@@ -1258,11 +1259,14 @@ contains
 
     !zero disturbance rate trackers on all patches
     currentPatch => currentSite%oldest_patch
+    totalpatches = 0
     do while(associated(currentPatch))
+       totalpatches = totalpatches + 1
        currentPatch%disturbance_rates(:) = 0._r8
        currentPatch%fract_ldist_not_harvested = 0._r8
        currentPatch => currentPatch%younger
     end do
+    write(fates_log(),*) 'spawn end: total, ypnum: ', totalpatches, currentSite%youngest_patch%patchno 
 
     return
   end subroutine spawn_patches
@@ -2629,6 +2633,7 @@ contains
     real(r8) :: primary_land_fraction_beforefusion,primary_land_fraction_afterfusion
     integer  :: pftlabelmin, pftlabelmax
     real(r8) :: maxpatches(n_landuse_cats)
+    integer  :: totalpatches
     !
     !---------------------------------------------------------------------
 
@@ -2640,6 +2645,7 @@ contains
     primary_land_fraction_afterfusion = 0._r8
 
     nopatches(1:n_landuse_cats) = 0
+    totalpatches = 0
 
     ! Its possible that, in nocomp modes, there are more categorically distinct patches than we allow as 
     ! primary patches in non-nocomp mode.  So if this is the case, bump up the maximum number of primary patches
@@ -2667,6 +2673,7 @@ contains
 
     currentPatch => currentSite%youngest_patch
     do while(associated(currentPatch))
+       totalpatches = totalpatches + 1
        nopatches(currentPatch%land_use_label) = &
             nopatches(currentPatch%land_use_label) + 1
        
@@ -2677,6 +2684,7 @@ contains
 
        currentPatch => currentPatch%older
     enddo
+    write(fates_log(),*) 'fuse start: total, sumnop, ypnum: ', totalpatches, sum(nopatches), currentSite%youngest_patch%patchno 
 
     pftlabelmin = 0
     if ( hlm_use_nocomp .eq. itrue ) then
@@ -2902,7 +2910,9 @@ contains
     end do lulabel_loop
 
     currentPatch => currentSite%youngest_patch
+    totalpatches = 0
     do while(associated(currentPatch))
+       totalpatches = totalpatches + 1
 
        if (currentPatch%land_use_label .eq. primaryland) then
           primary_land_fraction_afterfusion = primary_land_fraction_afterfusion + &
@@ -2911,6 +2921,7 @@ contains
 
        currentPatch => currentPatch%older
     enddo
+    write(fates_log(),*) 'fuse end: total, sumnop, ypnum: ', totalpatches, sum(nopatches),currentSite%youngest_patch%patchno 
 
     currentSite%primary_land_patchfusion_error = primary_land_fraction_afterfusion - primary_land_fraction_beforefusion
  
@@ -3120,6 +3131,7 @@ contains
                                                      ! You should had fused
     integer                      :: count_cycles
     logical                      :: gotfused
+    integer  :: totalpatches
 
     real(r8) areatot ! variable for checking whether the total patch area is wrong. 
     !---------------------------------------------------------------------
@@ -3269,6 +3281,14 @@ contains
        end if  !count cycles
        
     enddo ! current patch loop
+
+    totalpatches = 0
+    currentPatch => currentSite%youngest_patch
+    do while(associated(currentPatch)) 
+        totalpatches = totalpatches + 1
+        currentPatch => currentPatch%older
+    end do
+    write(fates_log(),*) 'terminate end: total, ypnum: ', totalpatches, currentSite%youngest_patch%patchno 
     
     !check area is not exceeded
     call check_patch_area( currentSite )
