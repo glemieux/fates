@@ -1319,6 +1319,7 @@ contains
     real(r8) :: sapw_c           ! sapwood carbon [kg]
     real(r8) :: store_c          ! storage carbon [kg]
     real(r8) :: struct_c         ! structure carbon [kg]
+    integer  :: totalpatch
 
     !----------------------------------------------------------------------
 
@@ -1328,17 +1329,22 @@ contains
 
     do s = 1,nsites
 
+       totalpatch = 0
+
        ! --------------------------------------------------------------------------------
        ! Set the patch indices (this is usefull mostly for communicating with a host or
        ! driving model.  Loops through all patches and sets cpatch%patchno to the integer
        ! order of oldest to youngest where the oldest is 1.
        ! --------------------------------------------------------------------------------
+       write(fates_log(),*) 'cansum, pre-set: s, ypno: ', s, sites(s)%youngest_patch%patchno
        call set_patchno( sites(s) )
+       write(fates_log(),*) 'cansum, pst-set: s, ypno: ', s, sites(s)%youngest_patch%patchno
 
        currentPatch => sites(s)%oldest_patch
 
        do while(associated(currentPatch))
 
+          totalpatch = totalpatch + 1
           !zero cohort-summed variables.
           currentPatch%total_canopy_area = 0.0_r8
           currentPatch%total_tree_area = 0.0_r8
@@ -1432,7 +1438,7 @@ contains
           currentPatch => currentPatch%younger
        end do !patch loop
 
-
+       write(fates_log(),*) 'cansum, pst-loop: s, tp, ypno: ', s, totalpatch, sites(s)%youngest_patch%patchno
     
        call leaf_area_profile(sites(s))
 
