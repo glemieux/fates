@@ -43,6 +43,7 @@ module FatesInterfaceMod
    use FatesConstantsMod         , only : n_landuse_cats
    use FatesConstantsMod         , only : primaryland
    use FatesConstantsMod         , only : secondaryland
+   use FatesConstantsMod         , only : n_crop_lu_types
    use FatesGlobals              , only : fates_global_verbose
    use FatesGlobals              , only : fates_log
    use FatesGlobals              , only : endrun => fates_endrun
@@ -556,8 +557,8 @@ contains
       end if
 
       if ( hlm_use_fixed_biogeog .eq. itrue) then
-         if (hlm_use_luh .gt. 0 ) then
-            allocate(bc_in%pft_areafrac_lu(fates_hlm_num_natpfts,num_luh2_states))
+         if (hlm_use_luh .eq. itrue ) then
+            allocate(bc_in%pft_areafrac_lu(size( EDPftvarcon_inst%hlm_pft_map,2),num_luh2_states-n_crop_lu_types))
          else
             allocate(bc_in%pft_areafrac(surfpft_lb:surfpft_ub))
          endif
@@ -610,13 +611,13 @@ contains
       allocate(bc_out%rssha_pa(maxpatch_total))
       
       ! Canopy Radiation
-      allocate(bc_out%albd_parb(maxpatch_total,hlm_numSWb))
-      allocate(bc_out%albi_parb(maxpatch_total,hlm_numSWb))
-      allocate(bc_out%fabd_parb(maxpatch_total,hlm_numSWb))
-      allocate(bc_out%fabi_parb(maxpatch_total,hlm_numSWb))
-      allocate(bc_out%ftdd_parb(maxpatch_total,hlm_numSWb))
-      allocate(bc_out%ftid_parb(maxpatch_total,hlm_numSWb))
-      allocate(bc_out%ftii_parb(maxpatch_total,hlm_numSWb))
+      allocate(bc_out%albd_parb(fates_maxPatchesPerSite,hlm_numSWb))
+      allocate(bc_out%albi_parb(fates_maxPatchesPerSite,hlm_numSWb))
+      allocate(bc_out%fabd_parb(fates_maxPatchesPerSite,hlm_numSWb))
+      allocate(bc_out%fabi_parb(fates_maxPatchesPerSite,hlm_numSWb))
+      allocate(bc_out%ftdd_parb(fates_maxPatchesPerSite,hlm_numSWb))
+      allocate(bc_out%ftid_parb(fates_maxPatchesPerSite,hlm_numSWb))
+      allocate(bc_out%ftii_parb(fates_maxPatchesPerSite,hlm_numSWb))
 
 
       ! We allocate the boundary conditions to the BGC
@@ -794,10 +795,6 @@ contains
             ! maxpatch_total does not include the bare ground (so add 1)
             
             fates_maxPatchesPerSite = max(surf_numpft+surf_numcft,maxpatch_total+1)
-
-            ! if this is nocomp with land use, track things differently.
-            ! we want the number of natpfts minus the bare ground PFT.
-            fates_hlm_num_natpfts = surf_numpft -1
 
          else
 
@@ -1892,6 +1889,12 @@ contains
                hlm_use_luh = ival
                if (fates_global_verbose()) then
                   write(fates_log(),*) 'Transfering hlm_use_luh = ',ival,' to FATES'
+               end if
+
+            case('use_fates_potentialveg')
+               hlm_use_potentialveg = ival
+               if (fates_global_verbose()) then
+                  write(fates_log(),*) 'Transfering hlm_use_potentialveg = ',ival,' to FATES'
                end if
 
             case('num_luh2_states')

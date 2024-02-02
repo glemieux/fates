@@ -1,4 +1,3 @@
-
 module EDPatchDynamicsMod
   ! ============================================================================
   ! Controls formation, creation, fusing and termination of patch level processes. 
@@ -43,6 +42,7 @@ module EDPatchDynamicsMod
   use FatesLitterMod       , only : dl_sf
   use FatesConstantsMod    , only : N_DIST_TYPES
   use EDTypesMod           , only : AREA_INV
+  use EDTypesMod           , only : dump_site
   use FatesConstantsMod    , only : rsnbl_math_prec
   use FatesConstantsMod    , only : fates_tiny
   use FatesConstantsMod    , only : nocomp_bareground
@@ -72,6 +72,7 @@ module EDPatchDynamicsMod
   use EDLoggingMortalityMod, only : get_harvest_rate_carbon
   use EDLoggingMortalityMod, only : get_harvestable_carbon
   use EDLoggingMortalityMod, only : get_harvest_debt
+  use FatesLandUseChangeMod, only : get_init_landuse_harvest_rate
   use EDParamsMod          , only : fates_mortality_disturbance_fraction
   use FatesAllometryMod    , only : carea_allom
   use FatesAllometryMod    , only : set_root_fraction
@@ -81,8 +82,11 @@ module EDPatchDynamicsMod
   use FatesConstantsMod    , only : years_per_day
   use FatesConstantsMod    , only : nearzero
   use FatesConstantsMod    , only : primaryland, secondaryland, pastureland, rangeland, cropland
+  use FatesConstantsMod    , only : nocomp_bareground_land
   use FatesConstantsMod    , only : n_landuse_cats
   use FatesLandUseChangeMod, only : get_landuse_transition_rates
+  use FatesLandUseChangeMod, only : get_init_landuse_transition_rates
+  use FatesLandUseChangeMod, only : get_luh_statedata
   use FatesConstantsMod    , only : fates_unset_r8
   use FatesConstantsMod    , only : fates_unset_int
   use FatesConstantsMod    , only : hlm_harvest_carbon
@@ -106,7 +110,7 @@ module EDPatchDynamicsMod
   use FatesRunningMeanMod,    only : ema_sdlng_mdd
   use FatesRunningMeanMod,    only : ema_sdlng_emerg_h2o, ema_sdlng_mort_par, ema_sdlng2sap_par
   use FatesRunningMeanMod,    only : ema_24hr, fixed_24hr, ema_lpa, ema_longterm
-  
+
   ! CIME globals
   use shr_infnan_mod       , only : nan => shr_infnan_nan, assignment(=)
   use shr_log_mod          , only : errMsg => shr_log_errMsg
@@ -123,7 +127,7 @@ module EDPatchDynamicsMod
   public :: check_patch_area
   public :: set_patchno
   private:: fuse_2_patches
-  public :: get_frac_site_primary
+  public :: get_current_landuse_statevector
 
   character(len=*), parameter, private :: sourcefile = &
         __FILE__
@@ -204,26 +208,28 @@ contains
     integer  :: threshold_sizeclass
     integer  :: i_dist
     integer  :: h_index
-    real(r8) :: frac_site_primary
     real(r8) :: harvest_rate
     real(r8) :: tempsum
     real(r8) :: mean_temp
     real(r8) :: harvestable_forest_c(hlm_num_lu_harvest_cats)
     integer  :: harvest_tag(hlm_num_lu_harvest_cats)
-    real(r8) :: landuse_transition_matrix(n_landuse_cats, n_landuse_cats)  ! [m2/m2/day]
     real(r8) :: current_fates_landuse_state_vector(n_landuse_cats)  ! [m2/m2]
+    real(r8) :: state_vector(n_landuse_cats)
+    real(r8), parameter :: max_daily_disturbance_rate = 0.999_r8
+    logical  :: site_secondaryland_first_exceeding_min
     !----------------------------------------------------------------------------------------------
     ! Calculate Mortality Rates (these were previously calculated during growth derivatives)
     ! And the same rates in understory plants have already been applied to %dndt
     !----------------------------------------------------------------------------------------------
     
     ! first calculate the fraction of the site that is primary land
-    call get_frac_site_primary(site_in, frac_site_primary)
+    call get_current_landuse_statevector(site_in, current_fates_landuse_state_vector)
 
     ! check status of transition_landuse_from_off_to_on flag, and do some error checking on it
     if(site_in%transition_landuse_from_off_to_on) then
-       if (abs(frac_site_primary - 1._r8) .gt. fates_tiny) then
+       if (sum(current_fates_landuse_state_vector(secondaryland:cropland)) .gt. nearzero) then
           write(fates_log(),*) 'flag for transition_landuse_from_off_to_on is set to true but site is not entirely primaryland'
+          write(fates_log(), *) current_fates_landuse_state_vector
           call endrun(msg=errMsg(sourcefile, __LINE__))
        endif
     endif
@@ -262,7 +268,8 @@ contains
                 bc_in%hlm_harvest_units, &
                 currentPatch%land_use_label, &
                 currentPatch%age_since_anthro_disturbance, &
-                frac_site_primary, &
+                current_fates_landuse_state_vector(primaryland), &
+                current_fates_landuse_state_vector(secondaryland), &
                 harvestable_forest_c, &
                 harvest_tag)
          
@@ -281,23 +288,15 @@ contains
 
     if ( hlm_use_luh .eq. itrue ) then
        if(.not. site_in%transition_landuse_from_off_to_on) then
-          call get_landuse_transition_rates(bc_in, landuse_transition_matrix)
+          call get_landuse_transition_rates(bc_in, site_in%min_allowed_landuse_fraction, &
+               site_in%landuse_transition_matrix, site_in%landuse_vector_gt_min)
        else
-          call get_init_landuse_transition_rates(bc_in, landuse_transition_matrix)
+          call get_init_landuse_transition_rates(bc_in, site_in%min_allowed_landuse_fraction, &
+               site_in%landuse_transition_matrix, site_in%landuse_vector_gt_min)
        endif
     else
-       landuse_transition_matrix(:) = 0._r8
+       site_in%landuse_transition_matrix(:,:) = 0._r8
     endif
-
-    ! calculate total area in each landuse category
-    current_fates_landuse_state_vector(:) = 0._r8
-    currentPatch => site_in%oldest_patch
-    do while (associated(currentPatch))
-       current_fates_landuse_state_vector(currentPatch%land_use_label) = &
-            current_fates_landuse_state_vector(currentPatch%land_use_label) + &
-            currentPatch%area/AREA
-       currentPatch => currentPatch%younger
-    end do
 
     ! ---------------------------------------------------------------------------------------------
     ! Calculate Disturbance Rates based on the mortality rates just calculated
@@ -317,6 +316,11 @@ contains
        currentPatch => currentPatch%younger
     end do
 
+    ! get some info needed to determine whether or not to apply land use change
+    call get_luh_statedata(bc_in, state_vector)
+    site_secondaryland_first_exceeding_min =  (state_vector(secondaryland) .gt. site_in%min_allowed_landuse_fraction) &
+         .and. (.not. site_in%landuse_vector_gt_min(secondaryland))
+
     currentPatch => site_in%oldest_patch
     do while (associated(currentPatch))   
        
@@ -326,10 +330,17 @@ contains
 
        dist_rate_ldist_notharvested = 0.0_r8
 
-       ! Avoid this calculation to avoid NaN due to division by zero result if luh is not used
-       if (hlm_use_luh .eq. itrue) then
+       ! transitin matrix has units of area transitioned per unit area of the whole gridcell per time;
+       ! need to change to area transitioned per unit area of that land-use type per time;
+       ! because the land use state vector sums to one minus area bareground, need to also divide by that
+       ! (or rather, multiply since it is in the denominator of the denominator)
+       ! Avoid this calculation to avoid NaN due to division by zero result if luh is not used or applying to bare ground
+       ! note that an alternative here might be to use what LUH thinks the state vector should be instead of what the FATES state vector is,
+       ! in order to not amplify small deviations between the two...
+       if (hlm_use_luh .eq. itrue .and. currentPatch%land_use_label .gt. nocomp_bareground_land) then
           currentPatch%landuse_transition_rates(1:n_landuse_cats) = min(1._r8, &
-               landuse_transition_matrix(currentPatch%land_use_label,1:n_landuse_cats) / &
+               site_in%landuse_transition_matrix(currentPatch%land_use_label,1:n_landuse_cats) &
+               * (1._r8 - site_in%area_bareground) / &
                current_fates_landuse_state_vector(currentPatch%land_use_label))
        else
           currentPatch%landuse_transition_rates = 0.0_r8
@@ -370,7 +381,7 @@ contains
 
        ! for non-closed-canopy areas subject to logging, add an additional increment of area disturbed
        ! equivalent to the fraction logged to account for transfer of interstitial ground area to new secondary lands
-       if ( logging_time .and. &
+       if ( (logging_time .or. site_in%transition_landuse_from_off_to_on .or. site_secondaryland_first_exceeding_min) .and. &
             (currentPatch%area - currentPatch%total_canopy_area) .gt. fates_tiny ) then
           ! The canopy is NOT closed. 
 
@@ -381,10 +392,23 @@ contains
                      harvest_rate, harvest_tag)
              else
                 call get_harvest_rate_area (currentPatch%land_use_label, bc_in%hlm_harvest_catnames, &
-                     bc_in%hlm_harvest_rates, frac_site_primary, currentPatch%age_since_anthro_disturbance, harvest_rate)
+                     bc_in%hlm_harvest_rates, current_fates_landuse_state_vector(primaryland), &
+                     current_fates_landuse_state_vector(secondaryland), &
+                     currentPatch%age_since_anthro_disturbance, harvest_rate)
+             end if
+
+             ! if the total intended area of secondary lands are less than what we can consider without having too-small patches,
+             ! or if that was the case until just now, then there is special logic
+             if (state_vector(secondaryland) .le. site_in%min_allowed_landuse_fraction) then
+                harvest_rate = 0._r8
+             else if (currentPatch%land_use_label .eq. primaryland .and. .not. site_in%landuse_vector_gt_min(secondaryland)) then
+                harvest_rate = state_vector(secondaryland) / sum(state_vector(:))
+             else
+                harvest_rate = 0._r8
              end if
           else
-             call get_init_landuse_harvest_rate(bc_in, harvest_rate)
+             call get_init_landuse_harvest_rate(bc_in, site_in%min_allowed_landuse_fraction, &
+                  harvest_rate, site_in%landuse_vector_gt_min)
           endif
 
           currentPatch%disturbance_rates(dtype_ilog) = currentPatch%disturbance_rates(dtype_ilog) + &
@@ -417,19 +441,33 @@ contains
        endif
 
        ! if the sum of all disturbance rates is such that they will exceed total patch area on this day, then reduce them all proportionally.
-       if ( (sum(currentPatch%disturbance_rates(:)) + sum(currentPatch%landuse_transition_rates(1:n_landuse_cats))) .gt. 1.0_r8 ) then
+       if ( (sum(currentPatch%disturbance_rates(:)) + sum(currentPatch%landuse_transition_rates(1:n_landuse_cats))) .gt. &
+            max_daily_disturbance_rate ) then
           tempsum = sum(currentPatch%disturbance_rates(:)) + sum(currentPatch%landuse_transition_rates(1:n_landuse_cats))
           do i_dist = 1,N_DIST_TYPES
-             currentPatch%disturbance_rates(i_dist) = currentPatch%disturbance_rates(i_dist) / tempsum
+             currentPatch%disturbance_rates(i_dist) = max_daily_disturbance_rate * currentPatch%disturbance_rates(i_dist) / tempsum
           end do
           do i_dist = 1,n_landuse_cats
-             currentPatch%landuse_transition_rates(i_dist) = currentPatch%landuse_transition_rates(i_dist) / tempsum
+             currentPatch%landuse_transition_rates(i_dist) = max_daily_disturbance_rate * currentPatch%landuse_transition_rates(i_dist) / tempsum
           end do
        endif
 
        currentPatch => currentPatch%younger
 
-    enddo !patch loop 
+    enddo !patch loop
+
+    ! if the area of secondary land has just exceeded the minimum below which we ignore things, set the flag to keep track of that.
+    if ( (state_vector(secondaryland) .gt. site_in%min_allowed_landuse_fraction) .and. (.not. site_in%landuse_vector_gt_min(secondaryland)) ) then
+       site_in%landuse_vector_gt_min(secondaryland) = .true.
+       write(fates_log(),*) 'setting site_in%landuse_vector_gt_min(secondaryland) = .true.'
+
+       currentPatch => site_in%oldest_patch
+       do while (associated(currentPatch))
+          write(fates_log(),*) 'cpatch area, LU, distrates(ilog): ', currentPatch%area, currentPatch%land_use_label, currentPatch%nocomp_pft_label, currentPatch%disturbance_rates(dtype_ilog), currentPatch%area - currentPatch%total_canopy_area
+          currentPatch => currentPatch%younger
+       end do
+
+    end if
 
   end subroutine disturbance_rates
 
@@ -498,15 +536,17 @@ contains
     real(r8) :: disturbance_rate             ! rate of disturbance being resolved [fraction of patch area / day]
     real(r8) :: oldarea                      ! old patch area prior to disturbance
     logical  :: clearing_matrix(n_landuse_cats,n_landuse_cats)  ! do we clear vegetation when transferring from one LU type to another?
-    type (ed_patch_type) , pointer :: buffer_patch, temp_patch
+    type (fates_patch_type) , pointer :: buffer_patch, temp_patch, copyPatch, previousPatch
     real(r8) :: nocomp_pft_area_vector(numpft)
-    real(r8) :: nocomp_pft_area_vector_allocated(numpft)
+    real(r8) :: nocomp_pft_area_vector_filled(numpft)
     real(r8) :: fraction_to_keep
     integer  :: i_land_use_label
     integer  :: i_pft
     real(r8) :: newp_area
     logical  :: buffer_patch_in_linked_list
-
+    integer  :: n_pfts_by_landuse
+    integer  :: which_pft_allowed
+    logical  :: buffer_patch_used
     !---------------------------------------------------------------------
 
     storesmallcohort => null() ! storage of the smallest cohort for insertion routine
@@ -525,7 +565,7 @@ contains
 
     ! get rules for vegetation clearing during land use change
     call get_landusechange_rules(clearing_matrix)
-
+    
     ! in the nocomp cases, since every patch has a PFT identity, it can only receive patch area from patches
     ! that have the same identity. In order to allow this, we have this very high level loop over nocomp PFTs
     ! and only do the disturbance for any patches that have that nocomp PFT identity.
@@ -712,7 +752,7 @@ contains
                                     newPatch, patch_site_areadis,bc_in)
 
                                ! if transitioning from primary to secondary, then may need to change nocomp pft, so tag as having transitioned LU
-                               if ( i_disturbance_type .eq. ilog .and. i_donorpatch_landuse_type .eq. primarylands) then
+                               if ( i_disturbance_type .eq. dtype_ilog .and. i_donorpatch_landuse_type .eq. primaryland) then
                                   newPatch%changed_landuse_this_ts = .true.
                                end if
                             case (dtype_ifire)
@@ -727,7 +767,7 @@ contains
                                     clearing_matrix(i_donorpatch_landuse_type,i_landusechange_receiverpatchlabel))
 
                                ! if land use change, then may need to change nocomp pft, so tag as having transitioned LU
-                               new_patch%changed_landuse_this_ts = .true.
+                               newPatch%changed_landuse_this_ts = .true.
                             case default
                                write(fates_log(),*) 'unknown disturbance mode?'
                                write(fates_log(),*) 'i_disturbance_type: ',i_disturbance_type
@@ -1222,7 +1262,7 @@ contains
                                      newPatch%shortest => nc
                                      nc%shorter => null()
                                   endif
-                                  !nc%patchptr => new_patch
+
                                   call insert_cohort(newPatch, nc, newPatch%tallest, newPatch%shortest, &
                                        tnull, snull, storebigcohort, storesmallcohort)
 
@@ -1314,127 +1354,250 @@ contains
     end do nocomp_pft_loop
 
     nocomp_and_luh_if: if ( hlm_use_nocomp .eq. itrue .and. hlm_use_luh .eq. itrue ) then
-
-       ! disturbance has just hapopened, and now the nocomp PFT identities of the newly-disturbed patches
+       ! disturbance has just happened, and now the nocomp PFT identities of the newly-disturbed patches
        ! need to be remapped to those associated with the new land use type.
 
        ! logic:  loop over land use types. figure out the nocomp PFT fractions for all newly-disturbed patches that have become that land use type.
        ! if the
 
-       lu_loop: do i_land_use_label = 1, n_landuse_cats
+       lu_loop: do i_land_use_label = n_landuse_cats, 1, -1
 
           nocomp_pft_area_vector(:) = 0._r8
-          nocomp_pft_area_vector_allocated(:) = 0._r8
+          nocomp_pft_area_vector_filled(:) = 0._r8
           
           currentPatch => currentSite%oldest_patch
           do while(associated(currentPatch))
-             if (currentPatch%changed_landuse_this_ts) then
+             if (currentPatch%changed_landuse_this_ts .and. currentPatch%land_use_label .eq. i_land_use_label) then
                 nocomp_pft_area_vector(currentPatch%nocomp_pft_label) = nocomp_pft_area_vector(currentPatch%nocomp_pft_label) + currentPatch%area
+                copyPatch => currentPatch
              end if
              currentPatch => currentPatch%younger
           end do
 
-          ! create buffer patch to put all of the pieces carved off of other patches
-          buffer_patch%Create(0._r8, 0._r8, i_land_use_label, 0, &
-               hlm_numSWb, numpft, currentSite%nlevsoil, hlm_current_tod,              &
-               regeneration_model)
-
-          ! make a note that this buffer patch has not been put into the linked list
-          buffer_patch_in_linked_list = .false.
-
-          ! Initialize the litter pools to zero
-          do el=1,num_elements
-             call buffer_patch%litter(el)%InitConditions(init_leaf_fines=0._r8, &
-                  init_root_fines=0._r8, &
-                  init_ag_cwd=0._r8, &
-                  init_bg_cwd=0._r8, &
-                  init_seed=0._r8,   &
-                  init_seed_germ=0._r8)
-          end do
-          buffer_patch%tallest  => null()
-          buffer_patch%shortest => null()
-          
-          currentPatch => currentSite%oldest_patch
-          do while(associated(currentPatch))
-             if (currentPatch%changed_landuse_this_ts) then
-                fraction_to_keep = currentSite%area_pft(currentPatch%nocomp_pft_label,i_land_use_label) * area / nocomp_pft_area_vector(currentPatch%nocomp_pft_label)
-                if (fraction_to_keep .lt. nearzero) then
-                   ! we don't want any patch area with this PFT idendity at all anymore. Fuse it into the buffer patch.
-                   currentPatch%nocomp_pft_label = 0
-                   call fuse_2_patches(currentSite, currentPatch, buffer_patch)
-                elseif (fraction_to_keep .lt. (1._r8 - nearzero)) then
-                   ! we have more patch are of this PFT than we want, but we do want to keep some of it.
-                   ! we want to split the patch into two here. leave one patch as-is, and put the rest into the buffer patch.
-                   call split_patch(currentSite, currentPatch, temp_patch, fraction_to_keep)
-                   !
-                   temp_patch%nocomp_pft_label = 0
-                   call fuse_2_patches(currentSite, temp_patch, buffer_patch)
-                else
-                   ! we want to keep all of this patch (and possibly more)
-                   nocomp_pft_area_vector_allocated(currentPatch%nocomp_pft_label) = &
-                        nocomp_pft_area_vector_allocated(currentPatch%nocomp_pft_label) + currentPatch%area
-                   currentPatch%changed_landuse_this_ts = .false.
-                endif
+          ! figure out how may PFTs on each land use type. if only 1, then the next calculation is much simpler: we just need to know which PFT is allowed.
+          n_pfts_by_landuse = 0
+          do i_pft = 1,numpft
+             if ( currentSite%area_pft(i_pft,i_land_use_label) .gt. nearzero) then
+                n_pfts_by_landuse = n_pfts_by_landuse + 1
+                which_pft_allowed = i_pft
              end if
-             currentPatch => currentPatch%younger
           end do
+          if ( n_pfts_by_landuse .ne. 1) then
+             which_pft_allowed = fates_unset_int
+          endif
 
-          ! now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
-          nocomp_pft_loop_2: do i_pft = 1, numpft
+          patch_area_to_reallocate_if: if ( sum(nocomp_pft_area_vector(:)) .gt. nearzero ) then
+             more_than_1_pft_to_handle_if: if ( n_pfts_by_landuse .ne. 1 ) then
+                ! create buffer patch to put all of the pieces carved off of other patches
+                allocate(buffer_patch)
 
-             if (nocomp_pft_area_vector_allocated(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * area) then
+                call buffer_patch%Create(0._r8, 0._r8, i_land_use_label, 0, &
+                     hlm_numSWb, numpft, currentSite%nlevsoil, hlm_current_tod,              &
+                     regeneration_model)
 
-                newp_area = currentSite%area_pft(i_pft,i_land_use_label) * area - nocomp_pft_area_vector_allocated(i_pft)
+                ! make a note that this buffer patch has not been put into the linked list
+                buffer_patch_in_linked_list = .false.
 
-                if (newp_area .lt. buffer_patch%area) then
+                ! Initialize the litter pools to zero
+                do el=1,num_elements
+                   call buffer_patch%litter(el)%InitConditions(init_leaf_fines=0._r8, &
+                        init_root_fines=0._r8, &
+                        init_ag_cwd=0._r8, &
+                        init_bg_cwd=0._r8, &
+                        init_seed=0._r8,   &
+                        init_seed_germ=0._r8)
+                end do
+                buffer_patch%tallest  => null()
+                buffer_patch%shortest => null()
 
-                   ! split buffer patch in two, keeping the smaller buffer patch to put into new patches
-                   call split_patch(currentSite, buffer_patch, temp_patch, newp_area/buffer_patch%area)
+                ! Copy any means or timers from the original patch to the new patch
+                ! These values will inherit all info from the original patch
+                ! --------------------------------------------------------------------------
+                call buffer_patch%tveg24%CopyFromDonor(copyPatch%tveg24)
+                call buffer_patch%tveg_lpa%CopyFromDonor(copyPatch%tveg_lpa)
+                call buffer_patch%tveg_longterm%CopyFromDonor(copyPatch%tveg_longterm)
 
-                   ! give the new patch the intended nocomp PFT label
-                   temp_patch%nocomp_pft_label = i_pft
+                if ( regeneration_model == TRS_regeneration ) then
+                   call buffer_patch%seedling_layer_par24%CopyFromDonor(copyPatch%seedling_layer_par24)
+                   call buffer_patch%sdlng_mort_par%CopyFromDonor(copyPatch%sdlng_mort_par)
+                   call buffer_patch%sdlng2sap_par%CopyFromDonor(copyPatch%sdlng2sap_par)
+                   do pft = 1,numpft
+                      call buffer_patch%sdlng_emerg_smp(pft)%p%CopyFromDonor(copyPatch%sdlng_emerg_smp(pft)%p)
+                      call buffer_patch%sdlng_mdd(pft)%p%CopyFromDonor(copyPatch%sdlng_mdd(pft)%p)
+                   enddo
+                end if
+                buffer_patch_used = .false.
 
-                   ! put the new patch into the linked list
-                   call InsertPatch(currentSite, temp_patch)
+                currentPatch => currentSite%oldest_patch
+                do while(associated(currentPatch))
+                   if (currentPatch%changed_landuse_this_ts .and. currentPatch%land_use_label .eq. i_land_use_label) then
 
-                   ! now that the patch that temp_patch points to is in the site linked list, we want to null temp_patch so that it can be
-                   ! refilled the next time through the loop.
-                   temp_patch => null()
-                   
+                      fraction_to_keep = (currentSite%area_pft(currentPatch%nocomp_pft_label,i_land_use_label) * sum(nocomp_pft_area_vector(:)) &
+                           - nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label)) / currentPatch%area
+
+                      if (fraction_to_keep .le. nearzero) then
+                         ! we don't want any patch area with this PFT identity at all anymore. Fuse it into the buffer patch.
+                         currentPatch%nocomp_pft_label = 0
+                         previousPatch => currentPatch%older
+
+                         call fuse_2_patches(currentSite, currentPatch, buffer_patch)
+                         currentPatch => previousPatch
+
+                         buffer_patch_used = .true.
+
+                      elseif ( (1._r8 - fraction_to_keep) .gt. rsnbl_math_prec) then
+                         ! we have more patch are of this PFT than we want, but we do want to keep some of it.
+                         ! we want to split the patch into two here. leave one patch as-is, and put the rest into the buffer patch.
+
+                         allocate(temp_patch)
+
+                         call split_patch(currentSite, currentPatch, temp_patch, fraction_to_keep)
+                         !
+                         temp_patch%nocomp_pft_label = 0
+
+                         call fuse_2_patches(currentSite, temp_patch, buffer_patch)
+                         !
+                         nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
+                              nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
+
+                         currentPatch%changed_landuse_this_ts = .false.
+
+                         buffer_patch_used = .true.
+                      else
+                         ! we want to keep all of this patch (and possibly more)
+                         nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
+                              nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
+                         currentPatch%changed_landuse_this_ts = .false.
+                      endif
+                   end if
+                   currentPatch => currentPatch%younger
+                end do
+
+                if ( buffer_patch_used ) then
+                   ! at this point, lets check that the total patch area remaining to be relabelled equals what we think that it is.
+                   if (abs(sum(nocomp_pft_area_vector(:)) - sum(nocomp_pft_area_vector_filled(:)) - buffer_patch%area) .gt. rsnbl_math_prec) then
+                      write(fates_log(),*) 'midway through patch reallocation and things are already not adding up.', i_land_use_label
+                      write(fates_log(),*) currentSite%area_pft(:,i_land_use_label)
+                      write(fates_log(),*) '-----'
+                      write(fates_log(),*) nocomp_pft_area_vector_filled
+                      write(fates_log(),*) '-----'
+                      write(fates_log(),*) nocomp_pft_area_vector
+                      write(fates_log(),*) '-----'
+                      write(fates_log(),*) buffer_patch%area, buffer_patch%land_use_label, buffer_patch%nocomp_pft_label
+                      write(fates_log(),*) sum(nocomp_pft_area_vector(:)),  sum(nocomp_pft_area_vector_filled(:)), buffer_patch%area
+                      currentPatch => currentSite%oldest_patch
+                      do while(associated(currentPatch))
+                         write(fates_log(),*) currentPatch%area, currentPatch%land_use_label, currentPatch%nocomp_pft_label
+                         currentPatch => currentPatch%younger
+                      end do
+                      call dump_site(currentSite)
+                      call endrun(msg=errMsg(sourcefile, __LINE__))
+                   end if
+
+                   ! now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
+                   nocomp_pft_loop_2: do i_pft = 1, numpft
+                      !
+                      if ( currentSite%area_pft(i_pft,i_land_use_label) .gt. nearzero) then
+                         !
+                         if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:))) then
+                            !
+                            newp_area = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
+                            ! only bother doing this if the new new patch area needed is greater than some tiny amount
+                            if ( newp_area .gt. rsnbl_math_prec) then
+                               !
+                               if (buffer_patch%area - newp_area .gt. rsnbl_math_prec) then
+
+                                  ! split buffer patch in two, keeping the smaller buffer patch to put into new patches
+                                  allocate(temp_patch)
+
+                                  call split_patch(currentSite, buffer_patch, temp_patch, (1._r8 - newp_area/buffer_patch%area))
+
+                                  ! give the new patch the intended nocomp PFT label
+                                  temp_patch%nocomp_pft_label = i_pft
+
+                                  ! track that we have added this patch area
+                                  nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + temp_patch%area
+
+                                  ! put the new patch into the linked list
+                                  call InsertPatch(currentSite, temp_patch)
+
+                                  ! now that the patch that temp_patch points to is in the site linked list, we want to null temp_patch so that it can be
+                                  ! refilled the next time through the loop.
+
+                               else
+                                  ! give the buffer patch the intended nocomp PFT label
+                                  buffer_patch%nocomp_pft_label = i_pft
+
+                                  ! track that we have added this patch area
+                                  nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + buffer_patch%area
+
+                                  ! put the buffer patch directly into the linked list
+                                  call InsertPatch(currentSite, buffer_patch)
+
+                                  buffer_patch_in_linked_list = .true.
+
+                               end if
+                            end if
+                         end if
+                      end if
+                   end do nocomp_pft_loop_2
+
+                   ! now we want to make sure that either the buffer_patch either has zero area (presumably it was never used), in which case it should be deallocated,
+                   ! or else it does have area but it has been put into the site linked list, and so buffer patch should be nulled before next pass through outer loop.
+                   ! if either of those, that means everything worked properly, if not, then something has gone wrong.
+                   if (buffer_patch_in_linked_list) then
+                      buffer_patch => null()
+                   else if (buffer_patch%area .lt. rsnbl_math_prec) then
+                      ! here we need to deallocate the buffer patch so that we don't get a memory leak/
+                      call buffer_patch%FreeMemory(regeneration_model, numpft)
+                      deallocate(buffer_patch, stat=istat, errmsg=smsg)
+                      if (istat/=0) then
+                         write(fates_log(),*) 'dealloc: fail on deallocate(dp):'//trim(smsg)
+                         call endrun(msg=errMsg(sourcefile, __LINE__))
+                      endif
+                   else
+                      write(fates_log(),*) 'Buffer patch still has area and it wasnt put into the linked list'
+                      write(fates_log(),*) 'buffer_patch%area', buffer_patch%area
+                      write(fates_log(),*) sum(nocomp_pft_area_vector_filled(:)), sum(nocomp_pft_area_vector(:))
+                      call endrun(msg=errMsg(sourcefile, __LINE__))
+                   end if
                 else
-                   ! give the buffer patch the intended nocomp PFT label
-                   buffer_patch%nocomp_pft_label = i_pft
-
-                   ! put the buffer patch directly into the linked list
-                   call InsertPatch(currentSite, buffer_patch)
-
-                   buffer_patch_in_linked_list = .true.
-                   
+                   ! buffer patch was never even used. deallocate.
+                   call buffer_patch%FreeMemory(regeneration_model, numpft)
+                   deallocate(buffer_patch, stat=istat, errmsg=smsg)
+                   if (istat/=0) then
+                      write(fates_log(),*) 'dealloc: fail on deallocate(dp):'//trim(smsg)
+                      call endrun(msg=errMsg(sourcefile, __LINE__))
+                   endif
                 end if
 
-             end if
-
-          end do nocomp_pft_loop_2
-
-          ! now we want to make sure that either the buffer_patch either has zero area (presumably it was never used), in which case it should be deallocated,
-          ! or else it does have area but it has been put into the site linked list, and so buffer patch should be nulled before next pass through outer loop.
-          ! if either of those, that means everything worked properly, if not, then something has gone wrong.
-          if (buffer_patch_in_linked_list) then
-             buffer_patch => null()
-          else if (buffer_patch%area .lt. fates_tiny) then
-             ! here we need to deallocate the buffer patch so that we don't get a memory leak/
-             call dealloc_patch(buffer_patch)
-             deallocate(buffer_patch, stat=istat, errmsg=smsg)
-             if (istat/=0) then
-                write(fates_log(),*) 'dealloc: fail on deallocate(dp):'//trim(smsg)
-                call endrun(msg=errMsg(sourcefile, __LINE__))
-             endif
-          else
-             write(fates_log(),*) 'Buffer patch still has area and it wasnt put into the linked list'
-             write(fates_log(),*) 'buffer_patch%area', buffer_patch%area
-             call endrun(msg=errMsg(sourcefile, __LINE__))
-          end if
-
+                ! check that the area we have added is the same as the area we have taken away. if not, crash.
+                if ( abs(sum(nocomp_pft_area_vector_filled(:)) - sum(nocomp_pft_area_vector(:))) .gt. rsnbl_math_prec) then
+                   write(fates_log(),*) 'patch reallocation logic doesnt add up. difference is: ', sum(nocomp_pft_area_vector_filled(:)) - sum(nocomp_pft_area_vector(:))
+                   write(fates_log(),*) nocomp_pft_area_vector_filled
+                   write(fates_log(),*) nocomp_pft_area_vector
+                   write(fates_log(),*) i_land_use_label
+                   currentPatch => currentSite%oldest_patch
+                   do while(associated(currentPatch))
+                      write(fates_log(),*) currentPatch%area, currentPatch%land_use_label, currentPatch%nocomp_pft_label
+                      currentPatch => currentPatch%younger
+                   end do
+                   call endrun(msg=errMsg(sourcefile, __LINE__))
+                end if
+             else
+                ! if there is only one PFT allowed on this land use type, then all we need to do is relabel all of the patches that just changed
+                ! land use type and let patch fusion take care of the rest.
+                currentPatch => currentSite%oldest_patch
+                do while(associated(currentPatch))
+                   if (currentPatch%changed_landuse_this_ts .and. currentPatch%land_use_label .eq. i_land_use_label) then
+                      currentPatch%nocomp_pft_label = which_pft_allowed
+                      currentPatch%changed_landuse_this_ts = .false.
+                   end if
+                   currentPatch => currentPatch%younger
+                end do
+             endif more_than_1_pft_to_handle_if
+          end if patch_area_to_reallocate_if
+          call check_patch_area(currentSite)
        end do lu_loop
     else
        ! if not using a configuration where the changed_landuse_this_ts is relevant, loop through all patches and reset it
@@ -1463,27 +1626,24 @@ contains
     ! !DESCRIPTION:
     !  Split a patch into two patches that are identical except in their areas
     !
-    ! !USES:
-    use EDCohortDynamicsMod  , only : zero_cohort, copy_cohort
-    !
     ! !ARGUMENTS:
     type(ed_site_type),intent(inout) :: currentSite
-    type(ed_patch_type) , intent(inout), target :: currentPatch   ! Donor Patch
-    type(ed_patch_type) , intent(inout), target :: new_patch      ! New Patch
+    type(fates_patch_type) , intent(inout), target :: currentPatch   ! Donor Patch
+    type(fates_patch_type) , intent(inout), target :: new_patch      ! New Patch
     real(r8), intent(in)    :: fraction_to_keep  ! fraction of currentPatch to keep, the rest goes to newpatch
     !
     ! !LOCAL VARIABLES:
     integer  :: el                           ! element loop index
-    type (ed_cohort_type), pointer :: nc
-    type (ed_cohort_type), pointer :: storesmallcohort
-    type (ed_cohort_type), pointer :: storebigcohort
-    type (ed_cohort_type), pointer :: currentCohort
+    type (fates_cohort_type), pointer :: nc
+    type (fates_cohort_type), pointer :: storesmallcohort
+    type (fates_cohort_type), pointer :: storebigcohort
+    type (fates_cohort_type), pointer :: currentCohort
     integer  :: tnull                        ! is there a tallest cohort?
     integer  :: snull                        ! is there a shortest cohort?
-
+    integer  :: pft
 
     ! first we need to make the new patch
-    new_patch%Create(0._r8, &
+    call new_patch%Create(0._r8, &
          currentPatch%area * (1._r8 - fraction_to_keep), currentPatch%land_use_label, currentPatch%nocomp_pft_label, &
          hlm_numSWb, numpft, currentSite%nlevsoil, hlm_current_tod,              &
          regeneration_model)
@@ -1509,8 +1669,18 @@ contains
     call new_patch%tveg_lpa%CopyFromDonor(currentPatch%tveg_lpa)
     call new_patch%tveg_longterm%CopyFromDonor(currentPatch%tveg_longterm)
 
+    if ( regeneration_model == TRS_regeneration ) then
+       call new_patch%seedling_layer_par24%CopyFromDonor(currentPatch%seedling_layer_par24)
+       call new_patch%sdlng_mort_par%CopyFromDonor(currentPatch%sdlng_mort_par)
+       call new_patch%sdlng2sap_par%CopyFromDonor(currentPatch%sdlng2sap_par)
+       do pft = 1,numpft
+          call new_patch%sdlng_emerg_smp(pft)%p%CopyFromDonor(currentPatch%sdlng_emerg_smp(pft)%p)
+          call new_patch%sdlng_mdd(pft)%p%CopyFromDonor(currentPatch%sdlng_mdd(pft)%p)
+       enddo
+    end if
+                            
     currentPatch%burnt_frac_litter(:) = 0._r8
-    call TransLitterNewPatch( currentSite, currentPatch, new_patch, currentPatch%area * fraction_to_keep)
+    call TransLitterNewPatch( currentSite, currentPatch, new_patch, currentPatch%area * (1.-fraction_to_keep))
 
     ! Next, we loop through the cohorts in the donor patch, copy them with
     ! area modified number density into the new-patch, and apply survivorship.
@@ -1526,24 +1696,24 @@ contains
        ! correct boundary condition fields
        nc%prt => null()
        call InitPRTObject(nc%prt)
-       call InitPRTBoundaryConditions(nc)
+       call nc%InitPRTBoundaryConditions()
 
        !  (Keeping as an example)
        ! Allocate running mean functions
        !allocate(nc%tveg_lpa)
        !call nc%tveg_lpa%InitRMean(ema_lpa,init_value=new_patch%tveg_lpa%GetMean())
 
-       call zero_cohort(nc)
+       call nc%ZeroValues()
 
        ! nc is the new cohort that goes in the disturbed patch (new_patch)... currentCohort
        ! is the curent cohort that stays in the donor patch (currentPatch)
-       call copy_cohort(currentCohort, nc)
+       call currentCohort%Copy(nc)
 
        ! Number of members in the new patch
-       nc%n = currentCohort%n * fraction_to_keep
+       nc%n = currentCohort%n * (1._r8 - fraction_to_keep)
 
        ! loss of individuals from source patch due to area shrinking
-       currentCohort%n = currentCohort%n * (1._r8 - fraction_to_keep)
+       currentCohort%n = currentCohort%n * fraction_to_keep
 
        storebigcohort   =>  new_patch%tallest
        storesmallcohort =>  new_patch%shortest
@@ -1562,8 +1732,8 @@ contains
           new_patch%shortest => nc
           nc%shorter => null()
        endif
-       nc%patchptr => new_patch
-       call insert_cohort(nc, new_patch%tallest, new_patch%shortest, &
+
+       call insert_cohort(new_patch, nc, new_patch%tallest, new_patch%shortest, &
             tnull, snull, storebigcohort, storesmallcohort)
 
        new_patch%tallest  => storebigcohort
@@ -1575,7 +1745,7 @@ contains
     call sort_cohorts(currentPatch)
 
     !update area of donor patch
-    currentPatch%area = currentPatch%area * (1._r8 - fraction_to_keep)
+    currentPatch%area = currentPatch%area * fraction_to_keep
 
   end subroutine split_patch
 
@@ -1624,6 +1794,13 @@ contains
        if ( abs(areatot-area_site) > area_error_fail ) then
           write(fates_log(),*) 'Patch areas do not sum to 10000 within tolerance'
           write(fates_log(),*) 'Total area: ',areatot,'absolute error: ',areatot-area_site
+
+          currentPatch => currentSite%oldest_patch
+          do while(associated(currentPatch))
+             write(fates_log(),*) 'area, LU, PFT', currentPatch%area, currentPatch%land_use_label, currentPatch%nocomp_pft_label
+             currentPatch => currentPatch%younger
+          end do
+
           call endrun(msg=errMsg(sourcefile, __LINE__))
        end if
 
@@ -2704,6 +2881,8 @@ contains
     integer  :: i_pftlabel  !nocomp pft iterator
     real(r8) :: primary_land_fraction_beforefusion,primary_land_fraction_afterfusion
     integer  :: pftlabelmin, pftlabelmax
+    integer  :: num_bareground_patches
+    integer  :: i
     !
     !---------------------------------------------------------------------
 
@@ -2715,20 +2894,29 @@ contains
     primary_land_fraction_afterfusion = 0._r8
 
     nopatches(1:n_landuse_cats) = 0
-
+    num_bareground_patches = 0
+    
     currentPatch => currentSite%youngest_patch
     do while(associated(currentPatch))
-       nopatches(currentPatch%land_use_label) = &
-            nopatches(currentPatch%land_use_label) + 1
+       if ( currentPatch%land_use_label .gt. nocomp_bareground_land) then
+          nopatches(currentPatch%land_use_label) = &
+               nopatches(currentPatch%land_use_label) + 1
        
-       if (currentPatch%land_use_label .eq. primaryland) then
-          primary_land_fraction_beforefusion = primary_land_fraction_beforefusion + &
-               currentPatch%area * AREA_INV
+          if (currentPatch%land_use_label .eq. primaryland) then
+             primary_land_fraction_beforefusion = primary_land_fraction_beforefusion + &
+                  currentPatch%area * AREA_INV
+          endif
+       else
+          num_bareground_patches = num_bareground_patches + 1
        endif
-
        currentPatch => currentPatch%older
     enddo
 
+    if (num_bareground_patches .gt. 1 ) then
+       write(fates_log(),*) 'somehow there is more than one bare ground patch. this shouldnt have happened.'
+       call endrun(msg=errMsg(sourcefile, __LINE__))                
+    endif
+    
     pftlabelmin = 0
     if ( hlm_use_nocomp .eq. itrue ) then
        pftlabelmax = numpft
@@ -2942,6 +3130,17 @@ contains
                 write(fates_log(),*) 'profile tolerance is too big, this shouldnt happen.'
                 write(fates_log(),*) 'probably this means there are too many distinct categorical '
                 write(fates_log(),*) 'patch types for the maximum number of patches'
+                call dump_site(currentSite)
+                write(fates_log(),*) 'currentSite%area_bareground', currentSite%area_bareground
+                do i = 1, n_landuse_cats
+                   write(fates_log(),*) 'i, currentSite%area_pft(:,i)',i, currentSite%area_pft(:,i)
+                end do
+                tmpptr => currentSite%youngest_patch
+                do while(associated(tmpptr))
+                   write(fates_log(),*) tmpptr%area, tmpptr%nocomp_pft_label, tmpptr%land_use_label
+                   tmpptr => tmpptr%older
+                end do
+                
                 call endrun(msg=errMsg(sourcefile, __LINE__))                
              endif
           else
@@ -3138,35 +3337,39 @@ contains
        call endrun(msg=errMsg(sourcefile, __LINE__))
     endif
 
-    if(associated(youngerp))then
-       ! Update the younger patch's new older patch (because it isn't dp anymore)
-       youngerp%older => olderp
-    else
-       ! There was no younger patch than dp, so the head of the young order needs
-       ! to be set, and it is set as the patch older than dp.  That patch
-       ! already knows it's older patch (so no need to set or change it)
-       csite%youngest_patch => olderp
-       olderp%younger       => null()
-    end if
+    ! if neither youngerp nor olderp are associated, that means that the patch we are fusing into
+    ! is not part of the linked-list structure, and so no further action needs to be taken.
+    if(associated(youngerp) .or. associated(olderp))then
 
-    
-    if(associated(olderp))then
-       ! Update the older patch's new younger patch (becuase it isn't dp anymore)
-       olderp%younger => youngerp
-    else
-       ! There was no patch older than dp, so the head of the old patch order needs
-       ! to be set, and it is set as the patch younger than dp.  That patch already
-       ! knows it's younger patch, no need to set
-       csite%oldest_patch => youngerp
-       youngerp%older     => null()
-    end if
+       if(associated(youngerp))then
+          ! Update the younger patch's new older patch (because it isn't dp anymore)
+          youngerp%older => olderp
+       else
+          ! There was no younger patch than dp, so the head of the young order needs
+          ! to be set, and it is set as the patch older than dp.  That patch
+          ! already knows it's older patch (so no need to set or change it)
+          csite%youngest_patch => olderp
+          olderp%younger       => null()
+       end if
 
+
+       if(associated(olderp))then
+          ! Update the older patch's new younger patch (becuase it isn't dp anymore)
+          olderp%younger => youngerp
+       else
+          ! There was no patch older than dp, so the head of the old patch order needs
+          ! to be set, and it is set as the patch younger than dp.  That patch already
+          ! knows it's younger patch, no need to set
+          csite%oldest_patch => youngerp
+          youngerp%older     => null()
+       end if
+    end if
 
   end subroutine fuse_2_patches
 
   ! ============================================================================
 
-  subroutine terminate_patches(currentSite)
+  subroutine terminate_patches(currentSite, bc_in)
     !
     ! !DESCRIPTION:
     !  Terminate Patches if they  are too small                          
@@ -3174,20 +3377,22 @@ contains
     !
     ! !ARGUMENTS:
     type(ed_site_type), target, intent(inout) :: currentSite
+    type(bc_in_type), intent(in)               :: bc_in
     !
     ! !LOCAL VARIABLES:
     type(fates_patch_type), pointer :: currentPatch
     type(fates_patch_type), pointer :: olderPatch
     type(fates_patch_type), pointer :: youngerPatch
     type(fates_patch_type), pointer :: patchpointer
-    type(fates_patch_type), pointer :: largestPatch
     integer, parameter           :: max_cycles = 10  ! After 10 loops through
                                                      ! You should had fused
     integer                      :: count_cycles
     logical                      :: gotfused
     logical                      :: current_patch_is_youngest_lutype
+    integer                      :: i_landuse, i_pft
 
-    real(r8) areatot ! variable for checking whether the total patch area is wrong. 
+    real(r8) areatot ! variable for checking whether the total patch area is wrong.
+    real(r8) :: state_vector(n_landuse_cats)  ! [m2/m2] 
     !---------------------------------------------------------------------
 
     ! Initialize the count cycles
@@ -3195,15 +3400,12 @@ contains
 
     ! Start at the youngest patch in the list and assume that the largest patch is this patch
     currentPatch => currentSite%youngest_patch
-    largestPatch => currentPatch
-    do while(associated(currentPatch)) 
+    do while(associated(currentPatch))
        lessthan_min_patcharea_if: if(currentPatch%area <= min_patch_area)then
-
-          ! Initialize gotfused flag for both nocomp and all other cases
-          gotfused = .false.
 
           nocomp_if: if (hlm_use_nocomp .eq. itrue) then
 
+             gotfused = .false.
              patchpointer => currentSite%youngest_patch
              do while(associated(patchpointer))
                 if ( .not.associated(currentPatch,patchpointer) .and. &
@@ -3222,43 +3424,31 @@ contains
              if ( .not. gotfused ) then
                 !! somehow didn't find a patch to fuse with.
                 write(fates_log(),*) 'Warning. small nocomp patch wasnt able to find another patch to fuse with.', &
-                     currentPatch%nocomp_pft_label, currentPatch%land_use_label
+                     currentPatch%nocomp_pft_label, currentPatch%land_use_label, currentPatch%area
              endif
 
           else nocomp_if
 
-             ! Check to see if the current patch is the largest patch so far and update if it is
-             if (currentPatch%area .gt. largestPatch%area) largestPatch => currentPatch
-
-             ! Determine if the current patch is the youngest in the land use grouping
-             ! If the 'younger' patch has a different landuse label then the current is the youngest
-             ! per the InsertPatch subroutine.  That said it could also be the only patch and
-             ! also the oldest.  Should we handle that distinction?
-             current_patch_is_youngest_lutype = .false.
-
-             ! Check if the current patch is already the youngest patch on the site
-             if (associated(currentPatch,currentSite%youngest_patch)) then
-                current_patch_is_youngest_lutype = .true.
-             else
-                ! Otherwise check to see if the younger patch is a different landuse label
-                if (currentPatch%younger%land_use_label .ne. currentPatch%land_use_label) then                    
-                   current_patch_is_youngest_lutype = .true.
-                end if
-             end if
-
              ! Even if the patch area is small, avoid fusing it into its neighbor
              ! if it is the youngest of all patches. We do this in attempts to maintain
              ! a discrete patch for very young patches.
-             ! However, if the patch to be fused is excessively small, then fuse at all costs.
-             notyoungest_if: if ( .not. current_patch_is_youngest_lutype .or. currentPatch%area <= min_patch_area_forced ) then
+             ! However, if the patch to be fused is excessively small, then fuse
+             ! at all costs.
 
-                ! Determine if there is an older patch available
+             notyoungest_if: if ( .not.associated(currentPatch,currentSite%youngest_patch) .or. &
+               currentPatch%area <= min_patch_area_forced ) then
+
+                gotfused = .false.
+
                 associated_older_if: if(associated(currentPatch%older)) then
 
                    if(debug) &
                         write(fates_log(),*) 'fusing to older patch because this one is too small',&
                         currentPatch%area, &
                         currentPatch%older%area
+
+                   ! We set a pointer to this patch, because
+                   ! it will be returned by the subroutine as de-referenced
 
                    olderPatch => currentPatch%older
 
@@ -3269,34 +3459,23 @@ contains
                            write(fates_log(),*) 'terminate: fused to older patch, same label: ', currentPatch%land_use_label, olderPatch%land_use_label
 
                       call fuse_2_patches(currentSite, olderPatch, currentPatch)
+
+                      ! The fusion process has updated the "older" pointer on currentPatch
+                      ! for us.
+
+                      ! This logic checks to make sure that the younger patch is not the youngest
+                      ! patch. As mentioned earlier, we try not to fuse it.
+
                       gotfused = .true.
-
-                   else distlabel_1_if
-
-                      ! If we're having an incredibly hard time fusing patches because of their differing
-                      ! landuse labels (i.e. the count_cycles is more than zero), then fuse the current
-                      ! patch with the largest patch regardless of landuse label.
+                   else distlabel_1_if !i.e. anthro labels of two patches are not the same
                       countcycles_if: if (count_cycles .gt. 0) then
-
-                         ! Work through the rest of the list to find the largest patch
-                         do while (associated(olderPatch))
-                            if (olderPatch%area .gt. largestPatch%area) largestPatch => olderPatch
-                            olderPatch => olderPatch%older
-                         end do
-
-                         if(debug) &
-                            write(fates_log(),*) 'terminate: fuse to largest patch, diff label: ', currentPatch%land_use_label, largestPatch%land_use_label
-
-                         ! Set the donor patch label to match the reciever patch label to avoid an error
-                         ! due to a label check inside fuse_2_patches
-                         currentPatch%land_use_label = largestPatch%land_use_label
-
-                         ! We also assign the age since disturbance value to be the younger (donor) patch to avoid combining a valid
-                         ! age with fates_unset_r8 (i.e. the age for primaryland) in the fuse_2_patches procedure
-                         currentPatch%age_since_anthro_disturbance = largestPatch%age_since_anthro_disturbance
-                         call fuse_2_patches(currentSite, currentPatch, largestPatch)
+                         ! if we're having an incredibly hard time fusing patches because of their differing anthropogenic disturbance labels,
+                         ! since the size is so small, let's sweep the problem under the rug and change the tiny patch's label to that of its older sibling
+                         ! and then allow them to fuse together.
+                         currentPatch%land_use_label = olderPatch%land_use_label
+                         currentPatch%age_since_anthro_disturbance = olderPatch%age_since_anthro_disturbance
+                         call fuse_2_patches(currentSite, olderPatch, currentPatch)
                          gotfused = .true.
-
                       endif countcycles_if
                    endif distlabel_1_if
                 endif associated_older_if
@@ -3309,35 +3488,22 @@ contains
 
                    youngerPatch => currentPatch%younger
 
-                   distlabel_2_if: if (currentPatch%land_use_label .eq. youngerPatch% land_use_label) then
-
-                      if(debug) &
-                        write(fates_log(),*) 'terminate: fused to younger patch, same label: ', currentPatch%land_use_label, youngerPatch%land_use_label
+                   distlabel_2_if: if (currentPatch%land_use_label .eq. youngerPatch%land_use_label) then
 
                       call fuse_2_patches(currentSite, youngerPatch, currentPatch)
 
                       ! The fusion process has updated the "younger" pointer on currentPatch
+
                       gotfused = .true.
 
                    else distlabel_2_if
                       if (count_cycles .gt. 0) then
                          ! if we're having an incredibly hard time fusing patches because of their differing anthropogenic disturbance labels,
                          ! since the size is so small, let's sweep the problem under the rug and change the tiny patch's label to that of its younger sibling
-                         ! Note that given the grouping of landuse types in the linked list, this could result in very small patches
-                         ! being fused to much larger patches
-                         if(debug) &
-                            write(fates_log(),*) 'terminate: fuse to largest patch, diff label: ', currentPatch%land_use_label, largestPatch%land_use_label
-
-                         ! Set the donor patch label to match the reciever patch label to avoid an error
-                         ! due to a label check inside fuse_2_patches
-                         currentPatch%land_use_label = largestPatch%land_use_label
-
-                         ! We also assigned the age since disturbance value to be the younger (donor) patch to avoid combining a valid
-                         ! age with fates_unset_r8 (i.e. the age for primaryland) in the fuse_2_patches procedure
-                         currentPatch%age_since_anthro_disturbance = largestPatch%age_since_anthro_disturbance
-                         call fuse_2_patches(currentSite, currentPatch, largestPatch)
+                         currentPatch%land_use_label = youngerPatch%land_use_label
+                         currentPatch%age_since_anthro_disturbance = youngerPatch%age_since_anthro_disturbance
+                         call fuse_2_patches(currentSite, youngerPatch, currentPatch)
                          gotfused = .true.
-
                       endif ! count cycles
                    endif distlabel_2_if     ! anthro labels
                 endif not_gotfused_if ! has an older patch
@@ -3367,7 +3533,28 @@ contains
           write(fates_log(),*) 'is very very small. You can test your luck by'
           write(fates_log(),*) 'disabling the endrun statement following this message.'
           write(fates_log(),*) 'FATES may or may not continue to operate within error'
-          write(fates_log(),*) 'tolerances, but will generate another fail if it does not.' 
+          write(fates_log(),*) 'tolerances, but will generate another fail if it does not.'
+          write(fates_log(),*) 'otherwise, dumping some diagnostics.'
+          write(fates_log(),*) currentPatch%area, currentPatch%nocomp_pft_label, currentPatch%land_use_label
+          call dump_site(currentSite)
+
+          write(fates_log(),*) 'currentSite%area_bareground', currentSite%area_bareground
+          write(fates_log(),*) 'currentSite%%area_pft(:,:)', currentSite%area_pft(:,:)
+          patchpointer => currentSite%youngest_patch
+          do while(associated(patchpointer))
+             write(fates_log(),*) patchpointer%area, patchpointer%nocomp_pft_label, patchpointer%land_use_label
+             patchpointer => patchpointer%older
+          end do
+          call get_current_landuse_statevector(currentSite, state_vector)
+          write(fates_log(),*) 'current landuse state vector: ', state_vector
+          write(fates_log(),*) 'current landuse state vector (not including bare gruond): ', state_vector/(1._r8-currentSite%area_bareground)
+          call get_luh_statedata(bc_in, state_vector)
+          write(fates_log(),*) 'driver data landuse state vector: ', state_vector
+          write(fates_log(),*) 'min_allowed_landuse_fraction: ', currentSite%min_allowed_landuse_fraction
+          write(fates_log(),*) 'landuse_vector_gt_min: ', currentSite%landuse_vector_gt_min
+          do i_landuse = 1, n_landuse_cats
+             write(fates_log(),*) 'trans matrix from: ', i_landuse, currentSite%landuse_transition_matrix(i_landuse,:)
+          end do
           call endrun(msg=errMsg(sourcefile, __LINE__))
           
           ! Note to user. If you DO decide to remove the end-run above this line
@@ -3505,32 +3692,37 @@ contains
 
   ! =====================================================================================
 
- subroutine get_frac_site_primary(site_in, frac_site_primary)
+   subroutine get_current_landuse_statevector(site_in, current_state_vector)
 
-    !
-    ! !DESCRIPTION:
-    !  Calculate how much of a site is primary land
-    !
-    ! !USES:
-    use EDTypesMod , only : ed_site_type
-    !
-    ! !ARGUMENTS:
-    type(ed_site_type) , intent(in), target :: site_in
-    real(r8)           , intent(out)        :: frac_site_primary
+     !
+     ! !DESCRIPTION:
+     !  Calculate how much of a site is each land use category.
+     !  this does not include bare ground when nocomp + fixed biogeography is on,
+     !  so will not sum to one in that case. otherwise it will sum to one.
+     !
+     ! !USES:
+     use EDTypesMod , only : ed_site_type
+     !
+     ! !ARGUMENTS:
+     type(ed_site_type) , intent(in), target :: site_in
+     real(r8)           , intent(out)        :: current_state_vector(n_landuse_cats)
 
-    ! !LOCAL VARIABLES:
-    type (fates_patch_type), pointer :: currentPatch
+     ! !LOCAL VARIABLES:
+     type (fates_patch_type), pointer :: currentPatch
 
-   frac_site_primary = 0._r8
-   currentPatch => site_in%oldest_patch
-   do while (associated(currentPatch))   
-      if (currentPatch%land_use_label .eq. primaryland) then
-         frac_site_primary = frac_site_primary + currentPatch%area * AREA_INV
-      endif
-      currentPatch => currentPatch%younger
-   end do
+     current_state_vector(:) = 0._r8
 
- end subroutine get_frac_site_primary
+     currentPatch => site_in%oldest_patch
+     do while (associated(currentPatch))
+        if (currentPatch%land_use_label .gt. nocomp_bareground_land) then
+           current_state_vector(currentPatch%land_use_label) = &
+                current_state_vector(currentPatch%land_use_label) + &
+                currentPatch%area/AREA
+        end if
+        currentPatch => currentPatch%younger
+     end do
+
+   end subroutine get_current_landuse_statevector
 
   ! =====================================================================================
 

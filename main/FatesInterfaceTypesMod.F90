@@ -121,6 +121,7 @@ module FatesInterfaceTypesMod
                                                          ! bc_in%hlm_harvest_rates and bc_in%hlm_harvest_catnames
 
    integer, public :: hlm_use_luh                   ! flag to signal whether or not to use luh2 drivers
+   integer, public :: hlm_use_potentialveg          ! flag to signal whether or not to use potential vegetation only
    integer, public :: hlm_num_luh2_states           ! number of land use state types provided in LUH2 forcing dataset
 
    integer, public :: hlm_num_luh2_transitions      ! number of land use transition types provided in LUH2 forcing dataset
@@ -226,9 +227,6 @@ module FatesInterfaceTypesMod
    ! the prior so that we can hold the LAI data
    integer, public :: fates_maxPatchesPerSite
 
-   ! the number of natural PFTs tracked by the host model; NOT INCLUDING EITHER CROPS OR BARE GROUND
-   integer, public :: fates_hlm_num_natpfts
-   
    integer, public :: max_comp_per_site         ! This is the maximum number of nutrient aquisition
                                                            ! competitors that will be generated on each site
    

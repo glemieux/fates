@@ -75,6 +75,7 @@ module EDMainMod
   use EDTypesMod               , only : phen_dstat_timeon
   use FatesConstantsMod        , only : itrue,ifalse
   use FatesConstantsMod        , only : primaryland, secondaryland
+  use FatesConstantsMod        , only : n_landuse_cats  
   use FatesConstantsMod        , only : nearzero
   use FatesConstantsMod        , only : m2_per_ha
   use FatesConstantsMod        , only : sec_per_day
@@ -88,7 +89,7 @@ module EDMainMod
   use EDLoggingMortalityMod    , only : IsItLoggingTime
   use EDLoggingMortalityMod    , only : get_harvestable_carbon
   use DamageMainMod            , only : IsItDamageTime
-  use EDPatchDynamicsMod       , only : get_frac_site_primary
+  use EDPatchDynamicsMod       , only : get_current_landuse_statevector
   use FatesGlobals             , only : endrun => fates_endrun
   use ChecksBalancesMod        , only : SiteMassStock
   use EDMortalityFunctionsMod  , only : Mortality_Derivative
@@ -227,7 +228,7 @@ contains
 
        ! at this point in the call sequence, if flag to transition_landuse_from_off_to_on was set, unset it as it is no longer needed
        if(currentSite%transition_landuse_from_off_to_on) then
-          currentSite%transition_landuse_from_off_to_on = .false
+          currentSite%transition_landuse_from_off_to_on = .false.
        endif
        
     else
@@ -292,6 +293,7 @@ contains
 
     ! make new patches from disturbed land
     if (do_patch_dynamics.eq.itrue ) then
+
        call spawn_patches(currentSite, bc_in)
 
        call TotalBalanceCheck(currentSite,3)
@@ -312,7 +314,7 @@ contains
        call TotalBalanceCheck(currentSite,4)
 
        ! kill patches that are too small
-       call terminate_patches(currentSite)
+       call terminate_patches(currentSite, bc_in)
     end if
 
     call TotalBalanceCheck(currentSite,5)
@@ -375,7 +377,7 @@ contains
                                       ! a lowered damage state. This cohort should bypass several calculations
                                       ! because it inherited them (such as daily carbon balance)
     real(r8) :: target_leaf_c
-    real(r8) :: frac_site_primary
+    real(r8) :: current_fates_landuse_state_vector(n_landuse_cats)
 
     real(r8) :: harvestable_forest_c(hlm_num_lu_harvest_cats)
     integer  :: harvest_tag(hlm_num_lu_harvest_cats)
@@ -411,7 +413,7 @@ contains
     
     !-----------------------------------------------------------------------
 
-    call get_frac_site_primary(currentSite, frac_site_primary)
+    call get_current_landuse_statevector(currentSite, current_fates_landuse_state_vector)
 
     ! Clear site GPP and AR passing to HLM
     bc_out%gpp_site = 0._r8
@@ -476,8 +478,8 @@ contains
              call Mortality_Derivative(currentSite, currentCohort, bc_in,      &
                currentPatch%btran_ft, mean_temp,                               &
                currentPatch%land_use_label,                                    &
-               currentPatch%age_since_anthro_disturbance, frac_site_primary,   &
-                 harvestable_forest_c, harvest_tag)
+               currentPatch%age_since_anthro_disturbance, current_fates_landuse_state_vector(primaryland),   &
+               current_fates_landuse_state_vector(secondaryland), harvestable_forest_c, harvest_tag)
 
              ! -----------------------------------------------------------------------------
              ! Apply Plant Allocation and Reactive Transport

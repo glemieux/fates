@@ -54,7 +54,8 @@ module FatesConstantsMod
   integer, parameter, public :: rangeland = 3
   integer, parameter, public :: pastureland = 4
   integer, parameter, public :: cropland = 5
-  logical, parameter, dimension(0:n_landuse_cats), public :: is_crop = [.false., .false.,.false.,.false.,.false.,.true.]
+  logical, parameter, dimension(n_landuse_cats), public :: is_crop = [.false., .false.,.false.,.false.,.true.]
+  integer, parameter, public :: n_crop_lu_types = 1
 
   ! Bareground nocomp land use label
   integer, parameter, public :: nocomp_bareground_land = 0  ! not a real land use type, only for labeling any bare-ground nocomp patches
@@ -169,6 +170,9 @@ integer, parameter, public :: isemi_stress_decid = 2 ! If the PFT is stress (dro
   ! for multiplication/division procedures, also allowing for 3 orders
   ! of magnitude of buffer error (ie instead of 1e-15)
   real(fates_r8), parameter, public :: rsnbl_math_prec = 1.0e-12_fates_r8
+
+  ! in nocomp simulations, what is the minimum PFT fraction for any given land use type?
+  real(fates_r8), parameter, public :: min_nocomp_pftfrac_perlanduse = 0.01_fates_r8
 
   ! This is the precision of 8byte reals (~1e-308)
   real(fates_r8), parameter, public :: tinyr8 = tiny(1.0_fates_r8)
