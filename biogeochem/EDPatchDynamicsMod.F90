@@ -3780,9 +3780,9 @@ contains
        patch_inserted = .true.
     else
        ! new patch has a pseudo-age somewhere within the linked list. find the first patch who has a pseudo age older than it, and put it ahead of that patch
-       currentPatch => site_in%youngest_patch
+       currentPatch => currentSite%youngest_patch
        do while (associated(currentPatch) .and. ( .not. patch_inserted) )   
-          if (get_pseudo_patch_age(newPatch) .ge. get_pseudo_patch_age(currentPatch)) then
+          if (get_pseudo_patch_age(newPatch) .lt. get_pseudo_patch_age(currentPatch)) then
              newPatch%older => currentPatch
              newPatch%younger => currentPatch%younger
              currentPatch%younger%older => newPatch
