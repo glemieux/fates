@@ -19,16 +19,16 @@ module EDTypesMod
   use PRTGenericMod,         only : carbon12_element
   use FatesLitterMod,        only : litter_type
   use FatesLitterMod,        only : ncwd, NFSC
-  use FatesConstantsMod,     only : n_anthro_disturbance_categories
   use FatesConstantsMod,     only : days_per_year
   use FatesRunningMeanMod,   only : rmean_type,rmean_arr_type
   use FatesConstantsMod,     only : fates_unset_r8
   use FatesInterfaceTypesMod,only : bc_in_type
   use FatesInterfaceTypesMod,only : bc_out_type
+  use FatesConstantsMod    , only : n_landuse_cats
   use FatesInterfaceTypesMod,only : hlm_parteh_mode
   use FatesCohortMod,        only : fates_cohort_type
   use FatesPatchMod,         only : fates_patch_type
-  use EDParamsMod,           only : maxSWb, nclmax, nlevleaf, maxpft
+  use EDParamsMod,           only : nclmax, nlevleaf, maxpft
   use FatesConstantsMod,     only : n_dbh_bins, n_dist_types
   use shr_log_mod,           only : errMsg => shr_log_errMsg
 
@@ -87,7 +87,6 @@ module EDTypesMod
   ! BIOLOGY/BIOGEOCHEMISTRY        
   integer , parameter, public :: num_vegtemp_mem      = 10         ! Window of time over which we track temp for cold sensecence (days)
 
-
   ! Phenology status flag definitions (cold type is cstat, dry type is dstat)
 
   integer, parameter, public :: phen_cstat_nevercold = 0        ! This (location/plant) has not experienced a cold period over a large number
@@ -99,7 +98,7 @@ module EDTypesMod
   integer, parameter, public :: phen_dstat_moistoff  = 1       ! Leaves off due to moisture avail  (drought phenology)
   integer, parameter, public :: phen_dstat_moiston   = 2       ! Leaves on due to moisture avail   (drought phenology)
   integer, parameter, public :: phen_dstat_timeon    = 3       ! Leaves on due to time exceedance  (drought phenology)
-  integer, parameter, public :: phen_dstat_pshed    = 4 ! Leaves partially abscissing       (drought phenology)
+  integer, parameter, public :: phen_dstat_pshed     = 4 ! Leaves partially abscissing       (drought phenology)
 
   ! PATCH FUSION 
   real(r8), parameter, public :: force_patchfuse_min_biomass = 0.005_r8   ! min biomass (kg / m2 patch area) below which to force-fuse patches
@@ -107,8 +106,8 @@ module EDTypesMod
   real(r8), parameter, public :: max_age_of_second_oldest_patch = 200._r8 ! age in years above which to combine all patches
 
   ! COHORT FUSION
-  real(r8), parameter, public :: HITEMAX              = 30.0_r8    ! max dbh value used in hgt profile comparison 
-  integer , parameter, public :: N_HITE_BINS          = 60         ! no. of hite bins used to distribute LAI
+  real(r8), parameter, public :: HEIGHTMAX           = 30.0_r8    ! max dbh value used in hgt profile comparison 
+  integer , parameter, public :: N_HEIGHT_BINS       = 60         ! no. of height bins used to distribute LAI
 
   ! COHORT TERMINATION
 
@@ -256,6 +255,7 @@ module EDTypesMod
      ! Total area of patches in each age bin [m2]
      real(r8), allocatable :: area_by_age(:)
 
+     
      ! Nutrient relevant 
      real(r8), allocatable :: rec_l2fr(:,:) ! A running mean of the l2fr's for the newly
                                             ! recruited, pft x canopy_layer
@@ -265,7 +265,24 @@ module EDTypesMod
                                             ! which is used for fixation
 
      
-     
+     ! Two-stream scratch arrays
+     real(r8), allocatable :: omega_2str(:,:)   ! This is the matrix that is inverted to solve
+                                                ! the linear system of equations in the two-stream
+                                                ! radiation module. This array will grow
+                                                ! and shrink depending on how many scattering
+                                                ! elements there are. This matrix is square,
+                                                ! and needs to be larger than 2 x number-of-elements
+                                                ! for each patch on the site
+
+     real(r8), allocatable :: taulambda_2str(:) ! These are the coefficients of the two-stream
+                                                ! linear system of equations (ie the unknowns, "lambda")
+                                                ! As well as the left-side (constants, "tau"). Since
+                                                ! the LAPACK solver dgesv uses the latter
+                                                ! as the argument and over-writes, we only
+                                                ! need one array
+
+     integer, allocatable :: ipiv_2str(:)       ! pivot indices for the lapack 2str solver
+
      ! SP mode target PFT level variables
      real(r8), allocatable :: sp_tlai(:)                      ! target TLAI per FATES pft
      real(r8), allocatable :: sp_tsai(:)                      ! target TSAI per FATES pft
@@ -363,18 +380,18 @@ module EDTypesMod
      real(r8) :: fmort_crownarea_canopy                ! crownarea of canopy indivs killed due to fire per year. [m2/sec]
      real(r8) :: fmort_crownarea_ustory                ! crownarea of understory indivs killed due to fire per year [m2/sec] 
 
-     real(r8), allocatable :: term_nindivs_canopy(:,:) ! number of canopy individuals that were in cohorts which 
-                                                       ! were terminated this timestep, on size x pft
-     real(r8), allocatable :: term_nindivs_ustory(:,:) ! number of understory individuals that were in cohorts which 
-                                                       ! were terminated this timestep, on size x pft
+     real(r8), allocatable :: term_nindivs_canopy(:,:,:)   ! number of canopy individuals that were in cohorts which 
+                                                           ! were terminated this timestep, by termination type, size x pft
+     real(r8), allocatable :: term_nindivs_ustory(:,:,:)   ! number of understory individuals that were in cohorts which 
+                                                           ! were terminated this timestep, by termination type, size x pft
 
-     real(r8), allocatable :: term_carbonflux_canopy(:)  ! carbon flux from live to dead pools associated 
-                                                         ! with termination mortality, per canopy level. [kgC/ha/day]
-     real(r8), allocatable :: term_carbonflux_ustory(:)  ! carbon flux from live to dead pools associated 
-                                                         ! with termination mortality, per canopy level.  [kgC/ha/day]    
-     real(r8), allocatable :: imort_carbonflux(:)        ! biomass of individuals killed due to impact mortality per year. [kgC/m2/sec]
-     real(r8), allocatable :: fmort_carbonflux_canopy(:) ! biomass of canopy indivs killed due to fire per year. [gC/m2/sec]
-     real(r8), allocatable :: fmort_carbonflux_ustory(:) ! biomass of understory indivs killed due to fire per year [gC/m2/sec] 
+     real(r8), allocatable :: term_carbonflux_canopy(:,:)  ! carbon flux from live to dead pools associated 
+                                                           ! with termination mortality, by termination type and pft. [kgC/ha/day]
+     real(r8), allocatable :: term_carbonflux_ustory(:,:)  ! carbon flux from live to dead pools associated 
+                                                         ! with termination mortality, by termination type and pft.  [kgC/ha/day]    
+     real(r8), allocatable :: imort_carbonflux(:)        ! biomass of individuals killed due to impact mortality per year, by pft. [kgC/m2/sec]
+     real(r8), allocatable :: fmort_carbonflux_canopy(:) ! biomass of canopy indivs killed due to fire per year, by pft. [gC/m2/sec]
+     real(r8), allocatable :: fmort_carbonflux_ustory(:) ! biomass of understory indivs killed due to fire per year, by pft [gC/m2/sec] 
 
      real(r8), allocatable :: term_abg_flux(:,:)          ! aboveground biomass lost due to termination mortality x size x pft
      real(r8), allocatable :: imort_abg_flux(:,:)         ! aboveground biomass lost due to impact mortality x size x pft [kgC/m2/sec]
@@ -420,13 +437,15 @@ module EDTypesMod
      ! Canopy Spread
      real(r8) ::  spread                                          ! dynamic canopy allometric term [unitless]
 
+     ! Seed dispersal
+      real(r8), allocatable :: seed_out(:)                               ! amount of seed leaving the site [kg/site/day]
+      real(r8), allocatable :: seed_in(:)                                ! amount of seed dispersed into the site from neighbouring cells  [kg/site/day]
+
      ! site-level variables to keep track of the disturbance rates, both actual and "potential"
-     real(r8) :: disturbance_rates_primary_to_primary(N_DIST_TYPES)      ! actual disturbance rates from primary patches to primary patches [m2/m2/day]
-     real(r8) :: disturbance_rates_primary_to_secondary(N_DIST_TYPES)    ! actual disturbance rates from primary patches to secondary patches [m2/m2/day]
-     real(r8) :: disturbance_rates_secondary_to_secondary(N_DIST_TYPES)  ! actual disturbance rates from secondary patches to secondary patches [m2/m2/day]
-     real(r8) :: potential_disturbance_rates(N_DIST_TYPES)               ! "potential" disturb rates (i.e. prior to the "which is most" logic) [m2/m2/day]
-     real(r8) :: primary_land_patchfusion_error                          ! error term in total area of primary patches associated with patch fusion [m2/m2/day]
-     
+     real(r8) :: disturbance_rates(N_DIST_TYPES,n_landuse_cats, n_landuse_cats)  ! actual disturbance rates for each disturbance type  [m2/m2/day]
+     real(r8) :: primary_land_patchfusion_error             ! error term in total area of primary patches associated with patch fusion [m2/m2/day]
+     real(r8) :: landuse_transition_matrix(n_landuse_cats, n_landuse_cats) ! land use transition matrix as read in from HLM and aggregated to FATES land use types [m2/m2/year]
+
   end type ed_site_type
 
   ! Make public necessary subroutines and functions
@@ -497,6 +516,6 @@ module EDTypesMod
    return
 
 end subroutine dump_site
-  
+
   
 end module EDTypesMod

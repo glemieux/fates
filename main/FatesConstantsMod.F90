@@ -34,22 +34,24 @@ module FatesConstantsMod
   ! are used, but this helps allocate scratch
   ! space and output arrays.
 
-  integer, parameter, public :: n_rad_stream_types = 2    ! The number of radiation streams used (direct/diffuse)
-
   integer , parameter, public       :: N_DBH_BINS = 6  ! no. of dbh bins used when comparing patches
   real(fates_r8), parameter, public :: patchfusion_dbhbin_loweredges(N_DBH_BINS) = &
   (/0._fates_r8, 5._fates_r8, 20._fates_r8, 50._fates_r8, 100._fates_r8, 150._fates_r8/) ! array of bin lower edges for comparing patches
 
 
-  integer , parameter, public :: N_DIST_TYPES = 3 ! Disturbance Modes 1) tree-fall, 2) fire, 3) logging
+  integer , parameter, public :: N_DIST_TYPES = 4          ! Disturbance Modes 1) tree-fall, 2) fire, 3) logging, 4) land-use change
   integer , parameter, public :: dtype_ifall  = 1          ! index for naturally occuring tree-fall generated event
   integer , parameter, public :: dtype_ifire  = 2          ! index for fire generated disturbance event
   integer , parameter, public :: dtype_ilog   = 3          ! index for logging generated disturbance event
+  integer , parameter, public :: dtype_ilandusechange = 4  ! index for land use change disturbance (not including logging)
 
   ! Labels for patch disturbance history
-  integer, parameter, public :: n_anthro_disturbance_categories = 2
-  integer, parameter, public :: primaryforest = 1
-  integer, parameter, public :: secondaryforest = 2
+  integer, parameter, public :: n_landuse_cats = 5
+  integer, parameter, public :: primaryland = 1
+  integer, parameter, public :: secondaryland = 2
+  integer, parameter, public :: rangeland = 3
+  integer, parameter, public :: pastureland = 4
+  integer, parameter, public :: cropland = 5
 
 
   integer, parameter, public :: leaves_on  = 2  ! Flag specifying that a deciduous plant has leaves
@@ -139,12 +141,22 @@ integer, parameter, public :: isemi_stress_decid = 2 ! If the PFT is stress (dro
   integer, parameter, public :: lmrmodel_ryan_1991         = 1
   integer, parameter, public :: lmrmodel_atkin_etal_2017   = 2
 
+  ! integer labels for specifying carbon starvation model
+  integer, parameter, public :: cstarvation_model_lin = 1 ! Linear scaling
+  integer, parameter, public :: cstarvation_model_exp = 2 ! Exponential scaling
+
   ! Error Tolerances
 
   ! Allowable error in carbon allocations, should be applied to estimates
   ! of carbon conservation in units of kgC/plant.  This gives an effective
   ! error tolerance of 1 microgram.
   real(fates_r8), parameter, public :: calloc_abs_error = 1.0e-9_fates_r8
+
+  ! area tolerance checks
+  real(fates_r8), parameter, public :: area_error_1     = 1.0e-16_fates_r8 ! error tolerance for area checks (canopy, patch)
+  real(fates_r8), parameter, public :: area_error_2     = 1.0e-12_fates_r8 ! error tolerance for tree lai checks
+  real(fates_r8), parameter, public :: area_error_3     = 10.e-9_fates_r8  ! error tolerance for area checks (canopy, patch)
+  real(fates_r8), parameter, public :: area_error_4     = 1.0e-10_fates_r8 ! error tolerance for area checks
 
   ! Rounding errors seem to hover around 1e-15 for the gnu compiler
   ! when not applying compiler directives for safe math.  An example
@@ -304,10 +316,34 @@ integer, parameter, public :: isemi_stress_decid = 2 ! If the PFT is stress (dro
   real(fates_r8), parameter, public :: fates_huge = huge(g_per_kg)
 
   real(fates_r8), parameter, public :: fates_tiny = tiny(g_per_kg)
+  
+  ! Geodesy constants (WGS 84)
+  real(fates_r8), parameter, public :: earth_radius_eq = 6378137.0_fates_r8                       ! equitorial radius, earth [m]
+  real(fates_r8), parameter, public :: earth_flattening = 1.0_fates_r8 / 298.257223563_fates_r8  ! flattening [non-dimensional]
+  
 
   ! Geometric Constants
 
   ! PI
   real(fates_r8), parameter, public :: pi_const = 3.14159265359_fates_r8
+  real(fates_r8), parameter, public :: rad_per_deg = pi_const/180.0_fates_r8
+
+  ! Rdark constants from Atkin et al., 2017 https://doi.org/10.1007/978-3-319-68703-2_6
+  ! and Heskel et al., 2016 https://doi.org/10.1073/pnas.1520282113
+  real(fates_r8), parameter, public :: lmr_b = 0.1012_fates_r8       ! (degrees C**-1)
+
+  real(fates_r8), parameter, public :: lmr_c = -0.0005_fates_r8      ! (degrees C**-2)
+
+  real(fates_r8), parameter, public :: lmr_TrefC = 25._fates_r8      ! (degrees C)
+
+  real(fates_r8), parameter, public :: lmr_r_1 = 0.2061_fates_r8     ! (umol CO2/m**2/s / (gN/(m2 leaf))) 
+
+  real(fates_r8), parameter, public :: lmr_r_2 = -0.0402_fates_r8    ! (umol CO2/m**2/s/degree C)
+  
+  ! some integers related to termination mortality
+  integer, parameter, public :: n_term_mort_types = 3
+  integer, parameter, public :: i_term_mort_type_cstarv = 1
+  integer, parameter, public :: i_term_mort_type_canlev = 2
+  integer, parameter, public :: i_term_mort_type_numdens = 3
 
 end module FatesConstantsMod

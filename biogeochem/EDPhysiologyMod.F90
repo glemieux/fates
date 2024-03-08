@@ -34,6 +34,7 @@ module EDPhysiologyMod
   use FatesConstantsMod, only    : g_per_kg
   use FatesConstantsMod, only    : ndays_per_year
   use FatesConstantsMod, only    : nocomp_bareground
+  use FatesConstantsMod, only    : area_error_2
   use EDPftvarcon      , only    : EDPftvarcon_inst
   use PRTParametersMod , only    : prt_params
   use EDPftvarcon      , only    : GetDecompyFrac
@@ -98,7 +99,7 @@ module EDPhysiologyMod
   use EDParamsMod           , only : sdlng_mort_par_timescale
   use FatesPlantHydraulicsMod  , only : AccumulateMortalityWaterStorage
   use FatesConstantsMod     , only : itrue,ifalse
-  use FatesConstantsMod     , only : calloc_abs_error
+  use FatesConstantsMod     , only : area_error_3
   use FatesConstantsMod     , only : years_per_day
   use FatesAllometryMod  , only : h_allom
   use FatesAllometryMod  , only : h2d_allom
@@ -155,7 +156,7 @@ module EDPhysiologyMod
   public :: PreDisturbanceLitterFluxes
   public :: PreDisturbanceIntegrateLitter
   public :: GenerateDamageAndLitterFluxes
-  public :: SeedIn
+  public :: SeedUpdate
   public :: UpdateRecruitL2FR
   public :: UpdateRecruitStoicH
   public :: SetRecruitL2FR
@@ -554,7 +555,6 @@ contains
                litt%seed_germ_in(pft) - &
                litt%seed_germ_decay(pft)
 
-
        enddo
 
        ! Update the Coarse Woody Debris pools (above and below)
@@ -828,13 +828,13 @@ contains
                    if (currentCohort%canopy_trim > EDPftvarcon_inst%trim_limit(ipft)) then
 
                       ! keep trimming until none of the canopy is in negative carbon balance.
-                      if (currentCohort%hite > EDPftvarcon_inst%hgt_min(ipft)) then
+                      if (currentCohort%height > EDPftvarcon_inst%hgt_min(ipft)) then
                          currentCohort%canopy_trim = currentCohort%canopy_trim - &
                               EDPftvarcon_inst%trim_inc(ipft)
 
                          trimmed = .true.
 
-                      endif ! hite check
+                      endif ! height check
                    endif ! trim limit check
                 endif ! net uptake check
              endif ! leaf activity check
@@ -1933,7 +1933,7 @@ contains
     check_treelai = tree_lai(leaf_c, pft, c_area, cohort_n, canopy_layer,                &
          canopylai, vcmax25top)
 
-    if (abs(tlai - check_treelai) .gt. 1.0e-12) then !this is not as precise as nearzero
+    if (abs(tlai - check_treelai) > area_error_2) then !this is not as precise as nearzero
       write(fates_log(),*) 'error in validate treelai', tlai, check_treelai, tlai - check_treelai
       write(fates_log(),*) 'tree_lai inputs: ', pft, c_area, cohort_n,                   &
         canopy_layer, vcmax25top
@@ -1945,18 +1945,19 @@ contains
     ! the radiation routines.  Correct both the area and the 'n' to remove error, and don't use
     ! carea_allom in SP mode after this point.
 
-    if (abs(c_area - parea) .gt. nearzero) then ! there is an error
-      if (abs(c_area - parea) .lt. 10.e-9) then ! correct this if it's a very small error
+    if (abs(c_area - parea) > nearzero) then ! there is an error
+      if (abs(c_area - parea) < area_error_3) then ! correct this if it's a very small error
           oldcarea = c_area
           ! generate new cohort area
           c_area = c_area - (c_area - parea)
           cohort_n = cohort_n*(c_area/oldcarea)
-          if (abs(c_area-parea) .gt. nearzero) then
+          if (abs(c_area-parea) > nearzero) then
             write(fates_log(),*) 'SPassign, c_area still broken', c_area - parea, c_area - oldcarea
             call endrun(msg=errMsg(sourcefile, __LINE__))
           end if
        else
           write(fates_log(),*) 'SPassign, big error in c_area', c_area - parea, pft
+          call endrun(msg=errMsg(sourcefile, __LINE__))
        end if ! still broken
     end if !small error
 
@@ -2006,7 +2007,7 @@ contains
       leaf_c, dbh, cohort_n, c_area)
 
     ! set allometric characteristics
-    currentCohort%hite = htop
+    currentCohort%height = htop
     currentCohort%dbh = dbh
     currentCohort%n = cohort_n
     currentCohort%c_area = c_area
@@ -2020,8 +2021,8 @@ contains
   end subroutine assign_cohort_SP_properties
 
   ! =====================================================================================
-
-  subroutine SeedIn( currentSite, bc_in )
+  
+  subroutine SeedUpdate( currentSite )
 
     ! -----------------------------------------------------------------------------------
     ! Flux from plants into the seed pool.
@@ -2038,10 +2039,11 @@ contains
     ! !USES:
     use EDTypesMod, only : area
     use EDTypesMod, only : homogenize_seed_pfts
+    use FatesInterfaceTypesMod, only : hlm_seeddisp_cadence
+    use FatesInterfaceTypesMod, only : fates_dispersal_cadence_none
     !
     ! !ARGUMENTS
     type(ed_site_type), intent(inout), target  :: currentSite
-    type(bc_in_type), intent(in)               :: bc_in
 
     type(fates_patch_type), pointer     :: currentPatch
     type(litter_type), pointer       :: litt
@@ -2050,26 +2052,32 @@ contains
 
     integer  :: pft
     real(r8) :: store_m_to_repro       ! mass sent from storage to reproduction upon death [kg/plant]
-    real(r8) :: site_seed_rain(maxpft) ! This is the sum of seed-rain for the site [kg/site/day]
+    real(r8) :: site_seed_rain(numpft) ! This is the sum of seed-rain for the site [kg/site/day]
+    real(r8) :: site_disp_frac(numpft) ! Fraction of seeds from prodeced in current grid cell to
+                                       ! disperse out to other gridcells
     real(r8) :: seed_in_external       ! Mass of externally generated seeds [kg/m2/day]
     real(r8) :: seed_stoich            ! Mass ratio of nutrient per C12 in seeds [kg/kg]
     real(r8) :: seed_prod              ! Seed produced in this dynamics step [kg/day]
     integer  :: n_litt_types           ! number of litter element types (c,n,p, etc)
     integer  :: el                     ! loop counter for litter element types
     integer  :: element_id             ! element id consistent with parteh/PRTGenericMod.F90
-    !------------------------------------------------------------------------------------
 
-    do el = 1, num_elements
+    ! If the dispersal kernel is not turned on, keep the dispersal fraction at zero
+    site_disp_frac(:) = 0._r8
+    if (hlm_seeddisp_cadence .ne. fates_dispersal_cadence_none) then
+      site_disp_frac(:) = EDPftvarcon_inst%seed_dispersal_fraction(:)
+    end if
+
+    el_loop: do el = 1, num_elements
 
        site_seed_rain(:) = 0._r8
-
        element_id = element_list(el)
 
        site_mass => currentSite%mass_balance(el)
 
        ! Loop over all patches and sum up the seed input for each PFT
        currentPatch => currentSite%oldest_patch
-       do while (associated(currentPatch))
+       seed_rain_loop: do while (associated(currentPatch))
 
           currentCohort => currentPatch%tallest
           do while (associated(currentCohort))
@@ -2098,14 +2106,15 @@ contains
                 currentcohort%seed_prod = seed_prod
              end if
 
+
              site_seed_rain(pft) = site_seed_rain(pft) +  &
-                  (seed_prod * currentCohort%n + store_m_to_repro)
+                  (seed_prod * currentCohort%n + store_m_to_repro) ![kg/site/day, kg/ha/day]
 
              currentCohort => currentCohort%shorter
           enddo !cohort loop
 
           currentPatch => currentPatch%younger
-       enddo
+       enddo seed_rain_loop
 
        ! We can choose to homogenize seeds. This is simple, we just
        ! add up all the seed from each pft at the site level, and then
@@ -2114,22 +2123,21 @@ contains
           site_seed_rain(1:numpft) = sum(site_seed_rain(:))/real(numpft,r8)
        end if
 
-
        ! Loop over all patches again and disperse the mixed seeds into the input flux
        ! arrays
-
        ! Loop over all patches and sum up the seed input for each PFT
        currentPatch => currentSite%oldest_patch
-       do while (associated(currentPatch))
+       seed_in_loop: do while (associated(currentPatch))
 
           litt => currentPatch%litter(el)
           do pft = 1,numpft
 
              if(currentSite%use_this_pft(pft).eq.itrue)then
-             
-                ! Seed input from local sources (within site)
-                litt%seed_in_local(pft) = litt%seed_in_local(pft) + site_seed_rain(pft)/area
-                
+
+                ! Seed input from local sources (within site).  Note that a fraction of the
+                ! internal seed rain is sent out to neighboring gridcells.
+                litt%seed_in_local(pft) = litt%seed_in_local(pft) + site_seed_rain(pft)*(1-site_disp_frac(pft))/area ![kg/m2/day]
+
                 ! If we are using the Tree Recruitment Scheme (TRS) with or w/o seedling dynamics
                 if ( any(regeneration_model == [TRS_regeneration, TRS_no_seedling_dyn]) .and. &
                      prt_params%allom_dbh_maxheight(pft) > min_max_dbh_for_trees) then
@@ -2159,22 +2167,29 @@ contains
                 end select
                 
                 ! Seed input from external sources (user param seed rain, or dispersal model)
-                seed_in_external =  seed_stoich*EDPftvarcon_inst%seed_suppl(pft)*years_per_day
+                ! Include both prescribed seed_suppl and seed_in dispersed from neighbouring gridcells
+                seed_in_external = seed_stoich*(currentSite%seed_in(pft)/area + EDPftvarcon_inst%seed_suppl(pft)*years_per_day) ![kg/m2/day]
                 litt%seed_in_extern(pft) = litt%seed_in_extern(pft) + seed_in_external
                 
                 ! Seeds entering externally [kg/site/day]
                 site_mass%seed_in = site_mass%seed_in + seed_in_external*currentPatch%area
              end if !use this pft  
           enddo
-          
 
           currentPatch => currentPatch%younger
-       enddo
+       enddo seed_in_loop
 
-    end do
+       ! Determine the total site-level seed output for the current element and update the seed_out mass
+       ! for each element loop since the site_seed_rain is resent and updated for each element loop iteration
+       do pft = 1,numpft
+          site_mass%seed_out = site_mass%seed_out + site_seed_rain(pft)*site_disp_frac(pft) ![kg/site/day]
+          currentSite%seed_out(pft) = currentSite%seed_out(pft) + site_seed_rain(pft)*site_disp_frac(pft) ![kg/site/day]
+       end do
+ 
+    end do el_loop
 
     return
-  end subroutine SeedIn
+  end subroutine SeedUpdate
 
   ! ============================================================================
 
@@ -2402,6 +2417,7 @@ contains
 
       if ((prt_params%season_decid(pft) == itrue ) .and. &
             (any(cold_stat == [phen_cstat_nevercold,phen_cstat_iscold]))) then
+          ! no germination for all PFTs when cold
           litt%seed_germ_in(pft) = 0.0_r8
        endif
 
@@ -2419,7 +2435,6 @@ contains
   end subroutine SeedGermination
 
   ! =====================================================================================
-
 
    subroutine recruitment(currentSite, currentPatch, bc_in)
       !
@@ -2442,7 +2457,7 @@ contains
       integer                           :: element_id         ! element index consistent with definitions in PRTGenericMod
       integer                           :: iage               ! age loop counter for leaf age bins
       integer                           :: crowndamage        ! crown damage class of the cohort [1 = undamaged, >1 = damaged]  
-      real(r8)                          :: hite               ! new cohort height [m]
+      real(r8)                          :: height             ! new cohort height [m]
       real(r8)                          :: dbh                ! new cohort DBH [cm]
       real(r8)                          :: cohort_n           ! new cohort density 
       real(r8)                          :: l2fr               ! leaf to fineroot biomass ratio [0-1]
@@ -2488,14 +2503,14 @@ contains
             ((hlm_use_nocomp .eq. ifalse) .or.                                 &
             (ft .eq. currentPatch%nocomp_pft_label))) then
 
-            hite               = EDPftvarcon_inst%hgt_min(ft)
+            height             = EDPftvarcon_inst%hgt_min(ft)
             stem_drop_fraction = prt_params%phen_stem_drop_fraction(ft)
             fnrt_drop_fraction = prt_params%phen_fnrt_drop_fraction(ft)
             l2fr               = currentSite%rec_l2fr(ft, currentPatch%NCL_p)
             crowndamage        = 1 ! new recruits are undamaged
 
             ! calculate DBH from initial height 
-            call h2d_allom(hite, ft, dbh)
+            call h2d_allom(height, ft, dbh)
 
             ! default assumption is that leaves are on
             efleaf_coh  = 1.0_r8
@@ -2719,7 +2734,7 @@ contains
                call prt%CheckInitialConditions()
 
                call create_cohort(currentSite, currentPatch, ft, cohort_n,     &
-                  hite, 0.0_r8, dbh, prt, efleaf_coh, effnrt_coh, efstem_coh,  &
+                  height, 0.0_r8, dbh, prt, efleaf_coh, effnrt_coh, efstem_coh,  &
                   leaf_status, recruitstatus, init_recruit_trim, 0.0_r8,       &
                   currentPatch%NCL_p, crowndamage, currentSite%spread, bc_in)
 
