@@ -1,0 +1,30 @@
+# This workflow will run when a xml patch file has been included in the
+# pull request.  It will diff the output of UpdateParamAPI against the
+# new default parameter file to make certain that the patch correctly
+# replicates the intended update.
+#
+# TODO: add a workflow that checks to see if the default parameter has
+# been updated without an associated xml.  If one is not available, do
+# something (e.g. push email to author, write comment with task)
+
+name: Check parameter patch file
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths: 'parameter_files/archive/**.xml'
+
+jobs:
+  setup-tool-env:
+    name: Setup tool environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install scipy
