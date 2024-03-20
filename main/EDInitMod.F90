@@ -22,7 +22,6 @@ module EDInitMod
   use FatesGlobals              , only : fates_log
   use FatesInterfaceTypesMod    , only : hlm_is_restart
   use FatesInterfaceTypesMod    , only : hlm_current_tod
-  use FatesInterfaceTypesMod    , only : hlm_numSWb
   use EDPftvarcon               , only : EDPftvarcon_inst
   use PRTParametersMod          , only : prt_params
   use EDCohortDynamicsMod       , only : create_cohort, fuse_cohorts, sort_cohorts
@@ -31,6 +30,7 @@ module EDInitMod
   use EDPhysiologyMod           , only : calculate_sp_properties
   use ChecksBalancesMod         , only : SiteMassStock
   use FatesInterfaceTypesMod    , only : hlm_day_of_year
+  use FatesRadiationMemMod      , only : num_swb
   use EDTypesMod                , only : ed_site_type
   use FatesPatchMod             , only : fates_patch_type
   use FatesCohortMod            , only : fates_cohort_type
@@ -92,6 +92,7 @@ module EDInitMod
   use PRTGenericMod,          only : SetState
   use FatesSizeAgeTypeIndicesMod,only : get_age_class_index
   use DamageMainMod,          only : undamaged_class
+  use FatesConstantsMod,      only : n_term_mort_types
   use FatesInterfaceTypesMod    , only : hlm_num_luh2_transitions
   use FatesConstantsMod,      only : nocomp_bareground_land, nocomp_bareground
   use FatesConstantsMod,      only : min_nocomp_pftfrac_perlanduse
@@ -105,7 +106,6 @@ module EDInitMod
   private
 
   logical   ::  debug = .false.
-
   integer :: istat           ! return status code
   character(len=255) :: smsg ! Message string for deallocation errors
   character(len=*), parameter, private :: sourcefile = &
@@ -139,8 +139,8 @@ contains
     integer :: el
 
     !
-    allocate(site_in%term_nindivs_canopy(1:nlevsclass,1:numpft))
-    allocate(site_in%term_nindivs_ustory(1:nlevsclass,1:numpft))
+    allocate(site_in%term_nindivs_canopy(1:n_term_mort_types,1:nlevsclass,1:numpft))
+    allocate(site_in%term_nindivs_ustory(1:n_term_mort_types,1:nlevsclass,1:numpft))
     allocate(site_in%demotion_rate(1:nlevsclass))
     allocate(site_in%promotion_rate(1:nlevsclass))
     allocate(site_in%imort_rate(1:nlevsclass,1:numpft))
@@ -176,8 +176,8 @@ contains
        allocate(site_in%fmort_cflux_ustory_damage(1,1))
     end if
 
-    allocate(site_in%term_carbonflux_canopy(1:numpft))
-    allocate(site_in%term_carbonflux_ustory(1:numpft))
+    allocate(site_in%term_carbonflux_canopy(1:n_term_mort_types,1:numpft))
+    allocate(site_in%term_carbonflux_ustory(1:n_term_mort_types,1:numpft))
     allocate(site_in%imort_carbonflux(1:numpft))
     allocate(site_in%fmort_carbonflux_canopy(1:numpft))
     allocate(site_in%fmort_carbonflux_ustory(1:numpft))
@@ -291,15 +291,15 @@ contains
     site_in%ema_npp = -9999.9_r8
 
     ! termination and recruitment info
-    site_in%term_nindivs_canopy(:,:) = 0._r8
-    site_in%term_nindivs_ustory(:,:) = 0._r8
+    site_in%term_nindivs_canopy(:,:,:) = 0._r8
+    site_in%term_nindivs_ustory(:,:,:) = 0._r8
     site_in%term_crownarea_canopy = 0._r8
     site_in%term_crownarea_ustory = 0._r8
     site_in%imort_crownarea = 0._r8
     site_in%fmort_crownarea_canopy = 0._r8
     site_in%fmort_crownarea_ustory = 0._r8
-    site_in%term_carbonflux_canopy(:) = 0._r8
-    site_in%term_carbonflux_ustory(:) = 0._r8
+    site_in%term_carbonflux_canopy(:,:) = 0._r8
+    site_in%term_carbonflux_ustory(:,:) = 0._r8
     site_in%recruitment_rate(:) = 0._r8
     site_in%imort_rate(:,:) = 0._r8
     site_in%imort_carbonflux(:) = 0._r8
@@ -694,8 +694,9 @@ contains
              call SiteMassStock(sites(s),el,sites(s)%mass_balance(el)%old_stock, &
                   biomass_stock,litter_stock,seed_stock)
           end do
+          call set_patchno(sites(s))
        enddo
-
+       
     else
 
        ! state_vector(:) = 0._r8
