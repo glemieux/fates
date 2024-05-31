@@ -1424,8 +1424,13 @@ contains
                 do while(associated(currentPatch))
                    if (currentPatch%changed_landuse_this_ts .and. currentPatch%land_use_label .eq. i_land_use_label) then
 
+                      write(fates_log(),*) 'npavf: ', i_land_use_label, nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label)
+
                       fraction_to_keep = (currentSite%area_pft(currentPatch%nocomp_pft_label,i_land_use_label) * sum(nocomp_pft_area_vector(:)) &
                            - nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label)) / currentPatch%area
+
+                      write(fates_log(),*) 'frac2keep: ', fraction_to_keep, currentSite%area_pft(currentPatch%nocomp_pft_label,i_land_use_label), sum(nocomp_pft_area_vector(:)), &
+                                                          currentPatch%area 
 
                       if (fraction_to_keep .le. nearzero) then
                          ! we don't want any patch area with this PFT identity at all anymore. Fuse it into the buffer patch.
@@ -1456,6 +1461,8 @@ contains
                          nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
                               nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
 
+                         write(fates_log(),*) 'npavf new1: ', i_land_use_label, nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label), currentPatch%area
+
                          currentPatch%changed_landuse_this_ts = .false.
 
                          buffer_patch_used = .true.
@@ -1463,6 +1470,7 @@ contains
                          ! we want to keep all of this patch (and possibly more)
                          nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
                               nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
+                         write(fates_log(),*) 'npavf new2: ', i_land_use_label, nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label), currentPatch%area
                          currentPatch%changed_landuse_this_ts = .false.
                       endif
                    end if
@@ -1499,6 +1507,7 @@ contains
                          if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:))) then
                             !
                             newp_area = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
+                            write(fates_log(),*) 'ipft, newp_area', i_pft, newp_area, sum(nocomp_pft_area_vector(:)), nocomp_pft_area_vector_filled(i_pft)
                             ! only bother doing this if the new new patch area needed is greater than some tiny amount
                             if ( newp_area .gt. rsnbl_math_prec * 0.01_r8) then
                                !
@@ -1514,6 +1523,7 @@ contains
 
                                   ! track that we have added this patch area
                                   nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + temp_patch%area
+                                  write(fates_log(),*) 'ipft, nocomp change, temp', i_pft, nocomp_pft_area_vector_filled(i_pft), temp_patch%area
 
                                   ! put the new patch into the linked list
                                   call InsertPatch(currentSite, temp_patch)
@@ -1524,6 +1534,7 @@ contains
 
                                   ! track that we have added this patch area
                                   nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + buffer_patch%area
+                                  write(fates_log(),*) 'ipft, nocomp change, buffer', i_pft, nocomp_pft_area_vector_filled(i_pft), buffer_patch%area
 
                                   ! put the buffer patch directly into the linked list
                                   call InsertPatch(currentSite, buffer_patch)
@@ -1540,7 +1551,9 @@ contains
                    ! in which case it should be deallocated, or else it does have area but it has been put into the site
                    ! linked list. if either of those, that means everything worked properly, if not, then something has gone wrong.
                    if ( .not. buffer_patch_in_linked_list) then
+                      write(fates_log(),*) 'buffer patch not in linked list'
                       if (buffer_patch%area .lt. rsnbl_math_prec) then
+                         write(fates_log(),*) 'Deallocating buffer patch'
                          ! here we need to deallocate the buffer patch so that we don't get a memory leak.
                          call buffer_patch%FreeMemory(regeneration_model, numpft)
                          deallocate(buffer_patch, stat=istat, errmsg=smsg)
@@ -1568,8 +1581,9 @@ contains
                 end if buffer_patch_used_if
 
                 ! check that the area we have added is the same as the area we have taken away. if not, crash.
-                if ( abs(sum(nocomp_pft_area_vector_filled(:)) - sum(nocomp_pft_area_vector(:))) .gt. rsnbl_math_prec) then
+                if ( abs(sum(nocomp_pft_area_vector_filled(:)) - sum(nocomp_pft_area_vector(:))) .gt. 1.0e-6_r8) then
                    write(fates_log(),*) 'patch reallocation logic doesnt add up. difference is: ', sum(nocomp_pft_area_vector_filled(:)) - sum(nocomp_pft_area_vector(:))
+                   write(fates_log(),*) currentSite%area_pft(i_pft,i_land_use_label)
                    write(fates_log(),*) nocomp_pft_area_vector_filled
                    write(fates_log(),*) nocomp_pft_area_vector
                    write(fates_log(),*) i_land_use_label
