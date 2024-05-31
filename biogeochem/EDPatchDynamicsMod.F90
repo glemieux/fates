@@ -564,6 +564,9 @@ contains
     integer  :: n_pfts_by_landuse
     integer  :: which_pft_allowed
     logical  :: buffer_patch_used
+    real(r8) :: buffer_patch_area_check
+    real(r8) :: temp_patch_area_check
+    real(r8) :: curr_patch_area_check
     !---------------------------------------------------------------------
 
     storesmallcohort => null() ! storage of the smallest cohort for insertion routine
@@ -1423,6 +1426,7 @@ contains
                 buffer_patch_in_linked_list = .false.
                 buffer_patch_used = .false.
 
+                buffer_patch_area_check = 0._r8
                 currentPatch => currentSite%oldest_patch
                 do while(associated(currentPatch))
                    write(fates_log(),*) 'patchloop: ', i_land_use_label, currentPatch%nocomp_pft_label, currentPatch%area
@@ -1435,6 +1439,8 @@ contains
 
                       write(fates_log(),*) 'frac2keep: ', fraction_to_keep, currentSite%area_pft(currentPatch%nocomp_pft_label,i_land_use_label), sum(nocomp_pft_area_vector(:)), &
                                                           currentPatch%area 
+
+                      temp_patch_area_check = 0._r8
 
                       if (fraction_to_keep .le. nearzero) then
                          ! we don't want any patch area with this PFT identity at all anymore. Fuse it into the buffer patch.
@@ -1456,11 +1462,25 @@ contains
                          ! we have more patch are of this PFT than we want, but we do want to keep some of it.
                          ! we want to split the patch into two here. leave one patch as-is, and put the rest into the buffer patch.
 
+                         temp_patch_area_check = currentPatch%area * (1._r8 - fraction_to_keep)
+                         curr_patch_area_check = currentPatch%area * fraction_to_keep
+
                          allocate(temp_patch)
 
                          call split_patch(currentSite, currentPatch, temp_patch, fraction_to_keep)
                          !
                          temp_patch%nocomp_pft_label = 0
+
+                         ! Sum up the temporary buffer patch area
+                         buffer_patch_area_check = buffer_patch_area_check + temp_patch%area
+
+                         ! Check if the temp area is as expected
+                         if (abs(temp_patch_area_check - temp_patch%area) > rsnbl_math_prec) then
+                            write(fates_log(),*) 'temp check: ', temp_patch_area_check - temp_patch%area, temp_patch%area
+                         end if
+                         if (abs(curr_patch_area_check - currentPatch%area) > rsnbl_math_prec) then
+                            write(fates_log(),*) 'CP check: ', curr_patch_area_check - currentPatch%area, currentPatch%area
+                         end if
 
                          call fuse_2_patches(currentSite, temp_patch, buffer_patch)
                          !
@@ -1485,6 +1505,10 @@ contains
 
                    currentPatch => currentPatch%younger
                 end do
+
+                if (abs(buffer_patch_area_check - buffer_patch%area) > rsnbl_math_prec) then
+                   write(fates_log(),*) 'bpatch check: ', buffer_patch_area_check - buffer_patch%area, buffer_patch%area, buffer_patch%nocomp_pft_label
+                end if
 
                 buffer_patch_used_if: if ( buffer_patch_used ) then
                    ! at this point, lets check that the total patch area remaining to be relabelled equals what we think that it is.
