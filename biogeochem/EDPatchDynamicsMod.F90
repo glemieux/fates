@@ -1424,7 +1424,7 @@ contains
                 do while(associated(currentPatch))
                    if (currentPatch%changed_landuse_this_ts .and. currentPatch%land_use_label .eq. i_land_use_label) then
 
-                      write(fates_log(),*) 'npavf: ', i_land_use_label, nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label)
+                      write(fates_log(),*) 'npavf: ', i_land_use_label, currentPatch%nocomp_pft_label, nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label)
 
                       fraction_to_keep = (currentSite%area_pft(currentPatch%nocomp_pft_label,i_land_use_label) * sum(nocomp_pft_area_vector(:)) &
                            - nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label)) / currentPatch%area
@@ -1461,7 +1461,8 @@ contains
                          nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
                               nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
 
-                         write(fates_log(),*) 'npavf new1: ', i_land_use_label, nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label), currentPatch%area
+                         write(fates_log(),*) 'npavf new1: ', i_land_use_label, currentPatch%nocomp_pft_label, &
+                                                              nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label), currentPatch%area
 
                          currentPatch%changed_landuse_this_ts = .false.
 
@@ -1470,7 +1471,8 @@ contains
                          ! we want to keep all of this patch (and possibly more)
                          nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
                               nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
-                         write(fates_log(),*) 'npavf new2: ', i_land_use_label, nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label), currentPatch%area
+                         write(fates_log(),*) 'npavf new2: ', i_land_use_label, currentPatch%nocomp_pft_label, &
+                                                              nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label), currentPatch%area
                          currentPatch%changed_landuse_this_ts = .false.
                       endif
                    end if
