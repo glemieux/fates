@@ -1375,11 +1375,13 @@ contains
           currentPatch => currentSite%oldest_patch
           do while(associated(currentPatch))
              if (currentPatch%changed_landuse_this_ts .and. currentPatch%land_use_label .eq. i_land_use_label) then
+                write(fates_log(),*) 'pop nocompvec: ', i_land_use_label, currentPatch%nocomp_pft_label, currentPatch%area
                 nocomp_pft_area_vector(currentPatch%nocomp_pft_label) = nocomp_pft_area_vector(currentPatch%nocomp_pft_label) + currentPatch%area
                 copyPatch => currentPatch
              end if
              currentPatch => currentPatch%younger
           end do
+          write(fates_log(),*) 'post nocompvec: ', nocomp_pft_area_vector
 
           ! figure out how may PFTs on each land use type. if only 1, then the next calculation is much simpler: we just need to know which PFT is allowed.
           n_pfts_by_landuse = 0
@@ -1392,6 +1394,7 @@ contains
           if ( n_pfts_by_landuse .ne. 1) then
              which_pft_allowed = fates_unset_int
           endif
+          write(fates_log(),*) 'npft allowed', n_pfts_by_landuse, which_pft_allowed
 
           patch_area_to_reallocate_if: if ( sum(nocomp_pft_area_vector(:)) .gt. nearzero ) then
              more_than_1_pft_to_handle_if: if ( n_pfts_by_landuse .ne. 1 ) then
@@ -1422,6 +1425,7 @@ contains
 
                 currentPatch => currentSite%oldest_patch
                 do while(associated(currentPatch))
+                   write(fates_log(),*) 'patchloop: ', i_land_use_label, currentPatch%nocomp_pft_label, currentPatch%area
                    if (currentPatch%changed_landuse_this_ts .and. currentPatch%land_use_label .eq. i_land_use_label) then
 
                       write(fates_log(),*) 'npavf: ', i_land_use_label, currentPatch%nocomp_pft_label, nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label)
@@ -1440,6 +1444,8 @@ contains
                          else
                             previousPatch => currentPatch
                          endif
+
+                         write(fates_log(),*) 'fuse tiny: ', i_land_use_label, currentPatch%nocomp_pft_label, currentPatch%area
 
                          call fuse_2_patches(currentSite, currentPatch, buffer_patch)
                          currentPatch => previousPatch
