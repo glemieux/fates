@@ -216,7 +216,6 @@ contains
     real(r8) :: state_vector(n_landuse_cats)
     real(r8), parameter :: max_daily_disturbance_rate = 0.999_r8
     logical  :: site_secondaryland_first_exceeding_min
-    real(r8) :: secondary_young_fraction  ! what fraction of secondary land is young secondary land
     !----------------------------------------------------------------------------------------------
     ! Calculate Mortality Rates (these were previously calculated during growth derivatives)
     ! And the same rates in understory plants have already been applied to %dndt
@@ -224,9 +223,6 @@ contains
     
     ! first calculate the fraction of the site that is primary land
     current_fates_landuse_state_vector = site_in%get_current_landuse_statevector()
-
-    ! and get the fraction of secondary land that is young secondary land
-    secondary_young_fraction = site_in%get_secondary_young_fraction()
 
     ! check status of transition_landuse_from_off_to_on flag, and do some error checking on it
     if(site_in%transition_landuse_from_off_to_on) then
@@ -400,7 +396,7 @@ contains
              else
                 call get_harvest_rate_area (currentPatch%land_use_label, bc_in%hlm_harvest_catnames, &
                      bc_in%hlm_harvest_rates, current_fates_landuse_state_vector(primaryland), &
-                     current_fates_landuse_state_vector(secondaryland), secondary_young_fraction, &
+                     current_fates_landuse_state_vector(secondaryland), &
                      currentPatch%age_since_anthro_disturbance, harvest_rate)
              end if
 
