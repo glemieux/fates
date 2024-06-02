@@ -1403,7 +1403,7 @@ contains
           if ( n_pfts_by_landuse .ne. 1) then
              which_pft_allowed = fates_unset_int
           endif
-          write(fates_log(),*) 'npft allowed', n_pfts_by_landuse, which_pft_allowed
+          ! write(fates_log(),*) 'npft allowed', n_pfts_by_landuse, which_pft_allowed
 
           patch_area_to_reallocate_if: if ( sum(nocomp_pft_area_vector(:)) .gt. nearzero ) then
              more_than_1_pft_to_handle_if: if ( n_pfts_by_landuse .ne. 1 ) then
@@ -1488,8 +1488,8 @@ contains
 
                          call fuse_2_patches(currentSite, temp_patch, buffer_patch)
                          !
-                         ! nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
-                         !      nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
+                         nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
+                              nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
                          nocomp_pft_area_vec_filled_sum = nocomp_pft_area_vec_filled_sum + currentPatch%area
 
                          ! write(fates_log(),*) 'npavf new1: ', i_land_use_label, currentPatch%nocomp_pft_label, &
@@ -1500,8 +1500,8 @@ contains
                          buffer_patch_used = .true.
                       else
                          ! we want to keep all of this patch (and possibly more)
-                         ! nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
-                         !      nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
+                         nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) = &
+                              nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label) + currentPatch%area
                          nocomp_pft_area_vec_filled_sum = nocomp_pft_area_vec_filled_sum + currentPatch%area
                          ! write(fates_log(),*) 'npavf new2: ', i_land_use_label, currentPatch%nocomp_pft_label, &
                          !                                      nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label), currentPatch%area
@@ -1512,9 +1512,9 @@ contains
                    currentPatch => currentPatch%younger
                 end do
 
-                if (abs(buffer_patch_area_check - buffer_patch%area) > rsnbl_math_prec) then
-                   write(fates_log(),*) 'bpatch check: ', buffer_patch_area_check - buffer_patch%area, buffer_patch%area, buffer_patch%nocomp_pft_label
-                end if
+                write(fates_log(),*) 'bpatch check: ', buffer_patch_area_check - buffer_patch%area, buffer_patch%area, buffer_patch%nocomp_pft_label
+                write(fates_log(),*) 'sum check: ', nocomp_pft_area_vec_sum - nocomp_pft_area_vec_filled_sum - buffer_patch%area
+                write(fates_log(),*) 'sum var check: ', sum(nocomp_pft_area_vector(:) - nocomp_pft_area_vector_filled(:)) - buffer_patch%area
 
                 buffer_patch_used_if: if ( buffer_patch_used ) then
                    ! at this point, lets check that the total patch area remaining to be relabelled equals what we think that it is.
