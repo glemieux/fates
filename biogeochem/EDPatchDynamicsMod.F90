@@ -1556,19 +1556,26 @@ contains
                          !if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vec_sum) then
                             !
                             newp_area = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
+                            temp_patch_area_check = currentSite%area_pft(i_pft,i_land_use_label) * (sum(nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft))
                             !newp_area = currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vec_sum - nocomp_pft_area_vector_filled(i_pft)
                             write(fates_log(),*) 'ipft, newp_area', i_pft, newp_area, sum(nocomp_pft_area_vector(:)), nocomp_pft_area_vector_filled(i_pft)
+                            write(fates_log(),*) 'ipft, newp_area alt', i_pft, newp_area - temp_patch_area_check, temp_patch_area_check
+
                             ! only bother doing this if the new new patch area needed is greater than some tiny amount
                             if ( newp_area .gt. rsnbl_math_prec * 0.01_r8) then
-                               !
+
+                               write(fates_log(),*) 'newp vs buffer: ', i_pft, buffer_patch%area - newp_area 
                                if (buffer_patch%area - newp_area .gt. rsnbl_math_prec * 0.01_r8) then
 
                                   ! split buffer patch in two, keeping the smaller buffer patch to put into new patches
                                   allocate(temp_patch)
 
-                                  write(fates_log(),*) 'new temp 1: ', i_pft, 1._r8 - newp_area/buffer_patch%area
-                                  write(fates_log(),*) 'new temp 2: ', i_pft, buffer_patch%area - newp_area
-                                  call split_patch(currentSite, buffer_patch, temp_patch, (1._r8 - newp_area/buffer_patch%area))
+                                  fraction_to_keep = (buffer_patch%area - newp_area) / buffer_patch%area
+                                  temp_patch_area_check_alt = (buffer_patch%area - temp_patch_area_check) / buffer_patch%area
+
+                                  write(fates_log(),*) 'new ftk 1: ', i_pft, (1._r8 - newp_area/buffer_patch%area) - fraction_to_keep
+                                  write(fates_log(),*) 'new ftk 2: ', i_pft, fraction_to_keep - temp_patch_area_check_alt
+                                  call split_patch(currentSite, buffer_patch, temp_patch, fraction_to_keep)
 
                                   ! give the new patch the intended nocomp PFT label
                                   temp_patch%nocomp_pft_label = i_pft
@@ -1576,6 +1583,8 @@ contains
                                   ! track that we have added this patch area
                                   nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + temp_patch%area
                                   write(fates_log(),*) 'ipft, nocomp change, temp', i_pft, nocomp_pft_area_vector_filled(i_pft), temp_patch%area
+                                  write(fates_log(),*) 'ipft, temp diff', i_pft, temp_patch%area - newp_area
+                                  write(fates_log(),*) 'ipft, temp diff 1', i_pft, temp_patch%area - temp_patch_area_check
 
                                   ! put the new patch into the linked list
                                   call InsertPatch(currentSite, temp_patch)
@@ -1586,7 +1595,7 @@ contains
 
                                   ! track that we have added this patch area
                                   nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + buffer_patch%area
-                                  ! write(fates_log(),*) 'ipft, nocomp change, buffer', i_pft, nocomp_pft_area_vector_filled(i_pft), buffer_patch%area
+                                  write(fates_log(),*) 'ipft, nocomp change, buffer', i_pft, nocomp_pft_area_vector_filled(i_pft), buffer_patch%area
 
                                   ! put the buffer patch directly into the linked list
                                   call InsertPatch(currentSite, buffer_patch)
