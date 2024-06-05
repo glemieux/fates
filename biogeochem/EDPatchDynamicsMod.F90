@@ -1549,6 +1549,8 @@ contains
                    end if
 
                    write(fates_log(),*) '------------'
+                   write(fates_log(),*) 'vector diff', nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:)
+                   write(fates_log(),*) '------------'
 
                    ! now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
                    nocomp_pft_loop_2: do i_pft = 1, numpft
@@ -1564,13 +1566,17 @@ contains
                             nocomp_pft_area_vector_alt(i_pft) = nocomp_pft_area_vector_alt(i_pft) - nocomp_pft_area_vector_filled(i_pft)
                             temp_patch_area_check = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector_alt(:))
                             write(fates_log(),*) 'ipft, newp_area', i_pft, newp_area, sum(nocomp_pft_area_vector(:)), nocomp_pft_area_vector_filled(i_pft)
-                            write(fates_log(),*) 'ipft, newp_area alt', i_pft, temp_patch_area_check - newp_area , temp_patch_area_check
+                            !write(fates_log(),*) 'ipft, newp_area alt', i_pft, temp_patch_area_check - newp_area , temp_patch_area_check
 
                             ! only bother doing this if the new new patch area needed is greater than some tiny amount
                             if ( newp_area .gt. rsnbl_math_prec * 0.01_r8) then
 
                                write(fates_log(),*) 'newp vs buffer: ', i_pft, buffer_patch%area - newp_area 
-                               if (buffer_patch%area - newp_area .gt. rsnbl_math_prec * 0.01_r8) then
+                               fraction_to_keep = (buffer_patch%area - newp_area) / buffer_patch%area
+                               write(fates_log(),*) 'ftk alt diff: ', i_pft, (1._r8 - newp_area/buffer_patch%area) - fraction_to_keep
+
+                               if (fraction_to_keep .gt. rsnbl_math_prec) then
+                               !if (buffer_patch%area - newp_area .gt. rsnbl_math_prec * 0.01_r8) then
 
                                   ! split buffer patch in two, keeping the smaller buffer patch to put into new patches
                                   allocate(temp_patch)
@@ -1578,8 +1584,7 @@ contains
                                   fraction_to_keep = (buffer_patch%area - newp_area) / buffer_patch%area
                                   temp_patch_area_check_alt = (buffer_patch%area - temp_patch_area_check) / buffer_patch%area
 
-                                  write(fates_log(),*) 'new ftk 1: ', i_pft, (1._r8 - newp_area/buffer_patch%area) - fraction_to_keep
-                                  write(fates_log(),*) 'new ftk 2: ', i_pft, fraction_to_keep - temp_patch_area_check_alt
+                                  !write(fates_log(),*) 'new ftk 2: ', i_pft, fraction_to_keep - temp_patch_area_check_alt
                                   call split_patch(currentSite, buffer_patch, temp_patch, fraction_to_keep)
 
                                   ! give the new patch the intended nocomp PFT label
@@ -1589,7 +1594,7 @@ contains
                                   nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + temp_patch%area
                                   write(fates_log(),*) 'ipft, nocomp change, temp', i_pft, nocomp_pft_area_vector_filled(i_pft), temp_patch%area
                                   write(fates_log(),*) 'ipft, temp diff', i_pft, temp_patch%area - newp_area
-                                  write(fates_log(),*) 'ipft, temp diff 1', i_pft, temp_patch%area - temp_patch_area_check
+                                  !write(fates_log(),*) 'ipft, temp diff 1', i_pft, temp_patch%area - temp_patch_area_check
 
                                   ! put the new patch into the linked list
                                   call InsertPatch(currentSite, temp_patch)
@@ -1630,7 +1635,7 @@ contains
                       else
                          write(fates_log(),*) 'Buffer patch still has area and it wasnt put into the linked list'
                          write(fates_log(),*) 'buffer_patch%area', buffer_patch%area
-                         write(fates_log(),*) sum(nocomp_pft_area_vector_filled(:) - sum(nocomp_pft_area_vector(:)), sum(nocomp_pft_area_vector_filled(:))
+                         write(fates_log(),*) sum(nocomp_pft_area_vector_filled(:)) - sum(nocomp_pft_area_vector(:)), sum(nocomp_pft_area_vector_filled(:))
                          write(fates_log(),*) sum(nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:))
 
                          call endrun(msg=errMsg(sourcefile, __LINE__))
@@ -1647,7 +1652,7 @@ contains
                 end if buffer_patch_used_if
 
                 ! check that the area we have added is the same as the area we have taken away. if not, crash.
-                if ( abs(sum(nocomp_pft_area_vector_filled - nocomp_pft_area_vector(:))) .gt. rsnbl_math_prec) then
+                if ( abs(sum(nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:))) .gt. rsnbl_math_prec) then
                    write(fates_log(),*) 'patch reallocation logic doesnt add up. difference is: ', sum(nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:))
                    write(fates_log(),*) currentSite%area_pft(i_pft,i_land_use_label)
                    write(fates_log(),*) nocomp_pft_area_vector_filled
