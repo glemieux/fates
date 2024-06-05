@@ -556,6 +556,7 @@ contains
     type (fates_patch_type) , pointer :: buffer_patch, temp_patch, copyPatch, previousPatch
     real(r8) :: nocomp_pft_area_vector(numpft)
     real(r8) :: nocomp_pft_area_vector_filled(numpft)
+    real(r8) :: nocomp_pft_area_vector_alt(numpft)
     real(r8) :: fraction_to_keep
     integer  :: i_land_use_label
     integer  :: i_pft
@@ -1547,6 +1548,8 @@ contains
                       call endrun(msg=errMsg(sourcefile, __LINE__))
                    end if
 
+                   write(fates_log(),*) '------------'
+
                    ! now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
                    nocomp_pft_loop_2: do i_pft = 1, numpft
                       !
@@ -1556,10 +1559,12 @@ contains
                          !if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vec_sum) then
                             !
                             newp_area = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
-                            temp_patch_area_check = currentSite%area_pft(i_pft,i_land_use_label) * (sum(nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft))
-                            !newp_area = currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vec_sum - nocomp_pft_area_vector_filled(i_pft)
+
+                            nocomp_pft_area_vector_alt(:) = nocomp_pft_area_vector(:)
+                            nocomp_pft_area_vector_alt(i_pft) = nocomp_pft_area_vector_alt(i_pft) - nocomp_pft_area_vector_filled(i_pft)
+                            temp_patch_area_check = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector_alt(:))
                             write(fates_log(),*) 'ipft, newp_area', i_pft, newp_area, sum(nocomp_pft_area_vector(:)), nocomp_pft_area_vector_filled(i_pft)
-                            write(fates_log(),*) 'ipft, newp_area alt', i_pft, newp_area - temp_patch_area_check, temp_patch_area_check
+                            write(fates_log(),*) 'ipft, newp_area alt', i_pft, temp_patch_area_check - newp_area , temp_patch_area_check
 
                             ! only bother doing this if the new new patch area needed is greater than some tiny amount
                             if ( newp_area .gt. rsnbl_math_prec * 0.01_r8) then
@@ -1625,7 +1630,7 @@ contains
                       else
                          write(fates_log(),*) 'Buffer patch still has area and it wasnt put into the linked list'
                          write(fates_log(),*) 'buffer_patch%area', buffer_patch%area
-                         write(fates_log(),*) sum(nocomp_pft_area_vector_filled(:)), sum(nocomp_pft_area_vector(:))
+                         write(fates_log(),*) sum(nocomp_pft_area_vector_filled(:) - sum(nocomp_pft_area_vector(:)), sum(nocomp_pft_area_vector_filled(:))
                          write(fates_log(),*) sum(nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:))
 
                          call endrun(msg=errMsg(sourcefile, __LINE__))
