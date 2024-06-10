@@ -1563,7 +1563,7 @@ contains
                          write(fates_log(),*) 'ipft, newp_area, apft*sum: ', i_pft, newp_area, &
                                                currentSite%area_pft(i_pft,i_land_use_label)*sum(nocomp_pft_area_vector(:))
 
-                         if (nocomp_pft_area_vector_filled(i_pft) .le. currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:))) then
+                         if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:))) then
                          !if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vec_sum) then
                             !
 
@@ -1578,7 +1578,7 @@ contains
                             ! only bother doing this if the new new patch area needed is greater than some tiny amount
                             if ( newp_area .gt. rsnbl_math_prec * 0.01_r8) then
 
-                               write(fates_log(),*) 'newp vs buffer: ', i_pft, buffer_patch%area - newp_area 
+                               write(fates_log(),*) 'buffer, buffer-newp: ', i_pft, buffer_patch%area, buffer_patch%area - newp_area
                                fraction_to_keep = (buffer_patch%area - newp_area) / buffer_patch%area
                                write(fates_log(),*) 'ftk alt diff: ', i_pft, fraction_to_keep, (1._r8 - newp_area/buffer_patch%area) - fraction_to_keep
 
@@ -1709,7 +1709,7 @@ contains
 
   ! -----------------------------------------------------------------------------------------
 
-  subroutine split_patch(currentSite, currentPatch, new_patch, fraction_to_keep)
+  subroutine split_patch(currentSite, currentPatch, new_patch, fraction_to_keep, newarea)
     !
     ! !DESCRIPTION:
     !  Split a patch into two patches that are identical except in their areas
@@ -1719,6 +1719,7 @@ contains
     type(fates_patch_type) , intent(inout), pointer :: currentPatch   ! Donor Patch
     type(fates_patch_type) , intent(inout), pointer :: new_patch      ! New Patch
     real(r8), intent(in)    :: fraction_to_keep  ! fraction of currentPatch to keep, the rest goes to newpatch
+    real(r8), intent(in), optional    :: newarea           ! If the new area is calculated, don't bother with using fraction
     !
     ! !LOCAL VARIABLES:
     integer  :: el                           ! element loop index
@@ -1731,7 +1732,11 @@ contains
     integer  :: pft
     real(r8) :: temp_area
 
-    temp_area = currentPatch%area - (currentPatch%area * fraction_to_keep)
+    if (present(newarea)) then
+       temp_area = newarea
+    else
+       temp_area = currentPatch%area - (currentPatch%area * fraction_to_keep)
+    end if
 
     ! first we need to make the new patch
     call new_patch%Create(0._r8, &
@@ -1757,7 +1762,7 @@ contains
 
     call CopyPatchMeansTimers(currentPatch, new_patch)
 
-    call TransLitterNewPatch( currentSite, currentPatch, new_patch, currentPatch%area * (1.-fraction_to_keep))
+    call TransLitterNewPatch( currentSite, currentPatch, new_patch, temparea)
 
     currentPatch%burnt_frac_litter(:) = 0._r8
 
@@ -1824,7 +1829,11 @@ contains
     call sort_cohorts(currentPatch)
 
     !update area of donor patch
-    currentPatch%area = currentPatch%area * fraction_to_keep
+    if (present(newarea)) then
+       currentPatch%area = currentPatch%area - newarea
+    else
+       currentPatch%area = currentPatch%area * fraction_to_keep
+    end if
 
   end subroutine split_patch
 
