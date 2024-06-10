@@ -1550,22 +1550,29 @@ contains
 
                    write(fates_log(),*) '------------'
                    write(fates_log(),*) 'vector diff', nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:)
+                   write(fates_log(),*) 'vector sum ', sum(nocomp_pft_area_vector(:))
                    write(fates_log(),*) '------------'
 
                    ! now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
                    nocomp_pft_loop_2: do i_pft = 1, numpft
                       !
+                      write(fates_log(),*) 'ipft, area_pft, npavf: ', i_pft, currentSite%area_pft(i_pft,i_land_use_label), nocomp_pft_area_vector_filled(i_pft)
                       if ( currentSite%area_pft(i_pft,i_land_use_label) .gt. nearzero) then
                          !
-                         if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:))) then
+                         newp_area = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
+                         write(fates_log(),*) 'ipft, newp_area, apft*sum: ', i_pft, newp_area, &
+                                               currentSite%area_pft(i_pft,i_land_use_label)*sum(nocomp_pft_area_vector(:))
+
+                         if (nocomp_pft_area_vector_filled(i_pft) .le. currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:))) then
                          !if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vec_sum) then
                             !
-                            newp_area = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
 
                             nocomp_pft_area_vector_alt(:) = nocomp_pft_area_vector(:)
                             nocomp_pft_area_vector_alt(i_pft) = nocomp_pft_area_vector_alt(i_pft) - nocomp_pft_area_vector_filled(i_pft)
                             temp_patch_area_check = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector_alt(:))
-                            write(fates_log(),*) 'ipft, newp_area', i_pft, newp_area, sum(nocomp_pft_area_vector(:)), nocomp_pft_area_vector_filled(i_pft)
+
+                            write(fates_log(),*) 'ipft, newp_area, npavf:', i_pft, newp_area, nocomp_pft_area_vector_filled(i_pft)
+
                             !write(fates_log(),*) 'ipft, newp_area alt', i_pft, temp_patch_area_check - newp_area , temp_patch_area_check
 
                             ! only bother doing this if the new new patch area needed is greater than some tiny amount
@@ -1573,7 +1580,7 @@ contains
 
                                write(fates_log(),*) 'newp vs buffer: ', i_pft, buffer_patch%area - newp_area 
                                fraction_to_keep = (buffer_patch%area - newp_area) / buffer_patch%area
-                               write(fates_log(),*) 'ftk alt diff: ', i_pft, (1._r8 - newp_area/buffer_patch%area) - fraction_to_keep
+                               write(fates_log(),*) 'ftk alt diff: ', i_pft, fraction_to_keep, (1._r8 - newp_area/buffer_patch%area) - fraction_to_keep
 
                                if (fraction_to_keep .gt. rsnbl_math_prec) then
                                !if (buffer_patch%area - newp_area .gt. rsnbl_math_prec * 0.01_r8) then
