@@ -1592,7 +1592,7 @@ contains
                                   temp_patch_area_check_alt = (buffer_patch%area - temp_patch_area_check) / buffer_patch%area
 
                                   !write(fates_log(),*) 'new ftk 2: ', i_pft, fraction_to_keep - temp_patch_area_check_alt
-                                  call split_patch(currentSite, buffer_patch, temp_patch, fraction_to_keep)
+                                  call split_patch(currentSite, buffer_patch, temp_patch, fraction_to_keep, newp_area)
 
                                   ! give the new patch the intended nocomp PFT label
                                   temp_patch%nocomp_pft_label = i_pft
