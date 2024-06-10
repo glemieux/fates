@@ -1762,7 +1762,7 @@ contains
 
     call CopyPatchMeansTimers(currentPatch, new_patch)
 
-    call TransLitterNewPatch( currentSite, currentPatch, new_patch, temparea)
+    call TransLitterNewPatch( currentSite, currentPatch, new_patch, temp_area)
 
     currentPatch%burnt_frac_litter(:) = 0._r8
 
