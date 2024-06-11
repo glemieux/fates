@@ -561,6 +561,7 @@ contains
     integer  :: i_land_use_label
     integer  :: i_pft
     real(r8) :: newp_area
+    real(r8) :: newp_area_alt
     logical  :: buffer_patch_in_linked_list
     integer  :: n_pfts_by_landuse
     integer  :: which_pft_allowed
@@ -1549,7 +1550,8 @@ contains
                    end if
 
                    write(fates_log(),*) '------------'
-                   write(fates_log(),*) 'vector diff', nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:)
+                   write(fates_log(),*) 'vector', nocomp_pft_area_vector(:)
+                   write(fates_log(),*) 'vector diff', nocomp_pft_area_vector(:) - nocomp_pft_area_vector_filled(:)
                    write(fates_log(),*) 'vector sum ', sum(nocomp_pft_area_vector(:))
                    write(fates_log(),*) '------------'
 
@@ -1559,12 +1561,21 @@ contains
                       write(fates_log(),*) 'ipft, area_pft, npavf: ', i_pft, currentSite%area_pft(i_pft,i_land_use_label), nocomp_pft_area_vector_filled(i_pft)
                       if ( currentSite%area_pft(i_pft,i_land_use_label) .gt. nearzero) then
                          !
-                         newp_area = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
+                         newp_area = sum(currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
+                         nocomp_pft_area_vector_alt(:) = nocomp_pft_area_vector(:)
+                         nocomp_pft_area_vector_alt(i_pft) = 0._r8
+                         newp_area_alt = (currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vector(i_pft)) - nocomp_pft_area_vector_filled(i_pft)
+                         newp_area_alt = newp_area_alt + sum(currentSite%area_pft(i_pft,i_land_use_label)*nocomp_pft_area_vector_alt(:))
+
+                         write(fates_log(),*) 'ipft, area_pft comp: ', i_pft, currentSite%area_pft(i_pft,i_land_use_label), &
+                                                                       currentSite%area_pft(i_pft,i_land_use_label) -  & 
+                                                                       ((newp_area_alt+nocomp_pft_area_vector_filled(i_pft))/sum(nocomp_pft_area_vector(:)))
+                         write(fates_log(),*) 'ipft, newp_area, newp-alt: ', i_pft, newp_area, newp_area - newp_area_alt
                          write(fates_log(),*) 'ipft, newp_area, apft*sum: ', i_pft, newp_area, &
                                                currentSite%area_pft(i_pft,i_land_use_label)*sum(nocomp_pft_area_vector(:))
 
                          if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:))) then
-                         !if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vec_sum) then
+                         !if (nocomp_pft_area_vector_filled(i_pft) .lt. nocomp_pft_area_vector(i_pft)) then
                             !
 
                             nocomp_pft_area_vector_alt(:) = nocomp_pft_area_vector(:)
@@ -1642,8 +1653,8 @@ contains
                       else
                          write(fates_log(),*) 'Buffer patch still has area and it wasnt put into the linked list'
                          write(fates_log(),*) 'buffer_patch%area', buffer_patch%area
-                         write(fates_log(),*) sum(nocomp_pft_area_vector_filled(:)) - sum(nocomp_pft_area_vector(:)), sum(nocomp_pft_area_vector_filled(:))
                          write(fates_log(),*) sum(nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:))
+                         write(fates_log(),*) nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:)
 
                          call endrun(msg=errMsg(sourcefile, __LINE__))
                       end if
