@@ -1460,7 +1460,7 @@ contains
                       temp_patch_area_check = 0._r8
                       temp_patch_area_check_alt = 0._r8
 
-                      if (fraction_to_keep .le. nearzero) then
+                      if (fraction_to_keep .le. nearzero .or. fraction_to_keep*currentPatch%area .lt. 1.0e-22_r8 ) then
                          ! we don't want any patch area with this PFT identity at all anymore. Fuse it into the buffer patch.
                          currentPatch%nocomp_pft_label = 0
                          if (associated(currentPatch%older)) then

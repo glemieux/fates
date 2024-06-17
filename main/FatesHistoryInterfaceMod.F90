@@ -123,6 +123,7 @@ module FatesHistoryInterfaceMod
   use FatesLitterMod      , only : ncwd
   use FatesConstantsMod   , only : ican_upper
   use FatesConstantsMod   , only : ican_ustory
+  use FatesConstantsMod   , only : nocomp_bareground_land
   use FatesSizeAgeTypeIndicesMod, only : get_sizeage_class_index
   use FatesSizeAgeTypeIndicesMod, only : get_sizeagepft_class_index
   use FatesSizeAgeTypeIndicesMod, only : get_agepft_class_index
