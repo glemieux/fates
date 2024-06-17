@@ -557,6 +557,9 @@ contains
     real(r8) :: nocomp_pft_area_vector(numpft)
     real(r8) :: nocomp_pft_area_vector_filled(numpft)
     real(r8) :: nocomp_pft_area_vector_alt(numpft)
+    real(r8) :: newp_area_vector(numpft)
+    real(r8) :: newp_area_buffer_frac(numpft)
+    real(r8) :: max_val
     real(r8) :: fraction_to_keep
     integer  :: i_land_use_label
     integer  :: i_pft
@@ -1555,17 +1558,47 @@ contains
                    write(fates_log(),*) 'vector sum ', sum(nocomp_pft_area_vector(:))
                    write(fates_log(),*) '------------'
 
-                   ! now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
+                   ! It's possible that we only need to move all of the buffer into one patch, so first determine what the new patch areas look
+                   ! like and compare to the buffer patch area
+                   newp_area_vector(:)= (currentSite%area_pft(:,i_land_use_label) * sum(nocomp_pft_area_vector(:))) - nocomp_pft_area_vector_filled(:)
+                   newp_area_buffer_frac(:) = newp_area_vector(:) / buffer_patch%area
+                   ! This should sum to one, add check
+                   ! Find the maximum value of the vector
+                   max_val = maxval(newp_area_buffer_frac)
+                   write(fates_log(),*) 'newp_area_vector: ',  newp_area_vector(:)
+                   write(fates_log(),*) 'newp_area_bfrac: ',  newp_area_buffer_frac(:)
+                   write(fates_log(),*) 'max_val: ',  max_val
+
+                   ! If max_val is essentially 1.0, we are going to put the buffer completely into the pft associated with the index
+                   !if (sum(newp_area_buffer_frac) - max_val < nearzero) then
+                   !   ! give the buffer patch the intended nocomp PFT label
+                   !   buffer_patch%nocomp_pft_label = i_pft
+
+                   !   ! track that we have added this patch area
+                   !   nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + buffer_patch%area
+                   !   write(fates_log(),*) 'ipft, nocomp change, buffer', i_pft, nocomp_pft_area_vector_filled(i_pft), buffer_patch%area
+
+                   !   ! put the buffer patch directly into the linked list
+                   !   call InsertPatch(currentSite, buffer_patch)
+
+                   !   buffer_patch_in_linked_list = .true.
+                   !   
+                   !! If there are multiple pfts to spread across, work through each pft and distribue the buffer
+                   !else
+
+                   !! now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
                    nocomp_pft_loop_2: do i_pft = 1, numpft
                       !
                       write(fates_log(),*) 'ipft, area_pft, npavf: ', i_pft, currentSite%area_pft(i_pft,i_land_use_label), nocomp_pft_area_vector_filled(i_pft)
-                      if ( currentSite%area_pft(i_pft,i_land_use_label) .gt. nearzero) then
+                      ! Check the area fraction to makes sure that this pft should have area.  Also make sure that the buffer patch hasn't been added to the
+                      ! linked list already
+                      if ( currentSite%area_pft(i_pft,i_land_use_label) .gt. nearzero .and. .not. buffer_patch_in_linked_list) then
                          !
-                         newp_area = sum(currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
+                         newp_area_alt = sum(currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vector(:)) - nocomp_pft_area_vector_filled(i_pft)
                          nocomp_pft_area_vector_alt(:) = nocomp_pft_area_vector(:)
                          nocomp_pft_area_vector_alt(i_pft) = 0._r8
-                         newp_area_alt = (currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vector(i_pft)) - nocomp_pft_area_vector_filled(i_pft)
-                         newp_area_alt = newp_area_alt + sum(currentSite%area_pft(i_pft,i_land_use_label)*nocomp_pft_area_vector_alt(:))
+                         newp_area = (currentSite%area_pft(i_pft,i_land_use_label) * nocomp_pft_area_vector(i_pft)) - nocomp_pft_area_vector_filled(i_pft)
+                         newp_area = newp_area + sum(currentSite%area_pft(i_pft,i_land_use_label)*nocomp_pft_area_vector_alt(:))
 
                          write(fates_log(),*) 'ipft, area_pft comp: ', i_pft, currentSite%area_pft(i_pft,i_land_use_label), &
                                                                        currentSite%area_pft(i_pft,i_land_use_label) -  & 
@@ -1574,8 +1607,8 @@ contains
                          write(fates_log(),*) 'ipft, newp_area, apft*sum: ', i_pft, newp_area, &
                                                currentSite%area_pft(i_pft,i_land_use_label)*sum(nocomp_pft_area_vector(:))
 
-                         if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:))) then
-                         !if (nocomp_pft_area_vector_filled(i_pft) .lt. nocomp_pft_area_vector(i_pft)) then
+                         ! this is just effectively checking that newp_area is not negative, which we get down the line so this should be fine
+                         !if (nocomp_pft_area_vector_filled(i_pft) .lt. currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:))) then
                             !
 
                             nocomp_pft_area_vector_alt(:) = nocomp_pft_area_vector(:)
@@ -1632,9 +1665,10 @@ contains
 
                                end if
                             end if
-                         end if
+                         !end if
                       end if
                    end do nocomp_pft_loop_2
+                   !end if
 
                    ! now we want to make sure that either the buffer_patch has zero area (presumably it was never used),
                    ! in which case it should be deallocated, or else it does have area but it has been put into the site
@@ -1672,7 +1706,7 @@ contains
                 ! check that the area we have added is the same as the area we have taken away. if not, crash.
                 if ( abs(sum(nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:))) .gt. rsnbl_math_prec) then
                    write(fates_log(),*) 'patch reallocation logic doesnt add up. difference is: ', sum(nocomp_pft_area_vector_filled(:) - nocomp_pft_area_vector(:))
-                   write(fates_log(),*) currentSite%area_pft(i_pft,i_land_use_label)
+                   write(fates_log(),*) currentSite%area_pft(:,i_land_use_label)
                    write(fates_log(),*) nocomp_pft_area_vector_filled
                    write(fates_log(),*) nocomp_pft_area_vector
                    write(fates_log(),*) i_land_use_label
@@ -1688,6 +1722,9 @@ contains
                 ! land use type and let patch fusion take care of the rest.
                 currentPatch => currentSite%oldest_patch
                 do while(associated(currentPatch))
+                   if (currentPatch%area < rsnbl_math_prec) then
+                      write(fates_log(),*) 'spawn_patch: small patch: ', currentPatch%area, currentPatch%land_use_label, currentPatch%nocomp_pft_label
+                   end if
                    if (currentPatch%changed_landuse_this_ts .and. currentPatch%land_use_label .eq. i_land_use_label) then
                       currentPatch%nocomp_pft_label = which_pft_allowed
                       currentPatch%changed_landuse_this_ts = .false.
@@ -1743,10 +1780,13 @@ contains
     integer  :: pft
     real(r8) :: temp_area
 
+    temp_area = 0._r8
     if (present(newarea)) then
        temp_area = newarea
+       write(fates_log(),*) 'split: newarea: ', currentPatch%area, temp_area
     else
        temp_area = currentPatch%area - (currentPatch%area * fraction_to_keep)
+       write(fates_log(),*) 'split: ftk: ', currentPatch%area, temp_area
     end if
 
     ! first we need to make the new patch
@@ -1840,11 +1880,8 @@ contains
     call sort_cohorts(currentPatch)
 
     !update area of donor patch
-    if (present(newarea)) then
-       currentPatch%area = currentPatch%area - newarea
-    else
-       currentPatch%area = currentPatch%area * fraction_to_keep
-    end if
+    currentPatch%area = currentPatch%area - temp_area
+    write(fates_log(),*) 'split: current, new: ', currentPatch%area, new_patch%area
 
   end subroutine split_patch
 
@@ -3052,6 +3089,9 @@ contains
           !---------------------------------------------------------------------!  
           currentPatch => currentSite%youngest_patch
           do while(associated(currentPatch))
+             if (currentPatch%area < rsnbl_math_prec) then
+             write(fates_log(),*) 'call ppsp: CP area: ', currentPatch%area, currentPatch%land_use_label, currentPatch%nocomp_pft_label
+             end if
              call patch_pft_size_profile(currentPatch)
              currentPatch => currentPatch%older
           enddo
