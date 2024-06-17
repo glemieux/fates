@@ -1523,6 +1523,10 @@ contains
                       endif
                    end if
 
+                   if (currentPatch%area < nearzero) then
+                      write(fates_log(),*) 'CP NEARZERO 1: ', currentPatch%area, currentPatch%land_use_label, currentPatch%nocomp_pft_label
+                   end if
+
                    currentPatch => currentPatch%younger
                 end do
 
@@ -1729,6 +1733,9 @@ contains
                       currentPatch%nocomp_pft_label = which_pft_allowed
                       currentPatch%changed_landuse_this_ts = .false.
                    end if
+                   if (currentPatch%area < nearzero) then
+                      write(fates_log(),*) 'CP NEARZERO 2: ', currentPatch%area, currentPatch%land_use_label, currentPatch%nocomp_pft_label
+                   end if
                    currentPatch => currentPatch%younger
                 end do
              endif more_than_1_pft_to_handle_if
@@ -1740,6 +1747,9 @@ contains
        currentPatch => currentSite%oldest_patch
        do while(associated(currentPatch))
           currentPatch%changed_landuse_this_ts = .false.
+                   if (currentPatch%area < nearzero) then
+                      write(fates_log(),*) 'CP NEARZERO 3: ', currentPatch%area, currentPatch%land_use_label, currentPatch%nocomp_pft_label
+                   end if
           currentPatch => currentPatch%younger
        end do
     endif nocomp_and_luh_if
