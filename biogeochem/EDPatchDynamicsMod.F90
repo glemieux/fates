@@ -1426,7 +1426,7 @@ contains
                    if (currentPatch%changed_landuse_this_ts .and. currentPatch%land_use_label .eq. i_land_use_label) then
 
                       ! Calculate the areas to be given to potentially give to the buffer patch and those to keep in the current patch
-                      area_to_keep = currentSite%area_pft(i_pft,i_land_use_label) * sum(nocomp_pft_area_vector(:)) - & 
+                      area_to_keep = currentSite%area_pft(currentPatch%nocomp_pft_label,i_land_use_label) * sum(nocomp_pft_area_vector(:)) - & 
                                      nocomp_pft_area_vector_filled(currentPatch%nocomp_pft_label)
                       newp_area = currentPatch%area - area_to_keep
                       fraction_to_keep = area_to_keep / currentPatch%area
