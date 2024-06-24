@@ -14,7 +14,7 @@ module FatesHistoryInterfaceMod
   use FatesConstantsMod        , only : i_term_mort_type_cstarv
   use FatesConstantsMod        , only : i_term_mort_type_canlev
   use FatesConstantsMod        , only : i_term_mort_type_numdens
-  use FatesConstantsMo         , only : nocomp_bareground_land
+  use FatesConstantsMod        , only : nocomp_bareground_land
   use FatesGlobals             , only : fates_log
   use FatesGlobals             , only : endrun => fates_endrun
   use EDParamsMod              , only : nclmax, maxpft
