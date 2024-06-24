@@ -1498,8 +1498,27 @@ contains
                       call endrun(msg=errMsg(sourcefile, __LINE__))
                    end if
 
+                   write(fates_log(),*) '------------'
+                   write(fates_log(),*) 'vector', nocomp_pft_area_vector(:)
+                   write(fates_log(),*) 'vector diff', nocomp_pft_area_vector(:) - nocomp_pft_area_vector_filled(:)
+                   write(fates_log(),*) 'vector sum ', sum(nocomp_pft_area_vector(:))
+                   write(fates_log(),*) '------------'
+
+                   ! It's possible that we only need to move all of the buffer into one patch, so first determine what the new patch areas look
+                   ! like and compare to the buffer patch area
+                   newp_area_vector(:)= (currentSite%area_pft(:,i_land_use_label) * sum(nocomp_pft_area_vector(:))) - nocomp_pft_area_vector_filled(:)
+                   newp_area_buffer_frac(:) = newp_area_vector(:) / buffer_patch%area
+                   ! This should sum to one, add check
+                   ! Find the maximum value of the vector
+                   max_val = maxval(newp_area_buffer_frac)
+                   write(fates_log(),*) 'newp_area_vector: ',  newp_area_vector(:)
+                   write(fates_log(),*) 'newp_area_bfrac: ',  newp_area_buffer_frac(:)
+                   write(fates_log(),*) 'max_val: ',  max_val
+
                    ! now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
                    nocomp_pft_loop_2: do i_pft = 1, numpft
+
+                      write(fates_log(),*) 'ipft, area_pft, npavf: ', i_pft, currentSite%area_pft(i_pft,i_land_use_label), nocomp_pft_area_vector_filled(i_pft)
 
                       ! Check the area fraction to makes sure that this pft should have area.  Also make sure that the buffer patch hasn't been 
                       ! added to the linked list already
@@ -1517,6 +1536,8 @@ contains
                             ! Compute area and fraction to keep in buffer
                             area_to_keep = buffer_patch%area - newp_area
                             fraction_to_keep = area_to_keep / buffer_patch%area
+
+                            write(fates_log(),*) 'ipft, atk, ftk, newparea: ', i_pft, area_to_keep, fraction_to_keep, newp_area
 
                             ! only bother doing this if the new new patch area needed is greater than some tiny amount
                             if ( newp_area .gt. rsnbl_math_prec * 0.01_r8) then
@@ -1537,6 +1558,9 @@ contains
                                   ! put the new patch into the linked list
                                   call InsertPatch(currentSite, temp_patch)
 
+                                  write(fates_log(),*) 'ipft, nocomp change, temp', i_pft, nocomp_pft_area_vector_filled(i_pft), temp_patch%area
+                                  write(fates_log(),*) 'ipft, newp_area, temp diff: ', i_pft, newp_area, temp_patch%area-newp_area
+
                                else
                                   ! give the buffer patch the intended nocomp PFT label
                                   buffer_patch%nocomp_pft_label = i_pft
@@ -1548,6 +1572,8 @@ contains
                                   call InsertPatch(currentSite, buffer_patch)
 
                                   buffer_patch_in_linked_list = .true.
+
+                                  write(fates_log(),*) 'ipft, nocomp change, buffer', i_pft, nocomp_pft_area_vector_filled(i_pft), buffer_patch%area
 
                                end if
                             end if
