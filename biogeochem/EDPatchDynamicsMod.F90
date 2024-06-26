@@ -1540,6 +1540,29 @@ contains
                    write(fates_log(),*) 'max_val: ',  max_val
                    write(fates_log(),*) 'buffer: ', buffer_patch%area
 
+                   ! If the max value is the only value in the array then loop through the array to find the max value pft index and insert buffer
+                   if (abs(sum(newp_area_buffer_frac(:)) - max_val) .le. nearzero) then
+                      i_pft = 1
+                      do while(.not. buffer_patch_in_linked_list)
+                         if (abs(newp_area_buffer_frac(i_pft) - max_val) .le. nearzero) then
+                            
+                            ! give the buffer patch the intended nocomp PFT label
+                            buffer_patch%nocomp_pft_label = i_pft
+
+                            ! track that we have added this patch area
+                            nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + buffer_patch%area
+
+                            ! put the buffer patch directly into the linked list
+                            call InsertPatch(currentSite, buffer_patch)
+                            
+                            ! Set flag to skip the next pft loop
+                            buffer_patch_in_linked_list = .true.
+                            write(fates_log(),*) 'straight to buffer: ipft, nocomp change', i_pft, nocomp_pft_area_vector_filled(i_pft), buffer_patch%area
+                         end if
+                         i_pft = i_pft + 1
+                      end do
+                   end if
+
                    ! now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
                    nocomp_pft_loop_2: do i_pft = 1, numpft
 
@@ -1606,7 +1629,7 @@ contains
 
                                   buffer_patch_in_linked_list = .true.
 
-                                  write(fates_log(),*) 'ipft, nocomp change, buffer', i_pft, nocomp_pft_area_vector_filled(i_pft), buffer_patch%area
+                                  write(fates_log(),*) 'buffer: ipft, nocomp change', i_pft, nocomp_pft_area_vector_filled(i_pft), buffer_patch%area
 
                                end if
                             end if
