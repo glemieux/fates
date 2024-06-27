@@ -557,16 +557,17 @@ contains
     real(r8) :: nocomp_pft_area_vector(numpft)
     real(r8) :: nocomp_pft_area_vector_filled(numpft)
     real(r8) :: nocomp_pft_area_vector_alt(numpft)
-    real(r8) :: newp_area_buffer_frac(numpft) 
-    real(r8) :: newp_area_vector(numpft) 
+    real(r8) :: newp_area_vector(numpft)
     real(r8) :: max_val
+    real(r8) :: newp_area, area_to_keep, fraction_to_keep, newp_buff_diff
     integer  :: i_land_use_label
     integer  :: i_pft
-    real(r8) :: newp_area, area_to_keep, fraction_to_keep
-    logical  :: buffer_patch_in_linked_list
     integer  :: n_pfts_by_landuse
     integer  :: which_pft_allowed
+    integer  :: count_nonzero, max_val_ipft, last_ipft
     logical  :: buffer_patch_used
+    logical  :: buffer_patch_in_linked_list
+    logical  :: newp_area_vector_nonzero(numpft)
     !---------------------------------------------------------------------
 
     storesmallcohort => null() ! storage of the smallest cohort for insertion routine
@@ -1500,43 +1501,46 @@ contains
                       call endrun(msg=errMsg(sourcefile, __LINE__))
                    end if
 
-                   ! It's possible that we only need to move all of the buffer into one patch, so first determine what the new patch areas look
-                   ! like and compare to the buffer patch area
+                   ! It's possible that we only need to move all of the buffer into one patch, so first determine what the new patch areas look like
                    newp_area_vector(:)= (currentSite%area_pft(:,i_land_use_label) * sum(nocomp_pft_area_vector(:))) - nocomp_pft_area_vector_filled(:)
-                   newp_area_buffer_frac(:) = newp_area_vector(:) / buffer_patch%area
 
-                   ! Find the maximum value of the vector
-                   max_val = maxval(newp_area_buffer_frac)
+                   ! Determine the maximum value in the new patch vector list
+                   max_val = maxval(newp_area_vector(:))
 
-                   ! If the max value is the only value in the array then loop through the array to find the max value pft index and insert buffer
-                   if (abs(sum(newp_area_buffer_frac(:)) - max_val) .le. nearzero) then
-                      i_pft = 1
-                      do while(.not. buffer_patch_in_linked_list)
-                         if (abs(newp_area_buffer_frac(i_pft) - max_val) .le. nearzero) then
-                            
-                            ! give the buffer patch the intended nocomp PFT label
-                            buffer_patch%nocomp_pft_label = i_pft
+                   ! Loop through the new patch area vector and find the non-zero entries
+                   newp_area_vector_nonzero(:) = .false.
+                   count_nonzero = 0
+                   do i_pft = 1, numpft
+                      if (newp_area_vector(i_pft) .gt. nearzero) then
+                         if (currentSite%area_pft(i_pft,i_land_use_label) .gt. nearzero) then
+                            newp_area_vector_nonzero(i_pft) = .true.
+                            count_nonzero = count_nonzero + 1
+                            last_ipft = i_pft
 
-                            ! track that we have added this patch area
-                            nocomp_pft_area_vector_filled(i_pft) = nocomp_pft_area_vector_filled(i_pft) + buffer_patch%area
+                            ! Determine which pft has the maximum value
+                            if (newp_area_vector(i_pft) .eq. max_val) then
+                               max_val_ipft = i_pft
+                            end if
+                         else
+                            ! This should have area_pft as non-zero, fail if it doesn't
+                            write(fates_log(),*) 'The current pft is calculated to receive new area, but does not have a non zero area_pft'
+                            write(fates_log(),*) 'i_pft, area_pft: ', i_pft, currentSite%area_pft(i_pft,i_land_use_label)
+                            call endrun(msg=errMsg(sourcefile, __LINE__))
+                      end if
+                   end do
 
-                            ! put the buffer patch directly into the linked list
-                            call InsertPatch(currentSite, buffer_patch)
-                            
-                            ! Set flag to skip the next pft loop
-                            buffer_patch_in_linked_list = .true.
-                         end if
-                         i_pft = i_pft + 1
-                      end do
+                   ! Determine what, if any, leftover from the buffer to put in the largest new pft patch
+                   newp_buff_diff = buffer_patch%area - sum(newp_area_vector(:))
+                   if (newp_buff_diff .gt. rsnbl_math_prec*10) then
+                      write(fates_log(),*) 'WARNING: non-trivial area of buffer patch will be merged into new patch for pft ', max_val_ipft
+                      write(fates_log(),*) 'WARNING: buffer area remainder to be merged: ', newp_buff_diff
                    end if
 
                    ! Now we need to loop through the nocomp PFTs, and split the buffer patch into a set of patches to put back in the linked list
-                   ! if not already done so above
                    nocomp_pft_loop_2: do i_pft = 1, numpft
 
-                      ! Check the area fraction to makes sure that this pft should have area.  Also make sure that the buffer patch hasn't been 
-                      ! added to the linked list already
-                      if ( currentSite%area_pft(i_pft,i_land_use_label) .gt. nearzero .and. .not. buffer_patch_in_linked_list) then
+                      ! Only enter loop for identified pfts per above
+                      if (newp_area_vector_nonzero(i_pft)) then
 
                          ! Slightly complicated way of making sure that the same pfts are subtracted from each other which may help to avoid precision
                          ! errors due to differencing between very large and very small areas
@@ -1549,10 +1553,14 @@ contains
                          area_to_keep = buffer_patch%area - newp_area
                          fraction_to_keep = area_to_keep / buffer_patch%area
 
+                         ! If this is the pft that has the largest new area add in the leftover difference calculated above
+                         if (max_val_ipft .eq. i_pft) newp_area = newp_area + newp_buff_diff
+
                          ! only bother doing this if the new new patch area needed is greater than some tiny amount
                          if ( newp_area .gt. rsnbl_math_prec * 0.01_r8) then
 
-                            if (area_to_keep .gt. rsnbl_math_prec) then
+                            ! Make sure that the area to keep is of reasonable size.  If we're on the last pft in the list, simply insert buffer remaining
+                            if (area_to_keep .gt. rsnbl_math_prec .and. .not. (i_pft .eq. last_ipft)) then
 
                                ! split buffer patch in two, keeping the smaller buffer patch to put into new patches
                                allocate(temp_patch)
