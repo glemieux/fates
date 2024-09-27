@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<all>
+  <base_file>archive/api36.1.0_params_default.cdl</base_file>
+  <new_file>fates_params_default.cdl</new_file>
+  <pft_trim_list>1,2,3,4,5,6,7,8,9,10,11,12</pft_trim_list>
+  <parameters>
+    <pft_group ids="10,11,12">
+      <fates_allom_agb1> 0.001, 0.001, 0.003 </fates_allom_agb1>
+      <fates_allom_agb2> 1.6592, 1.6592, 1.3456 </fates_allom_agb2>
+      <fates_allom_agb3> 1.248, 1.248, 1.869 </fates_allom_agb3>
+      <fates_allom_agb4> -999.9, -999.9, -999.9 </fates_allom_agb4>
+      <fates_allom_agb_frac> 1, 1, 1  </fates_allom_agb_frac>
+      <fates_allom_amode> 5, 5, 5 </fates_allom_amode>
+      <fates_allom_blca_expnt_diff> -0.487, -0.487, -0.259 </fates_allom_blca_expnt_diff>
+      <fates_allom_d2bl1> 0.0004, 0.0004, 0.0012 </fates_allom_d2bl1>
+      <fates_allom_d2bl2> 1.7092, 1.7092, 1.5879 </fates_allom_d2bl2>
+      <fates_allom_d2bl3> 0.3417, 0.3417, 0.9948 </fates_allom_d2bl3>
+      <fates_allom_d2ca_coefficient_max> 0.0408, 0.0408, 0.0862 </fates_allom_d2ca_coefficient_max>
+      <fates_allom_d2ca_coefficient_min> 0.0408, 0.0408, 0.0862 </fates_allom_d2ca_coefficient_min>
+      <fates_allom_d2h1> 0.1812, 0.1812, 0.3353 </fates_allom_d2h1>
+      <fates_allom_d2h2> 0.6384, 0.6384, 0.4235 </fates_allom_d2h2>
+      <fates_allom_dbh_maxheight> 20, 20, 30 </fates_allom_dbh_maxheight>
+      <fates_allom_hmode> 3,3,3 </fates_allom_hmode>
+      <fates_allom_l2fr> 0.67, 0.67, 1.41 </fates_allom_l2fr>
+      <fates_allom_lmode> 5,5,5 </fates_allom_lmode>
+      <fates_allom_smode> 2,2,2 </fates_allom_smode>
+      <fates_leaf_slamax> 0.05, 0.05, 0.05 </fates_leaf_slamax>
+      <fates_leaf_slatop> 0.05, 0.05, 0.05 </fates_leaf_slatop>
+      <fates_recruit_height_min> 0.2, 0.2, 0.2 </fates_recruit_height_min>
+      <fates_recruit_seed_alloc> 0, 0, 0  </fates_recruit_seed_alloc>
+      <fates_recruit_seed_alloc_mature> 0.25, 0.25, 0.2 </fates_recruit_seed_alloc_mature>
+      <fates_recruit_seed_dbh_repro_threshold> 3, 3, 3 </fates_recruit_seed_dbh_repro_threshold>
+    </pft_group>
+  </parameters>
+</all>
