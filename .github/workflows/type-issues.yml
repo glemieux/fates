@@ -1,0 +1,24 @@
+# NOTE: this can't come in until github cli supports types
+# See cli/cli#9696 for reference.
+
+name: assign issues a type
+
+# Controls when the workflow will run
+on:
+  issues:
+    types:
+      - opened
+      - reopened
+
+# this workflow was cribbed from the add label example in the github docs
+jobs:
+  assign-issue-type:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - run: gh issue edit "$NUMBER" --add-label "$LABELS"
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          github-repo: ${{ github.repository }}
+          number: ${{ github.event.issue.number }}
