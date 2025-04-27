@@ -1,0 +1,56 @@
+# Continuous Integration tests
+# This file was adapter from the e3sm CI workflow
+
+name: CI - e3sm container
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      # only run on changes to main fates code
+      - 'functional_unit_testing'
+      - 'parameter_files'
+      - 'testing'
+      - 'tools'
+
+  workflow_dispatch:
+
+jobs:
+  continuous-integration:
+    if: ${{ github.repository == 'glemieux/fates' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        test:
+          - SMS_D_Ld15.f45_g37.IELMFATES.elm-fates_cold_twostream
+    container:
+      image: ghcr.io/e3sm-project/containers-ghci:latest
+
+    steps:
+      - name: checkout e3sm
+        uses: actions/checkout@v4
+        with:
+          repository: E3SM-Project/E3SM
+          show-progress: true
+          submodules: recursive
+      - name: checkout fates pull request
+        uses: actions/checkout@v4
+        with:
+          show-progress: true
+          path: components/elm/src/externals/fates
+      - name: create tests
+        working-directory: cime/scripts
+        run: |
+          ./create_test ${{ matrix.test }} --wait --debug
+      - name: upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: ${{ matrix.test }}
+          path: |
+            /projects/e3sm/scratch/${{ matrix.test }}*/TestStatus.log
+            /projects/e3sm/scratch/${{ matrix.test }}*/bld/*.bldlog.*
+            /projects/e3sm/scratch/${{ matrix.test }}*/run/*.log.*
+            /projects/e3sm/scratch/${{ matrix.test }}*/run/*.cprnc.out
