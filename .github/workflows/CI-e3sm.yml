@@ -36,7 +36,7 @@ jobs:
           path: e3sm
           submodules: recursive
           show-progress: true
-          lfs: true
+          # lfs: true
           # E3SM API 37 reference
           ref: 13abf5991f234f8c64237566e228441465180f7e
       - name: checkout fates pull request
