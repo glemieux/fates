@@ -33,15 +33,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: E3SM-Project/E3SM
+          path: e3sm
           show-progress: true
+          # E3SM API 37 reference
+          ref: 13abf5991f234f8c64237566e228441465180f7e
           submodules: recursive
       - name: checkout fates pull request
         uses: actions/checkout@v4
         with:
           show-progress: true
-          path: components/elm/src/externals/fates
+          path: e3sm/components/elm/src/externals
       - name: create tests
-        working-directory: cime/scripts
+        working-directory: e3sm/cime/scripts
         run: |
           ./create_test ${{ matrix.test }} --wait --debug
       - name: upload test artifacts
