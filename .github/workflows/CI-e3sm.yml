@@ -24,7 +24,7 @@ jobs:
       fail-fast: true
       matrix:
         test:
-          - SMS_D_Ld15.f45_g37.IELMFATES.ghci-oci_gnu.elm-fates_cold_twostream
+          - SMS_D_Ld15.f45_g37.IELMFATES.ghci-oci_gnu.elm-fates_cold
     container:
       image: ghcr.io/e3sm-project/containers-ghci:latest
 
