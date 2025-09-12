@@ -1379,7 +1379,7 @@ module FatesPatchMod
 
     subroutine RegisterFatesInterfaceVariables(this)
 
-      class(fates_patch_type) :: this
+      class(fates_patch_type), intent(inout) :: this
       
       ! Initialize the HLM-FATES interface variable registry for the FATES-side
       call this%api%InitializeInterfaceRegistry()
