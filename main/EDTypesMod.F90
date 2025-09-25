@@ -594,49 +594,6 @@ module EDTypesMod
 contains
 
   ! ============================================================================
-   
-   subroutine InitializeBoundaryConditions(this, number_patches, nlevsoil)  
-      
-      ! This subroutine intializes an array of each of the boundary condition
-      ! types where the length of the boundary condition is the maximum number of 
-      ! patches on a given site.
-      
-      ! Inputs
-      class(ed_site_type), intent(inout) :: this
-      integer, intent(in) :: number_patches
-      integer, intent(in) :: nlevsoil(:)
-      
-      integer :: ifp, c
-      integer :: begc, endc
-      
-      ! Allocate the boundary condition arrays
-      allocate(this%bc_in(number_patches))
-      allocate(this%bc_out(number_patches))
-      
-      ! Get the bounds of the soil level array passed in
-      begc = lbound(nlevsoil)
-      endc = ubound(nlevsoil)
-      
-      ! Initialize the interface registry
-      do ifp = 1, number_patches
-
-         ! Get the column index for this patch index
-         c = this%column_map(ifp)
-
-         ! Check that the column index is between the expected bounds
-         if (c < begc .or. c > endc) then
-            write(fates_log(),*) 'index is not between array bounds: index, start, end: ' c, begc, endc
-            call endrun(msg=errMsg(__FILE__, __LINE__))
-         end if
-
-         ! Initialize the input boundary conditions
-         call this%bc_in(ifp)%Initialize(nlevsoil(c))
-
-      end do
-      
-   end subroutine InitializeBoundaryConditions
-
-  ! ============================================================================
 
   subroutine set_patchno( currentSite, check , call_id)
 

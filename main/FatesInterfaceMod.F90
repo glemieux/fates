@@ -146,12 +146,12 @@ module FatesInterfaceMod
       ! are initialized by maximums, and the allocations are static in time to avoid
       ! having to allocate/de-allocate memory
 
-      type(bc_in_type), allocatable   :: bc_in(:)
+      type(bc_in_type), allocatable   :: bc_in(:,:)
 
       ! These are the boundary conditions that the FATES model returns to its HLM or 
       ! driver. It has the same allocation strategy and similar vector types.
       
-      type(bc_out_type), allocatable  :: bc_out(:)
+      type(bc_out_type), allocatable  :: bc_out(:,:)
 
 
       ! These are parameter constants that FATES may need to provide a host model
@@ -160,10 +160,6 @@ module FatesInterfaceMod
       ! instance is fine.
       
       type(bc_pconst_type) :: bc_pconst
-      
-      ! This is the interface registry which associates variables with a common keyword
-      ! FATES sites have a pointer to this, hence the "target"  attribute
-      type(fates_interface_registry_base_type), pointer :: api
       
       contains 
 
@@ -2734,5 +2730,36 @@ subroutine UpdateInterfaceVariables(this)
 end subroutine UpdateInterfaceVariables
 
 ! ======================================================================================
+   
+   subroutine InitializeBoundaryConditions(this, num_hlm_patches)  
+      
+      ! This subroutine intializes an array of each of the boundary condition
+      ! types where the length of the boundary condition is the maximum number of 
+      ! patches on a given site.
+      
+      ! Inputs
+      class(fates_interface_type), intent(inout) :: this             ! fates interface type clump
+      integer, intent(in)                        :: num_hlm_patches  ! Maximum number of patches 
+      
+      integer :: s      ! site index
+      integer :: ifp    ! patch index
+      
+      ! Allocate the boundary condition arrays
+      allocate(this%bc_in(this%nsites, num_hlm_patches))
+      allocate(this%bc_out(this%nsites, num_hlm_patches))
+      
+      ! Initialize the interface registry for each boundary condition
+      do s = 1, this%nsites
+         do ifp = 1, num_hlm_patches
+
+            ! Initialize the input boundary conditions interface registry keys
+            call this%bc_in(s, ifp)%API%InitializeInterfaceRegistry()
+            
+         end do
+      end do
+      
+   end subroutine InitializeBoundaryConditions
+
+  ! ============================================================================
 
 end module FatesInterfaceMod
