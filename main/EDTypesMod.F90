@@ -692,12 +692,11 @@ contains
     currentPatch => currentSite%oldest_patch
     do while(associated(currentPatch))
        if(currentPatch%nocomp_pft_label.eq.nocomp_bareground)then
-          ! for bareground patch, we make the patch number 0
-          if(check .and. currentPatch%patchno.ne.0)then
-             write(fates_log(),*)'nocomp patch numbering is not correct:',currentPatch%patchno,'call_id:',call_id
+         ! Make sure that we are setting the oldest patch to be one and not zero
+          if(check .and. currentPatch%patchno.eq.0)then
+             write(fates_log(),*)'There should be no bareground patch:',currentPatch%patchno,'call_id:',call_id
              call endrun(msg=errMsg(sourcefile, __LINE__))
           end if
-          currentPatch%patchno = 0
        else
           if(check .and. currentPatch%patchno.ne.patchno) then
              write(fates_log(),*)'patch numbering is not correct:',currentPatch%patchno,patchno,'call_id:',call_id
