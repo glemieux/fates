@@ -830,54 +830,12 @@ contains
           is_first_patch = .true.
 
           area_error = 0._r8
-          ! first make a bare-ground patch if one is needed.
-          make_bareground_patch_if: if (hlm_use_nocomp.eq.itrue .and. hlm_use_fixed_biogeog .eq.itrue) then
-
-             newparea = area * sites(s)%area_bareground
-             if (newparea  .gt. min_patch_area_forced) then
-                
-                allocate(newp)
-
-                call newp%Create(age, newparea, nocomp_bareground_land, nocomp_bareground,     &
-                     num_swb, numpft, sites(s)%nlevsoil, hlm_current_tod,      &
-                     hlm_regeneration_model)
-
-                ! set pointers for first patch (or only patch, if nocomp is false)
-                newp%patchno = 1
-                newp%younger => null()
-                newp%older   => null()
-                sites(s)%youngest_patch => newp
-                sites(s)%oldest_patch   => newp
-                is_first_patch = .false.
-
-                ! Initialize the litter pools to zero, these
-                ! pools will be populated by looping over the existing patches
-                ! and transfering in mass
-                if(hlm_use_sp.eq.itrue)then
-                   litt_init = fates_unset_r8
-                else
-                   litt_init = 0._r8
-                end if
-                do el=1,num_elements
-                   call newp%litter(el)%InitConditions(init_leaf_fines=litt_init, &
-                        init_root_fines=litt_init, &
-                        init_ag_cwd=litt_init, &
-                        init_bg_cwd=litt_init, &
-                        init_seed=litt_init,   &
-                        init_seed_germ=litt_init)
-                end do
-
-             else
-                area_error = area_error + newparea
-             endif
-          endif make_bareground_patch_if
 
           if (hlm_use_luh .eq. itrue) then
              end_landuse_idx = n_landuse_cats
           else
              end_landuse_idx = 1
           endif
-
 
           ! Next, create the non-bareground patches. We do this for either of two scenarios:
           ! If 1) we are not doing both nocomp & fixed-biogeo
