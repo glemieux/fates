@@ -1371,8 +1371,6 @@ contains
        do while(associated(currentPatch))
 
           ifp = currentPatch%patchno
-          if_bare: if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then  ! ignore the bare-ground-PFT patch entirely for these BC outs
-
              if ( currentPatch%total_canopy_area-currentPatch%area > 0.000001_r8 ) then
                 if(debug)then
                    write(fates_log(),*) 'ED: canopy area bigger than area', &
@@ -1485,13 +1483,13 @@ contains
                 bc_out(s)%frac_veg_nosno_alb_pa(ifp) = 0.0_r8
              end if
 
-          else  ! nocomp or SP, and currentPatch%nocomp_pft_label .eq. 0
-
-             total_patch_area = total_patch_area + currentPatch%area/AREA
-
-          end if if_bare
           currentPatch => currentPatch%younger
        end do
+       
+       ! If running in no competition mode, include the HLM bareground patch area in the total patch area
+       if (hlm_use_nocomp .eq. itrue) then
+         total_patch_area = total_patch_area + sites(s)%area_bareground/AREA
+       end if
 
        ! Apply patch and canopy area corrections
        ! If the difference is above reasonable math precision, apply a fix
