@@ -1511,9 +1511,7 @@ contains
           currentPatch => sites(s)%oldest_patch
           do while(associated(currentPatch))
              ifp = currentPatch%patchno
-             if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then ! for vegetated patches only
-                bc_out(s)%canopy_fraction_pa(ifp) = bc_out(s)%canopy_fraction_pa(ifp)/total_patch_area
-             endif ! veg patch
+             bc_out(s)%canopy_fraction_pa(ifp) = bc_out(s)%canopy_fraction_pa(ifp)/total_patch_area
              currentPatch => currentPatch%younger
           end do
 

@@ -2497,8 +2497,6 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
 
         ifp = cpatch%patchno
         
-        if(cpatch%nocomp_pft_label.ne.nocomp_bareground)then
-
            ! ----------------------------------------------------------------------------
            ! Objective: Partition the transpiration flux
            ! specfied by the land model to the cohorts. The weighting
@@ -2667,7 +2665,6 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
 
               ccohort => ccohort%shorter
            enddo co_loop1 !cohort
-        endif ! not bareground patch
         cpatch => cpatch%younger
      enddo !patch
 

@@ -142,7 +142,6 @@ contains
 
           ifp = cpatch%patchno
           
-          if_bare: if(cpatch%nocomp_pft_label.ne.nocomp_bareground)then ! only for veg patches
 
              ! THIS SHOULD REALLY BE A COHORT LOOP ONCE WE HAVE rootfr_ft FOR COHORTS (RGK)
 
@@ -247,7 +246,6 @@ contains
                 enddo
                 
              end if
-          endif if_bare
           cpatch => cpatch%younger
        end do
 

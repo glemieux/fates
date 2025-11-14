@@ -69,7 +69,6 @@ contains
 
           ifp = cpatch%patchno
           
-          if(cpatch%nocomp_pft_label.ne.nocomp_bareground)then
 
              if( bc_in(s)%filter_photo_pa(ifp) == 3 ) then
                 ccohort => cpatch%shortest
@@ -102,7 +101,6 @@ contains
                    ccohort => ccohort%taller
                 enddo ! while(associated(ccohort))
              end if
-          end if ! not bare ground
 
           cpatch => cpatch%younger
        end do  ! while(associated(cpatch))

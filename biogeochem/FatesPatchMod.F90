@@ -789,7 +789,6 @@ module FatesPatchMod
       real(r8)                         :: tree_area     ! treed area of patch [m2]
       real(r8)                         :: grass_area    ! grass area of patch [m2]
 
-      if (this%nocomp_pft_label /= nocomp_bareground) then 
         tree_area = 0.0_r8
         grass_area = 0.0_r8
         
@@ -805,7 +804,6 @@ module FatesPatchMod
         
         this%total_tree_area = min(tree_area, this%area)
         this%total_grass_area = min(grass_area, this%area)
-      end if 
 
     end subroutine UpdateTreeGrassArea
 

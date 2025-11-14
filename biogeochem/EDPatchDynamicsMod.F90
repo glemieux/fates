@@ -3556,7 +3556,7 @@ contains
              patchpointer => currentSite%youngest_patch
              largest_patch => currentSite%youngest_patch
              do while(associated(patchpointer))
-                if (patchpointer%area .gt. largest_patch%area .and. patchpointer%nocomp_pft_label .ne. nocomp_bareground) then
+                if (patchpointer%area .gt. largest_patch%area) then
                    largest_patch => patchpointer
                 endif
                 patchpointer => patchpointer%older

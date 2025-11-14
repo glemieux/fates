@@ -809,11 +809,9 @@ contains
     
     currentPatch => csite%oldest_patch
     do while(associated(currentPatch))
-      if (currentPatch%nocomp_pft_label /= nocomp_bareground) then
-        call currentPatch%UpdateTreeGrassArea()
-        tree_fraction = tree_fraction + currentPatch%total_tree_area/AREA
-        grass_fraction = grass_fraction + currentPatch%total_grass_area/AREA
-      end if 
+      call currentPatch%UpdateTreeGrassArea()
+      tree_fraction = tree_fraction + currentPatch%total_tree_area/AREA
+      grass_fraction = grass_fraction + currentPatch%total_grass_area/AREA
       currentPatch => currentPatch%younger
     end do
 

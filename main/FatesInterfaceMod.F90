@@ -2282,8 +2282,6 @@ contains
          currentPatch => this%sites(s)%oldest_patch
          do while (associated(currentPatch))
 
-            if (currentPatch%nocomp_pft_label .ne. nocomp_bareground) then
-
             ! Get the registry index for the current site + patch combo and set it to active
             r = this%sites(s)%GetRegistryIndex(currentPatch%patchno)
             call this%registry(r)%SetActiveState(active_state=.true.)
@@ -2292,8 +2290,6 @@ contains
             this%num_active_patches = this%num_active_patches + 1
             i = i + 1
             this%filter_registry_active(i) = r
-
-            end if
 
             ! Move to the next patch            
             currentPatch => currentPatch%younger
@@ -2360,8 +2356,6 @@ contains
         do while(associated(cpatch))
 
            ifp = cpatch%patchno
-           
-           nocomp_bare: if(cpatch%nocomp_pft_label.ne.nocomp_bareground)then
 
            call cpatch%tveg24%UpdateRMean(bc_in(s)%t_veg_pa(ifp))
            call cpatch%tveg_lpa%UpdateRMean(bc_in(s)%t_veg_pa(ifp))
@@ -2422,8 +2416,6 @@ contains
               end if
               ccohort => ccohort%shorter
            end do
-
-        end if nocomp_bare
 
         cpatch => cpatch%younger
      enddo

@@ -112,8 +112,6 @@ contains
 
           ifp = currentpatch%patchno
           
-          if_bareground: if(currentpatch%nocomp_pft_label.ne.nocomp_bareground)then
-             
              ! Initialize output boundary conditions with trivial assumption
              ! This matches CLM/ELM
              ! Albedo is perfect reflector, no flux into or through canopy
@@ -222,7 +220,6 @@ contains
                    end associate
                 end select
              endif if_zenith_flag
-          end if if_bareground
           currentPatch => currentPatch%younger
        end do
     end do
@@ -270,8 +267,6 @@ contains
 
           ifp = cpatch%patchno
           
-          if_bareground:if(cpatch%nocomp_pft_label.ne.nocomp_bareground)then !only for veg patches
-
              ! do not do albedo calculations for bare ground patch in SP mode
              
              ! Initialize diagnostics
@@ -436,8 +431,6 @@ contains
                 end if if_zenithflag
              endif if_norm_twostr
              
-          end if if_bareground
-          
           cpatch => cpatch%younger
        enddo
 

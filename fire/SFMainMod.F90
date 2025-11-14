@@ -108,12 +108,6 @@ contains
 
     currentPatch => currentSite%oldest_patch
 
-    ! If the oldest patch is a bareground patch (i.e. nocomp mode is on) use the first vegetated patch
-    ! for the iofp index (i.e. the next younger patch)
-    if (currentPatch%nocomp_pft_label == nocomp_bareground) then
-      currentPatch => currentPatch%younger
-    endif
-
     iofp = currentPatch%patchno
     temp_C = currentPatch%tveg24%GetMean() - tfrz
     precip = bc_in%precip24_pa(iofp)*sec_per_day
@@ -161,8 +155,6 @@ contains
     currentPatch => currentSite%oldest_patch 
     do while(associated(currentPatch))  
 
-      if (currentPatch%nocomp_pft_label /= nocomp_bareground) then
-
         ! calculate live grass [kgC/m2]
         call currentPatch%UpdateLiveGrass()
 
@@ -184,7 +176,6 @@ contains
         call currentPatch%fuel%AverageBulkDensity_NoTrunks(SF_val_FBD)
         call currentPatch%fuel%AverageSAV_NoTrunks(SF_val_SAV)
             
-      end if 
       currentPatch => currentPatch%younger
     end do 
 
@@ -238,9 +229,6 @@ contains
     ! if the oldest patch is a bareground patch (i.e. nocomp mode is on) use the first vegetated patch
     ! for the iofp index (i.e. the next younger patch)
     currentPatch => currentSite%oldest_patch
-    if (currentPatch%nocomp_pft_label == nocomp_bareground)then
-      currentPatch => currentPatch%younger
-    endif
     iofp = currentPatch%patchno
 
     ! NF = number of lighting strikes per day per km2 scaled by cloud to ground strikes
@@ -293,8 +281,7 @@ contains
 
     currentPatch => currentSite%oldest_patch
     do while(associated(currentPatch))
-      if (currentPatch%nocomp_pft_label /= nocomp_bareground .and.                       &
-        currentPatch%fuel%non_trunk_loading > nearzero) then
+      if (currentPatch%fuel%non_trunk_loading > nearzero) then
         
         ! fraction of fuel array volume occupied by fuel, i.e. compactness of fuel bed [unitless]
         ! Rothermel 1972 Eq. 31
@@ -378,8 +365,6 @@ contains
       
       currentPatch%fuel%frac_burnt(:) = 0.0_r8
 
-      if (currentPatch%nocomp_pft_label /= nocomp_bareground) then
-
         call currentPatch%fuel%CalculateFuelBurnt(fuel_consumed)
         call currentPatch%fuel%CalculateResidenceTime(currentPatch%tau_l)
 
@@ -437,7 +422,6 @@ contains
             currentPatch%rx_FI = currentPatch%FI
           end if
         end if
-      end if
       currentPatch => currentPatch%younger
     end do    
 
@@ -470,8 +454,6 @@ contains
     currentPatch => currentSite%oldest_patch 
     do while (associated(currentPatch))
 
-      if (currentPatch%nocomp_pft_label /= nocomp_bareground) then
-
         ! initialize patch parameters to zero
         currentPatch%FD = 0.0_r8
         currentPatch%nonrx_frac_burnt = 0.0_r8
@@ -497,7 +479,6 @@ contains
           currentPatch%nonrx_frac_burnt = min(max_frac_burnt, area_burnt/m2_per_km2)
           
         end if
-      end if
       currentPatch => currentPatch%younger
     end do    
 
@@ -532,7 +513,6 @@ contains
     currentPatch => currentSite%oldest_patch
 
     do while (associated(currentPatch))
-      if (currentPatch%nocomp_pft_label /= nocomp_bareground) then
         currentPatch%fire = 0 ! fire, either rx or non-rx
         currentPatch%frac_burnt = 0.0_r8 ! rx_frac_burnt + nonrx_frac_burnt
         currentPatch%rx_frac_burnt = 0.0_r8
@@ -557,7 +537,6 @@ contains
           write(fates_log(),*) 'wildfire =', currentPatch%nonrx_fire
           call endrun(msg=errMsg(__FILE__, __LINE__))
         end if
-      end if
       currentPatch => currentPatch%younger
     end do 
 
@@ -584,7 +563,6 @@ contains
     
     currentPatch => currentSite%oldest_patch
     do while (associated(currentPatch)) 
-      if (currentPatch%nocomp_pft_label /= nocomp_bareground) then
         if (currentPatch%fire == 1) then
           
           ! calculate scorch height [m]
@@ -632,7 +610,6 @@ contains
             currentCohort => currentCohort%shorter
           end do 
         end if 
-      end if 
       currentPatch => currentPatch%younger
     end do 
     

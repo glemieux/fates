@@ -337,8 +337,6 @@ contains
 
             ifp = currentPatch%patchno
             
-            if_notbare: if(currentpatch%nocomp_pft_label.ne.nocomp_bareground)then
-
                NCL_p = currentPatch%NCL_p
 
                ! Part I. Zero output boundary conditions
@@ -1136,7 +1134,6 @@ contains
                   
                end if if_filter2
                
-            end if if_notbare
 
             currentPatch => currentPatch%younger
          end do
