@@ -1525,7 +1525,8 @@ module FatesInterfaceTypesMod
   
   ! ======================================================================================
 
-  subroutine RegisterInterfaceVariables_0d(this, key, data, hlm_flag, accumulate, is_first, is_last, conversion_factor)
+  subroutine RegisterInterfaceVariables_0d(this, key, data, hlm_flag, accumulate, &
+                                           is_first, is_last, conversion_factor, overwrite_value)
 
     ! This procedure is called by the to associate a data variable
     ! with a particular registry key
@@ -1539,12 +1540,14 @@ module FatesInterfaceTypesMod
     logical, intent(in), optional :: is_first      ! Should the variable be zeroed first?
     logical, intent(in), optional :: is_last       ! Should the variable be last in the update?
     real(r8), intent(in), optional    :: conversion_factor ! Conversion factor for the variable
+    real(r8), intent(in), optional    :: overwrite_value      ! Constant value to overwrite the variable 
 
     ! Local
     logical :: accumulate_local
     logical :: is_first_local
     logical :: is_last_local
     real(r8) :: conversion_factor_local
+    real(r8) :: overwrite_value_local
 
     ! Default accumulate to false
     if (present(accumulate)) then
@@ -1573,6 +1576,13 @@ module FatesInterfaceTypesMod
     else
       conversion_factor_local = 1.0_r8
     end if
+
+    ! Default overwrite value to NaN (no overwrite)
+    if (present(overwrite_value)) then
+      overwrite_value_local = overwrite_value
+    else
+      overwrite_value_local = nan
+    end if
     
     ! Get index from registry key and associate the given data pointer
     if (hlm_flag) then
@@ -1580,13 +1590,15 @@ module FatesInterfaceTypesMod
                                                                       accumulate=accumulate_local, &
                                                                       is_first=is_first_local, &
                                                                       is_last=is_last_local, &
-                                                                      conversion_factor=conversion_factor_local)
+                                                                      conversion_factor=conversion_factor_local, &
+                                                                      overwrite_value=overwrite_value_local)
     else
       call this%fates_vars(this%GetRegistryVariableIndex(key))%Register(data, active=.true., & 
                                                                         accumulate=accumulate_local, &
                                                                         is_first=is_first_local, &
                                                                         is_last=is_last_local, &
-                                                                        conversion_factor=conversion_factor_local)
+                                                                        conversion_factor=conversion_factor_local, &
+                                                                        overwrite_value=overwrite_value_local)
     end if
 
 
@@ -1594,7 +1606,8 @@ module FatesInterfaceTypesMod
 
   ! ======================================================================================
 
-  subroutine RegisterInterfaceVariables_1d(this, key, data, hlm_flag, accumulate, is_first, is_last, conversion_factor)
+  subroutine RegisterInterfaceVariables_1d(this, key, data, hlm_flag, accumulate, &
+                                           is_first, is_last, conversion_factor, overwrite_value)
 
     ! This procedure is called by the to associate a data variable
     ! with a particular registry key
@@ -1607,13 +1620,15 @@ module FatesInterfaceTypesMod
     logical, intent(in), optional :: is_first      ! Should the variable be zeroed first?
     logical, intent(in), optional :: is_last       ! Should the variable be last in the update?
     real(r8), intent(in), optional    :: conversion_factor ! Conversion factor for the variable
+    real(r8), intent(in), optional    :: overwrite_value   ! Value to overwrite with
 
     ! Local
     logical :: accumulate_local
     logical :: is_first_local
     logical :: is_last_local
     real(r8) :: conversion_factor_local
-    
+    real(r8) :: overwrite_value_local
+
     ! Default accumulate to false
     if (present(accumulate)) then
       accumulate_local = accumulate
@@ -1642,26 +1657,36 @@ module FatesInterfaceTypesMod
       conversion_factor_local = 1.0_r8
     end if
 
+    ! Default overwrite value to NaN (no overwrite)
+    if (present(overwrite_value)) then
+      overwrite_value_local = overwrite_value
+    else
+      overwrite_value_local = nan
+    end if
+
     ! Get index from registry key and associate the given data pointer
     if (hlm_flag) then
       call this%hlm_vars(this%GetRegistryVariableIndex(key))%Register(data(:), active=.true., &
                                                                       accumulate=accumulate_local, &
                                                                       is_first=is_first_local, &
                                                                       is_last=is_last_local, &
-                                                                      conversion_factor=conversion_factor_local)
+                                                                      conversion_factor=conversion_factor_local, &
+                                                                      overwrite_value=overwrite_value_local)
     else
       call this%fates_vars(this%GetRegistryVariableIndex(key))%Register(data(:), active=.true., &
                                                                       accumulate=accumulate_local, &
                                                                       is_first=is_first_local, &
                                                                       is_last=is_last_local, &
-                                                                      conversion_factor=conversion_factor_local)
+                                                                      conversion_factor=conversion_factor_local, &
+                                                                      overwrite_value=overwrite_value_local)
     end if
 
   end subroutine RegisterInterfaceVariables_1d
 
   ! ======================================================================================
 
-  subroutine RegisterInterfaceVariables_2d(this, key, data, hlm_flag, accumulate, is_first, is_last, conversion_factor)
+  subroutine RegisterInterfaceVariables_2d(this, key, data, hlm_flag, accumulate, &
+                                           is_first, is_last, conversion_factor, overwrite_value)
 
     ! This procedure is called by the to associate a data variable
     ! with a particular registry key
@@ -1674,13 +1699,15 @@ module FatesInterfaceTypesMod
     logical, intent(in), optional :: is_first      ! Should the variable be zeroed first?
     logical, intent(in), optional :: is_last       ! Should the variable be last in the update?
     real(r8), intent(in), optional    :: conversion_factor ! Conversion factor for the variable
+    real(r8), intent(in), optional    :: overwrite_value   ! Value to overwrite with
 
     ! Local
     logical :: accumulate_local
     logical :: is_first_local
     logical :: is_last_local
     real(r8) :: conversion_factor_local
-    
+    real(r8) :: overwrite_value_local
+
     ! Default accumulate to false
     if (present(accumulate)) then
       accumulate_local = accumulate
@@ -1709,19 +1736,28 @@ module FatesInterfaceTypesMod
       conversion_factor_local = 1.0_r8
     end if
 
+    ! Default overwrite value to NaN (no overwrite)
+    if (present(overwrite_value)) then
+      overwrite_value_local = overwrite_value
+    else
+      overwrite_value_local = nan
+    end if
+
     ! Get index from registry key and associate the given data pointer
     if (hlm_flag) then
       call this%hlm_vars(this%GetRegistryVariableIndex(key))%Register(data(:,:), active=.true., &
                                                                       accumulate=accumulate_local, &
                                                                       is_first=is_first_local, &
                                                                       is_last=is_last_local, &
-                                                                      conversion_factor=conversion_factor_local)
+                                                                      conversion_factor=conversion_factor_local, &
+                                                                      overwrite_value=overwrite_value_local)
     else
       call this%fates_vars(this%GetRegistryVariableIndex(key))%Register(data(:,:), active=.true., &
                                                                         accumulate=accumulate_local, &
                                                                         is_first=is_first_local, &
                                                                         is_last=is_last_local, &
-                                                                        conversion_factor=conversion_factor_local)
+                                                                        conversion_factor=conversion_factor_local, &
+                                                                        overwrite_value=overwrite_value_local)
     end if
 
   end subroutine RegisterInterfaceVariables_2d

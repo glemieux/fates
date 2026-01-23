@@ -33,7 +33,8 @@ module FatesInterfaceVariableTypeMod
     integer           :: bc_dir         ! 0 if bc_in, 1 if bc_out
     integer           :: data_rank      ! rank of the variable (0, 1, 2, or 3)
     integer           :: update_frequency ! frequency of updates 
-    real              :: conversion_factor ! conversion factor to adjust units as necessary
+    real(r8)          :: conversion_factor ! conversion factor to adjust units as necessary
+    real(r8)          :: overwrite_value   ! value to overwrite with if not NaN
     integer, allocatable :: data_size(:)   ! size of the first dimension of the variable
 
     contains
@@ -223,6 +224,7 @@ module FatesInterfaceVariableTypeMod
       this%accumulate = .false.
       this%zero_first = .false.
       this%conversion_factor = nan
+      this%overwrite_value = nan
 
       ! Initialize registry variable components that are updated at variable definition
       this%key = key 
@@ -272,7 +274,8 @@ module FatesInterfaceVariableTypeMod
 
   ! ====================================================================================
     
-    subroutine RegisterInterfaceVariable_0d(this, data, active, accumulate, is_first, is_last, conversion_factor)
+    subroutine RegisterInterfaceVariable_0d(this, data, active, accumulate, 
+                                            is_first, is_last, conversion_factor, overwrite_value)
 
       class(fates_interface_variable_type), intent(inout) :: this
       class(*), target, intent(in) :: data
@@ -281,6 +284,7 @@ module FatesInterfaceVariableTypeMod
       logical, intent(in)          :: is_first
       logical, intent(in)          :: is_last
       real(r8), intent(in)         :: conversion_factor
+      real(r8), intent(in)         :: overwrite_value
 
       this%data0d => data
       this%active = active
@@ -289,12 +293,14 @@ module FatesInterfaceVariableTypeMod
       this%last_patch = is_last
       this%data_rank = rank(data)
       this%conversion_factor = conversion_factor
+      this%overwrite_value = overwrite_value
 
     end subroutine RegisterInterfaceVariable_0d
 
   ! ====================================================================================
     
-    subroutine RegisterInterfaceVariable_1d(this, data, active, accumulate, is_first, is_last, conversion_factor)
+    subroutine RegisterInterfaceVariable_1d(this, data, active, accumulate, &
+                                            is_first, is_last, conversion_factor, overwrite_value)
 
       class(fates_interface_variable_type), intent(inout) :: this
 
@@ -304,6 +310,7 @@ module FatesInterfaceVariableTypeMod
       logical, intent(in)          :: is_first
       logical, intent(in)          :: is_last
       real(r8), intent(in)         :: conversion_factor
+      real(r8), intent(in)         :: overwrite_value
 
       this%data1d => data(:)
       this%active = active
@@ -313,12 +320,14 @@ module FatesInterfaceVariableTypeMod
       this%data_rank = rank(data)
       this%data_size(1) = size(data, dim=1)
       this%conversion_factor = conversion_factor
+      this%overwrite_value = overwrite_value
 
     end subroutine RegisterInterfaceVariable_1d
 
   ! ====================================================================================
     
-    subroutine RegisterInterfaceVariable_2d(this, data, active, accumulate, is_first, is_last, conversion_factor)
+    subroutine RegisterInterfaceVariable_2d(this, data, active, accumulate, &
+                                            is_first, is_last, conversion_factor, overwrite_value)
 
       class(fates_interface_variable_type), intent(inout) :: this
       class(*), target, intent(in)  :: data(:,:)
@@ -327,7 +336,8 @@ module FatesInterfaceVariableTypeMod
       logical, intent(in)          :: is_first
       logical, intent(in)          :: is_last 
       real(r8), intent(in)         :: conversion_factor
-
+      real(r8), intent(in)         :: overwrite_value
+      
       this%data2d => data(:,:)
       this%active = active
       this%accumulate = accumulate
@@ -337,6 +347,7 @@ module FatesInterfaceVariableTypeMod
       this%data_size(1) = size(data, dim=1)
       this%data_size(2) = size(data, dim=2)
       this%conversion_factor = conversion_factor
+      this%overwrite_value = overwrite_value
 
     end subroutine RegisterInterfaceVariable_2d
 
@@ -367,17 +378,21 @@ module FatesInterfaceVariableTypeMod
             type is (real(r8))
               select type(source => var%data0d)
                 type is (real(r8))
-                  if (this%accumulate) then
-                    if (this%zero_first) then
-                      dest = 0.0_r8
-                    end if
-                    dest = dest + source
+                  if (.not. isnan(this%overwrite_value)) then
+                    dest = this%overwrite_value
                   else
-                    dest = source
-                  end if
-                  ! Apply conversion factor if this is the last patch associated with the subgrid unit
-                  if (this%last_patch) then
-                    dest = dest * var%conversion_factor
+                    if (this%accumulate) then
+                      if (this%zero_first) then
+                        dest = 0.0_r8
+                      end if
+                      dest = dest + source
+                    else
+                      dest = source
+                    end if
+                    ! Apply conversion factor if this is the last patch associated with the subgrid unit
+                    if (this%last_patch) then
+                      dest = dest * var%conversion_factor
+                    end if
                   end if
                 class default
                   write(fates_log(),*), msg_mismatch 
@@ -386,13 +401,17 @@ module FatesInterfaceVariableTypeMod
             type is (integer)
               select type(source => var%data0d)
                 type is (integer)
-                  if (this%accumulate) then
-                    if (this%zero_first) then
-                      dest = 0
-                    end if
-                    dest = dest + source 
+                  if (.not. isnan(this%overwrite_value)) then
+                    dest = int(this%overwrite_value)
                   else
-                    dest = source 
+                    if (this%accumulate) then
+                      if (this%zero_first) then
+                        dest = 0
+                      end if
+                      dest = dest + source 
+                    else
+                      dest = source 
+                    end if
                   end if
                 class default
                   write(fates_log(),*), msg_mismatch 
@@ -409,16 +428,20 @@ module FatesInterfaceVariableTypeMod
             type is (real(r8))
               select type(source => var%data1d)
                 type is (real(r8))
-                  if (this%accumulate) then
-                    if (this%zero_first) then
-                      dest = 0.0_r8
-                    end if
-                    dest = dest + source
+                  if (.not. isnan(this%overwrite_value)) then
+                    dest = this%overwrite_value
                   else
-                    dest = source
-                  end if
-                  if (this%last_patch) then
-                    dest = dest * var%conversion_factor
+                    if (this%accumulate) then
+                      if (this%zero_first) then
+                        dest = 0.0_r8
+                      end if
+                      dest = dest + source
+                    else
+                      dest = source
+                    end if
+                    if (this%last_patch) then
+                      dest = dest * var%conversion_factor
+                    end if
                   end if
                 class default
                   write(fates_log(),*), msg_mismatch 
@@ -427,13 +450,17 @@ module FatesInterfaceVariableTypeMod
             type is (integer)
               select type(source => var%data1d)
                 type is (integer)
-                  if (this%accumulate) then
-                    if (this%zero_first) then
-                      dest = 0
-                    end if
-                    dest = dest + source
+                  if (.not. isnan(this%overwrite_value)) then
+                    dest = int(this%overwrite_value)
                   else
-                    dest = source
+                    if (this%accumulate) then
+                      if (this%zero_first) then
+                        dest = 0
+                      end if
+                      dest = dest + source
+                    else
+                      dest = source
+                    end if
                   end if
                 class default
                   write(fates_log(),*), msg_mismatch 
@@ -450,16 +477,20 @@ module FatesInterfaceVariableTypeMod
             type is (real(r8))
               select type(source => var%data2d)
                 type is (real(r8))
-                  if (this%accumulate) then
-                    if (this%zero_first) then
-                      dest = 0.0_r8
-                    end if
-                    dest = dest + source
+                  if (.not. isnan(this%overwrite_value)) then
+                    dest = this%overwrite_value
                   else
-                    dest = source
-                  end if
-                  if (this%last_patch) then
-                    dest = dest * var%conversion_factor
+                    if (this%accumulate) then
+                      if (this%zero_first) then
+                        dest = 0.0_r8
+                      end if
+                      dest = dest + source
+                    else
+                      dest = source
+                    end if
+                    if (this%last_patch) then
+                      dest = dest * var%conversion_factor
+                    end if
                   end if
                 class default
                   write(fates_log(),*), msg_mismatch 
@@ -468,13 +499,17 @@ module FatesInterfaceVariableTypeMod
             type is (integer)
               select type(source => var%data2d)
                 type is (integer)
-                  if (this%accumulate) then
-                    if (this%zero_first) then
-                      dest = 0
-                    end if
-                    dest = dest + source
+                  if (.not. isnan(this%overwrite_value)) then
+                    dest = int(this%overwrite_value)
                   else
-                    dest = source
+                    if (this%accumulate) then
+                      if (this%zero_first) then
+                        dest = 0
+                      end if
+                      dest = dest + source
+                    else
+                      dest = source
+                    end if
                   end if
                 class default
                   write(fates_log(),*), msg_mismatch 
