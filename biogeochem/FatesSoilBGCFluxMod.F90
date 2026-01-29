@@ -841,26 +841,8 @@ contains
                   litt%root_fines_frag(ilignin,j) * area_frac
           enddo
 
-         !  write(fates_log(),*) 'FILP: pn, el, cel, lig, lab : ', currentPatch%patchno, el, sum(flux_cel_si(:)), sum(flux_lig_si(:)), sum(flux_lab_si(:))
-          ! Convert from kg/m2/day -> g/m3/s
-         !  flux_cel_si(:) = flux_cel_si(:) * days_per_sec * g_per_kg
-         !  flux_lig_si(:) = flux_lig_si(:) * days_per_sec * g_per_kg
-         !  flux_lab_si(:) = flux_lab_si(:) * days_per_sec * g_per_kg
-
           ! Calculate the total flux of C into the litter pools
           flux_all_si = sum(flux_cel_si(:)) + sum(flux_lig_si(:)) + sum(flux_lab_si(:))
-          write(fates_log(),*) 'FILP: p, el, cel, lig, lab: ', currentPatch%patchno, el, sum(flux_cel_si(:)), sum(flux_lig_si(:)), sum(flux_lab_si(:))
-
-          ! Normalize all masses over the decomposition layer's depth
-         !  do id = 1,nlev_eff_decomp
-         !     flux_cel_si(id) = flux_cel_si(id) / bc_in%dz_decomp_sisl(id)
-         !     flux_lig_si(id) = flux_lig_si(id) / bc_in%dz_decomp_sisl(id)
-         !     flux_lab_si(id) = flux_lab_si(id) / bc_in%dz_decomp_sisl(id)
-         !  end do
-
-         !  flux_all_si = sum(flux_cel_si(:) * bc_in%dz_decomp_sisl(:)) + &
-         !                sum(flux_lig_si(:) * bc_in%dz_decomp_sisl(:)) + &
-         !                sum(flux_lab_si(:) * bc_in%dz_decomp_sisl(:))
 
       end do flux_elem_loop
       
@@ -924,17 +906,17 @@ contains
                end do
 
                if(tot_wood_c>nearzero) then
-                  sum_N = sum_N + sum(litt%ag_cwd_frag)*(tot_wood_n/tot_wood_c)
-                  sum_N = sum_N + sum(litt%bg_cwd_frag)*(tot_wood_n/tot_wood_c)
+                  sum_N = sum_N + area_frac*sum(litt%ag_cwd_frag)*(tot_wood_n/tot_wood_c)
+                  sum_N = sum_N + area_frac*sum(litt%bg_cwd_frag)*(tot_wood_n/tot_wood_c)
                end if
                if(tot_leaf_c>nearzero)then
-                  sum_N = sum_N + sum(litt%leaf_fines_frag)*(tot_leaf_n / tot_leaf_c)
+                  sum_N = sum_N + area_frac*sum(litt%leaf_fines_frag)*(tot_leaf_n / tot_leaf_c)
                end if
                if(tot_fnrt_c>nearzero)then
-                  sum_N = sum_N + sum(litt%root_fines_frag)*(tot_fnrt_n / tot_fnrt_c)
+                  sum_N = sum_N + area_frac*sum(litt%root_fines_frag)*(tot_fnrt_n / tot_fnrt_c)
                end if
                do ipft = 1,numpft
-                  sum_N = sum_N + currentPatch%nitr_repro_stoich(ipft) * &
+                  sum_N = sum_N + area_frac*currentPatch%nitr_repro_stoich(ipft) * &
                        (litt%seed_decay(ipft) + litt%seed_germ_decay(ipft))
                end do
 

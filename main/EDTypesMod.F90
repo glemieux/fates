@@ -630,6 +630,9 @@ contains
   ! ============================================================================
 
    subroutine AllocateRegistryIndexArray(this, patches_per_site)
+   
+      ! Allocates an array that maps the local patch number on a site to its
+      ! associated registry index
 
       ! Arguments
       class(ed_site_type), intent(inout) :: this
@@ -644,6 +647,9 @@ contains
   ! ============================================================================
 
    integer function GetRegistryIndex(this, ifp) result(ridx)
+   
+      ! Gets the registry index for a given local patch number from the 
+      ! site object registry index mapping array
 
       ! Arguments
       class(ed_site_type), intent(in) :: this
@@ -656,6 +662,9 @@ contains
   ! ============================================================================
    
    subroutine SetRegistryIndex(this, ifp, ridx)
+   
+      ! Sets the registry index for a given local patch number in the
+      ! site object registry index mapping array
 
       ! Arguments
       class(ed_site_type), intent(inout) :: this

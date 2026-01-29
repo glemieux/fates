@@ -278,16 +278,6 @@ module FatesInterfaceTypesMod
    integer, parameter, public :: fates_dispersal_cadence_monthly = 2  ! Disperse seeds monthly
    integer, parameter, public :: fates_dispersal_cadence_yearly = 3   ! Disperse seeds yearly
    
-   integer, parameter :: hlm_subgrid_levels = 5  ! The number of subgrid hierarchy levels that the HLM
-                                                 ! Including the gridcell level, ELM = 5, CLM = 4
-
-   ! Subgrid levels for HLM-FATES interface variable
-   integer, parameter, public :: subgrid_gridcell_index = 5
-   integer, parameter, public :: subgrid_topounit_index = 4
-   integer, parameter, public :: subgrid_landunit_index = 3
-   integer, parameter, public :: subgrid_column_index = 2
-   integer, parameter, public :: subgrid_patch_index = 1
-
    ! -------------------------------------------------------------------------------------
    ! These vectors are used for history output mapping
    ! CLM/ALM have limited support for multi-dimensional history output arrays.
@@ -915,6 +905,12 @@ module FatesInterfaceTypesMod
     integer, private :: fpidx
     logical, private :: bareground
 
+    ! Subgrid last state data
+    integer, private :: is_last_in_gridcell
+    integer, private :: is_last_in_topounit
+    integer, private :: is_last_in_landunit
+    integer, private :: is_last_in_column
+
     contains
 
       procedure :: CheckInterfaceVariables
@@ -931,6 +927,7 @@ module FatesInterfaceTypesMod
       procedure :: IsBareground => HLMPatchIsBareground 
       procedure :: SetSubgridIndices
       procedure :: SetActiveState
+      procedure :: SetLastState
       procedure :: UpdateLitterFluxes
       procedure :: Update => UpdateInterfaceVariables
 
@@ -970,6 +967,12 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
 
   subroutine InitializeBCIn(this)
+  
+    ! This procedure initializes the input boundary condition structure by allocating
+    ! the associated variables arrays and unsetting their values.  Note that some of the 
+    ! input boundary conditions are used to initialize the output boundary conditions
+    ! and as such, this initialization must occur prior to the output boundary condition
+    ! initialization.
 
     ! Arguments
     class(bc_in_type), intent(inout) :: this
@@ -992,6 +995,12 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
 
   subroutine InitializeBCOut(this, bc_in)
+
+    ! This procedure initializes the output boundary condition structure by allocating
+    ! the associated variables arrays and unsetting their values.  Note that the input
+    ! boundary conditions are needed to determine the set the size of some of the output
+    ! boundary condition arrays and as such, this procedure should be called after
+    ! the input boundary condition initialization.
 
     ! Arguments
     class(bc_out_type), intent(inout) :: this
@@ -1032,7 +1041,9 @@ module FatesInterfaceTypesMod
 
   subroutine InitializeInterfaceRegistry(this)
 
-    ! This initializes the interface registry
+    ! This initializes the interface registry with the associated variable counters, filters,
+    ! and metadata.  This procedure calls the interface registry definition procedure which
+    ! is necessary to allow for the registration of the HLM and FATES variables.
 
     class(fates_interface_registry_type), intent(inout) :: this
 
@@ -1133,8 +1144,12 @@ module FatesInterfaceTypesMod
   
   subroutine DefineInterfaceRegistry(this, initialize)
 
-    ! This procedure defines the list of common names to be associated with FATES and HLM
-    ! variables.
+    ! This procedure defines the list of common names (i.e. "keys") to be associated with 
+    ! FATES and HLM variables.  All new keys, regardless of whether or not they are used
+    ! in a particular run mode or by a specific host land model, must be defined here. 
+    ! For a future update, this procedure could be split in a manner similar to the fates
+    ! history interface module, where related keys are grouped together in separate procedure
+    ! calls to provide clarity to the developer and/or definion based on run mode .
 
     class(fates_interface_registry_type), intent(inout) :: this
 
@@ -1147,6 +1162,7 @@ module FatesInterfaceTypesMod
 
     associate(bc_in => registry_bc_in, &
               bc_out => registry_bc_out)
+
     ! Define the interface registry names and indices
     ! Variables that need to be updated during initialization and are necessary for other boundary conditions
     ! such as dimensions
@@ -1205,6 +1221,10 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
 
   subroutine DefineInterfaceVariable(this, key, initialize, index, update_frequency, bc_dir)
+  
+    ! This procedure initializes the interface variables for this registry passing the 
+    ! key associated with the variables along with other relavant data.  The procedure
+    ! also increments various registry counters depending on the input arguments.
 
     class(fates_interface_registry_type), intent(inout) :: this
 
@@ -1322,6 +1342,10 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
   
   subroutine SetSubgridIndices(this, gridcell, topounit, landunit, column, hlmpatch, fatespatch, site, bareground)
+  
+    ! This procedure sets the associated HLM subgrid index values for the calling registry.
+    ! This is provided so that the FATES registry and interface variable subroutines can
+    ! have access to the HLM subgrid indices as needed internal to the FATES code.
     
     class(fates_interface_registry_type), intent(inout) :: this
     integer, intent(in), optional :: gridcell
@@ -1348,6 +1372,8 @@ module FatesInterfaceTypesMod
 
   subroutine SetActiveState(this, active_state)
   
+    ! This procedure sets the registry active state flag for the calling registry.
+  
     class(fates_interface_registry_type), intent(inout) :: this
     logical, intent(in) :: active_state
     
@@ -1357,7 +1383,65 @@ module FatesInterfaceTypesMod
 
   ! ======================================================================================
 
+  subroutine SetLastState(this, subgrid_type)
+    
+    ! Set the registry last state flag based on the subgrid type being processed
+    ! If a subgrid_type is not provided, then reset all last state flags to false
+
+    class(fates_interface_registry_type), intent(inout) :: this
+    integer, intent(in), optional :: subgrid_type
+
+    ! Local variables
+    integer :: n
+    logical :: last_state_local
+    integer :: subgrid_type_local
+
+    ! If a subgrid type is provided, we set the last state flag for that type at the register level
+    ! and update the associated local subgrid type variable.
+    if (present(subgrid_type)) then
+      select case (subgrid_type)
+      case(registry_var_intid_gridcell)
+        this%is_last_in_gridcell = .true.
+        subgrid_type_local = registry_var_intid_gridcell
+      case(registry_var_intid_topounit)
+        this%is_last_in_topounit = .true.
+        subgrid_type_local = registry_var_intid_topounit
+      case(registry_var_intid_landunit)
+        this%is_last_in_landunit = .true.
+        subgrid_type_local = registry_var_intid_landunit
+      case(registry_var_intid_column)
+        this%is_last_in_column = .true.
+        subgrid_type_local = registry_var_intid_column
+      case default
+        write(fates_log(),*) 'ERROR: unrecognised subgrid_type provided to SetLastState()'
+        call endrun(msg=errMsg(__FILE__, __LINE__))
+      end select
+      last_state_local = .true.
+    else
+      this%is_last_in_gridcell = .false.
+      this%is_last_in_topounit = .false.
+      this%is_last_in_landunit = .false.
+      this%is_last_in_column = .false.
+      last_state_local = .false.
+      subgrid_type_local = fates_unset_int
+    end if
+
+    ! Set the last state flags in the interface variables associated with the subgrid type
+    ! or if no subgrid type is provided, set all last state flags to false
+    do n = 1, this%num_api_vars
+      if (this%hlm_vars(n)%IsSubgridType(subgrid_type_local) .or. subgrid_type_local == fates_unset_int) then
+        ! write(fates_log(),*) 'SLS: n, lsl, stl: ' , n, last_state_local, subgrid_type_local
+        call this%hlm_vars(n)%SetLastState(last_state_local)
+      end if
+    end do
+    
+  end subroutine SetLastState
+
+  ! ======================================================================================
+
   logical function GetActivateState(this) result(active_state)
+  
+    ! This procedure gets the registry active state flag for the calling registry.
   
     class(fates_interface_registry_type), intent(inout) :: this
     
@@ -1369,6 +1453,8 @@ module FatesInterfaceTypesMod
   
   integer function GetGridcellIndex(this) result(gidx)
   
+    ! This procedure gets the HLM gridcell index for the calling registry.
+  
     class(fates_interface_registry_type), intent(inout) :: this
     
     gidx = this%gidx
@@ -1378,6 +1464,8 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
   
   integer function GetLandunitIndex(this) result(lidx)
+  
+    ! This procedure gets the HLM landunit index for the calling registry.
   
     class(fates_interface_registry_type), intent(inout) :: this
     
@@ -1389,6 +1477,8 @@ module FatesInterfaceTypesMod
   
   integer function GetColumnIndex(this) result(cidx)
   
+    ! This procedure gets the HLM column index for the calling registry.
+  
     class(fates_interface_registry_type), intent(inout) :: this
     
     cidx = this%cidx
@@ -1398,6 +1488,8 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
   
   integer function GetHLMPatchIndex(this) result(hpidx)
+  
+    ! This procedure gets the HLM patch index for the calling registry.
   
     class(fates_interface_registry_type), intent(inout) :: this
     
@@ -1409,6 +1501,8 @@ module FatesInterfaceTypesMod
   
   integer function GetSiteIndex(this) result(sidx)
   
+    ! This procedure gets the FATES site index for the calling registry.
+  
     class(fates_interface_registry_type), intent(inout) :: this
     
     sidx = this%sidx
@@ -1418,6 +1512,8 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
   
   integer function GetFatesPatchIndex(this) result(fpidx)
+  
+    ! This procedure gets the FATES patch index for the calling registry.
   
     class(fates_interface_registry_type), intent(inout) :: this
     
@@ -1429,6 +1525,8 @@ module FatesInterfaceTypesMod
   
   logical function HLMPatchIsBareGround(this) result(bareground)
   
+    ! This procedure gets the HLM bareground flag for the calling registry.
+  
     class(fates_interface_registry_type), intent(inout) :: this
     
     bareground = this%bareground
@@ -1438,6 +1536,10 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
   
   subroutine SetFilterMapArrays(this)
+  
+    ! This procedure sets the filter mapping arrays for the interface registry.  These
+    ! filters are provided as a mean to quickly access the registry indices for specific
+    ! variable types (e.g. those that update on the model timestep)
 
     class(fates_interface_registry_type), intent(inout) :: this
 
@@ -1526,10 +1628,9 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
 
   subroutine RegisterInterfaceVariables_0d(this, key, data, hlm_flag, accumulate, &
-                                           is_first, is_last, conversion_factor, overwrite_value)
+                                           is_first, subgrid_type, conversion_factor, overwrite_value)
 
-    ! This procedure is called by the to associate a data variable
-    ! with a particular registry key
+    ! This procedure associates a scalar data variable with a particular registry key
 
     ! Arguments
     class(fates_interface_registry_type), intent(inout) :: this
@@ -1538,14 +1639,14 @@ module FatesInterfaceTypesMod
     logical, intent(in)           :: hlm_flag      ! Is the variable being register from the HLM?
     logical, intent(in), optional :: accumulate    ! Should the variable accumulate during the update?
     logical, intent(in), optional :: is_first      ! Should the variable be zeroed first?
-    logical, intent(in), optional :: is_last       ! Should the variable be last in the update?
-    real(r8), intent(in), optional    :: conversion_factor ! Conversion factor for the variable
-    real(r8), intent(in), optional    :: overwrite_value      ! Constant value to overwrite the variable 
+    integer, intent(in), optional :: subgrid_type  ! The subgrid integer id associated with this HLM variable
+    real(r8), intent(in), optional :: conversion_factor ! Conversion factor for the variable
+    real(r8), intent(in), optional :: overwrite_value      ! Constant value to overwrite the variable 
 
     ! Local
     logical :: accumulate_local
     logical :: is_first_local
-    logical :: is_last_local
+    integer :: subgrid_type_local 
     real(r8) :: conversion_factor_local
     real(r8) :: overwrite_value_local
 
@@ -1564,10 +1665,10 @@ module FatesInterfaceTypesMod
     end if
 
     ! Default is_last to false
-    if (present(is_last)) then
-      is_last_local = is_last
+    if (present(subgrid_type)) then
+      subgrid_type_local = subgrid_type
     else
-      is_last_local = .false.
+      subgrid_type_local = fates_unset_int
     end if
 
     ! Default conversion factor to 1.0
@@ -1589,14 +1690,14 @@ module FatesInterfaceTypesMod
       call this%hlm_vars(this%GetRegistryVariableIndex(key))%Register(data, active=.true., &
                                                                       accumulate=accumulate_local, &
                                                                       is_first=is_first_local, &
-                                                                      is_last=is_last_local, &
+                                                                      subgrid_type=subgrid_type_local, &
                                                                       conversion_factor=conversion_factor_local, &
                                                                       overwrite_value=overwrite_value_local)
     else
       call this%fates_vars(this%GetRegistryVariableIndex(key))%Register(data, active=.true., & 
                                                                         accumulate=accumulate_local, &
                                                                         is_first=is_first_local, &
-                                                                        is_last=is_last_local, &
+                                                                        subgrid_type=subgrid_type_local, &
                                                                         conversion_factor=conversion_factor_local, &
                                                                         overwrite_value=overwrite_value_local)
     end if
@@ -1607,10 +1708,9 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
 
   subroutine RegisterInterfaceVariables_1d(this, key, data, hlm_flag, accumulate, &
-                                           is_first, is_last, conversion_factor, overwrite_value)
+                                           is_first, subgrid_type, conversion_factor, overwrite_value)
 
-    ! This procedure is called by the to associate a data variable
-    ! with a particular registry key
+    ! This procedure associates 1D array data variable with a particular registry key
 
     class(fates_interface_registry_type), intent(inout) :: this
     class(*), target, intent(in)  :: data(:)    ! data to be associated with key
@@ -1618,14 +1718,14 @@ module FatesInterfaceTypesMod
     logical, intent(in)           :: hlm_flag   ! Is the variable being register from the HLM?
     logical, intent(in), optional :: accumulate    ! Should the variable accumulate during the update?
     logical, intent(in), optional :: is_first      ! Should the variable be zeroed first?
-    logical, intent(in), optional :: is_last       ! Should the variable be last in the update?
-    real(r8), intent(in), optional    :: conversion_factor ! Conversion factor for the variable
-    real(r8), intent(in), optional    :: overwrite_value   ! Value to overwrite with
+    integer, intent(in), optional :: subgrid_type  ! The subgrid integer id associated with this HLM variable
+    real(r8), intent(in), optional :: conversion_factor ! Conversion factor for the variable
+    real(r8), intent(in), optional :: overwrite_value   ! Value to overwrite with
 
     ! Local
     logical :: accumulate_local
     logical :: is_first_local
-    logical :: is_last_local
+    integer :: subgrid_type_local
     real(r8) :: conversion_factor_local
     real(r8) :: overwrite_value_local
 
@@ -1642,12 +1742,19 @@ module FatesInterfaceTypesMod
     else
       is_first_local = .false.
     end if
-    
-    ! Default is_last to false
-    if (present(is_last)) then
-      is_last_local = is_last
+
+    ! Default subgrid_type to fates_unset_int
+    if (present(subgrid_type)) then
+      subgrid_type_local = subgrid_type
     else
-      is_last_local = .false.
+      subgrid_type_local = fates_unset_int
+    end if
+
+    ! Default conversion factor to 1.0
+    if (present(conversion_factor)) then
+      conversion_factor_local = conversion_factor
+    else
+      conversion_factor_local = 1.0_r8
     end if
 
     ! Default conversion factor to 1.0
@@ -1669,14 +1776,14 @@ module FatesInterfaceTypesMod
       call this%hlm_vars(this%GetRegistryVariableIndex(key))%Register(data(:), active=.true., &
                                                                       accumulate=accumulate_local, &
                                                                       is_first=is_first_local, &
-                                                                      is_last=is_last_local, &
+                                                                      subgrid_type=subgrid_type_local, &
                                                                       conversion_factor=conversion_factor_local, &
                                                                       overwrite_value=overwrite_value_local)
     else
       call this%fates_vars(this%GetRegistryVariableIndex(key))%Register(data(:), active=.true., &
                                                                       accumulate=accumulate_local, &
                                                                       is_first=is_first_local, &
-                                                                      is_last=is_last_local, &
+                                                                      subgrid_type=subgrid_type_local, &
                                                                       conversion_factor=conversion_factor_local, &
                                                                       overwrite_value=overwrite_value_local)
     end if
@@ -1686,10 +1793,9 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
 
   subroutine RegisterInterfaceVariables_2d(this, key, data, hlm_flag, accumulate, &
-                                           is_first, is_last, conversion_factor, overwrite_value)
+                                           is_first, subgrid_type, conversion_factor, overwrite_value)
 
-    ! This procedure is called by the to associate a data variable
-    ! with a particular registry key
+    ! This procedure associates 2D array data variable with a particular registry key
 
     class(fates_interface_registry_type), intent(inout) :: this
     class(*), target, intent(in)  :: data(:,:)  ! data to be associated with key
@@ -1697,14 +1803,14 @@ module FatesInterfaceTypesMod
     logical, intent(in)           :: hlm_flag   ! Is the variable being register from the HLM?
     logical, intent(in), optional :: accumulate    ! Should the variable accumulate during the update?
     logical, intent(in), optional :: is_first      ! Should the variable be zeroed first?
-    logical, intent(in), optional :: is_last       ! Should the variable be last in the update?
-    real(r8), intent(in), optional    :: conversion_factor ! Conversion factor for the variable
-    real(r8), intent(in), optional    :: overwrite_value   ! Value to overwrite with
+    integer, intent(in), optional :: subgrid_type  ! The subgrid integer id associated with this HLM variable
+    real(r8), intent(in), optional :: conversion_factor ! Conversion factor for the variable
+    real(r8), intent(in), optional :: overwrite_value   ! Value to overwrite with
 
     ! Local
     logical :: accumulate_local
     logical :: is_first_local
-    logical :: is_last_local
+    integer :: subgrid_type_local
     real(r8) :: conversion_factor_local
     real(r8) :: overwrite_value_local
 
@@ -1722,11 +1828,11 @@ module FatesInterfaceTypesMod
       is_first_local = .false.
     end if
 
-    ! Default is_last to false
-    if (present(is_last)) then
-      is_last_local = is_last
+    ! Default subgrid_type to fates_unset_int
+    if (present(subgrid_type)) then
+      subgrid_type_local = subgrid_type
     else
-      is_last_local = .false.
+      subgrid_type_local = fates_unset_int
     end if
 
     ! Default conversion factor to 1.0
@@ -1748,14 +1854,14 @@ module FatesInterfaceTypesMod
       call this%hlm_vars(this%GetRegistryVariableIndex(key))%Register(data(:,:), active=.true., &
                                                                       accumulate=accumulate_local, &
                                                                       is_first=is_first_local, &
-                                                                      is_last=is_last_local, &
+                                                                      subgrid_type=subgrid_type_local, &
                                                                       conversion_factor=conversion_factor_local, &
                                                                       overwrite_value=overwrite_value_local)
     else
       call this%fates_vars(this%GetRegistryVariableIndex(key))%Register(data(:,:), active=.true., &
                                                                         accumulate=accumulate_local, &
                                                                         is_first=is_first_local, &
-                                                                        is_last=is_last_local, &
+                                                                        subgrid_type=subgrid_type_local, &
                                                                         conversion_factor=conversion_factor_local, &
                                                                         overwrite_value=overwrite_value_local)
     end if
@@ -1765,6 +1871,9 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
   
   subroutine InitializeInterfaceVariablesDimensions(this)
+  
+    ! This procedure initializes the interface variables that are used as dimensions
+    ! for initializing other interface variables.
 
     ! Arguments
     class(fates_interface_registry_type), intent(inout) :: this  ! registry being initialized
@@ -1789,6 +1898,8 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
   
   subroutine InitializeInterfaceVariables(this)
+  
+    ! This procedure updates the interface variables that are used during initialization.
 
     ! Arguments
     class(fates_interface_registry_type), intent(inout) :: this  ! registry being initialized
@@ -1813,6 +1924,8 @@ module FatesInterfaceTypesMod
   ! ======================================================================================
 
   subroutine UpdateInterfaceVariables(this)
+  
+    ! This procedure updates BC input interface variables
 
     class(fates_interface_registry_type), intent(inout) :: this
 
@@ -1831,6 +1944,11 @@ module FatesInterfaceTypesMod
   
   ! subroutine UpdateLitterFluxes(this, dtime)
   subroutine UpdateLitterFluxes(this, conversion_flag)
+
+    ! This procedure updates the litter flux output boundary conditions 
+    ! This procedure is separated from other update calls as it happens
+    ! on the model time-step and has specific update calls for the total
+    ! litterfall per nutrient type based on run mode
 
     use FatesConstantsMod, only : days_per_sec
     use FatesConstantsMod, only : g_per_kg
@@ -1858,9 +1976,6 @@ module FatesInterfaceTypesMod
       ! If the conversion flag is set, convert and scale the updated HLM litter flux interface variable
       if (conversion_flag) then
       
-        ! Convert from kgC/m2/s to gC/m2/day
-        ! call this%hlm_vars(j)%Convert(days_per_sec * g_per_kg)
-        
         ! Get the index for the decomposition thickness key
         d = this%GetRegistryVariableIndex(hlm_fates_decomp_thickness)
         
@@ -1874,16 +1989,13 @@ module FatesInterfaceTypesMod
     ! Update the HLM variable with the total litterfall
     j = this%GetRegistryVariableIndex(hlm_fates_litter_carbon_total)
     call this%hlm_vars(j)%Update(this%fates_vars(j))
-    ! if (conversion_flag) call this%hlm_vars(j)%Convert(days_per_sec * g_per_kg)
 
     if (hlm_parteh_mode == prt_cnp_flex_allom_hyp) then
       j = this%GetRegistryVariableIndex(hlm_fates_litter_phosphorus_total)
       call this%hlm_vars(j)%Update(this%fates_vars(j))
-      ! if (conversion_flag) call this%hlm_vars(j)%Convert(days_per_sec * g_per_kg)
 
       j = this%GetRegistryVariableIndex(hlm_fates_litter_nitrogen_total)
       call this%hlm_vars(j)%Update(this%fates_vars(j))
-      ! if (conversion_flag) call this%hlm_vars(j)%Convert(days_per_sec * g_per_kg)
     end if
 
     

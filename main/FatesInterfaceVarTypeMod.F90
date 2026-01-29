@@ -2,7 +2,7 @@ module FatesInterfaceVariableTypeMod
 
   ! This module contains the type definition and associated type-bound procedures
   ! used to create an indexed list of associated HLM and FATES variables that are
-  ! related across the application programming interface.
+  ! related across the HLM-FATES application programming interface (API).
   ! This method is largely inspired by the FATES history infrastructure
 
   use shr_log_mod    , only : errMsg => shr_log_errMsg
@@ -19,6 +19,11 @@ module FatesInterfaceVariableTypeMod
   private
 
   ! Interface registry variable type
+  ! This defined type holds the pointer to HLM or FATES variable that is
+  ! associated with a common "key" name (defined in the interface parameter types).
+  ! It also includes a set of data characterizing the type of data not defined by
+  ! type or rank (e.g. HLM subgrid association, update frequency, etc).
+
   type, public :: fates_interface_variable_type
     
     character(len=48) :: key            ! common registry key
@@ -29,10 +34,11 @@ module FatesInterfaceVariableTypeMod
     logical           :: active         ! true if the variable is used by the host land model
     logical           :: accumulate     ! If true, this variable should add the source to the target
     logical           :: zero_first     ! If true, zero the target variable before accumulation
-    logical           :: last_patch     ! True if the variable is associated with the last patch for the associated subgrid unit
+    logical           :: is_last        ! True if the variable is associated with the last patch for the associated subgrid unit
     integer           :: bc_dir         ! 0 if bc_in, 1 if bc_out
     integer           :: data_rank      ! rank of the variable (0, 1, 2, or 3)
     integer           :: update_frequency ! frequency of updates 
+    integer           :: subgrid_type   ! subgrid integer ID associated with this variable
     real(r8)          :: conversion_factor ! conversion factor to adjust units as necessary
     real(r8)          :: overwrite_value   ! value to overwrite with if not NaN
     integer, allocatable :: data_size(:)   ! size of the first dimension of the variable
@@ -41,9 +47,11 @@ module FatesInterfaceVariableTypeMod
       procedure :: CheckBounds
       procedure :: Convert    => ConvertScaleInterfaceVariable
       procedure :: Initialize => InitializeInterfaceVariable
+      procedure :: IsSubgridType
       procedure :: Normalize  => NormalizeLitterVariable
       procedure :: Update     => UpdateInterfaceVariable
       procedure :: Dump
+      procedure :: SetLastState
 
       generic :: Register => RegisterInterfaceVariable_0d, &
                              RegisterInterfaceVariable_1d, &
@@ -61,6 +69,9 @@ module FatesInterfaceVariableTypeMod
   ! ====================================================================================
   
   subroutine CheckBounds(this, var)
+  
+    ! This procedure checks that the data bounds of the calling variable are consistent
+    ! with the data bounds of the input argument variable
 
     class(fates_interface_variable_type), intent(in) :: this
     class(fates_interface_variable_type), intent(in) :: var
@@ -153,6 +164,10 @@ module FatesInterfaceVariableTypeMod
   ! ====================================================================================
   
   subroutine Dump(this)
+  
+    ! This procedure will print output to the log file.  Developers should use this 
+    ! procedure for diagnostic purposes when attempt to review interface variable
+    ! data as it includes select type statements to resolve the polymorphic data types.
 
     class(fates_interface_variable_type), intent(in) :: this
 
@@ -204,6 +219,10 @@ module FatesInterfaceVariableTypeMod
   ! ====================================================================================
   
     subroutine InitializeInterfaceVariable(this, key, update_frequency, bc_dir)
+    
+      ! This procedure initializes an interface variable assigning its key
+      ! update frequency and boundary condition direction.  It also unsets
+      ! all other variables including the data pointers.
                                             
       class(fates_interface_variable_type), intent(inout) :: this
       character(len=*), intent(in) :: key
@@ -223,8 +242,10 @@ module FatesInterfaceVariableTypeMod
       this%active = .false.
       this%accumulate = .false.
       this%zero_first = .false.
+      this%is_last = .false.
       this%conversion_factor = nan
       this%overwrite_value = nan
+      this%subgrid_type = fates_unset_int
 
       ! Initialize registry variable components that are updated at variable definition
       this%key = key 
@@ -233,6 +254,20 @@ module FatesInterfaceVariableTypeMod
 
     end subroutine InitializeInterfaceVariable
     
+  ! ====================================================================================
+
+  logical function IsSubgridType(this, subgrid_type)
+  
+    ! This procedure will check if the subgrid type of the interface variable
+    ! matches the input argument subgrid type
+
+    class(fates_interface_variable_type), intent(in) :: this
+    integer, intent(in) :: subgrid_type
+
+    IsSubgridType = (this%subgrid_type == subgrid_type)
+
+  end function IsSubgridType
+
   ! ====================================================================================
   
     subroutine NormalizeLitterVariable(this, norm_var)
@@ -274,15 +309,19 @@ module FatesInterfaceVariableTypeMod
 
   ! ====================================================================================
     
-    subroutine RegisterInterfaceVariable_0d(this, data, active, accumulate, 
-                                            is_first, is_last, conversion_factor, overwrite_value)
+    subroutine RegisterInterfaceVariable_0d(this, data, active, accumulate, &
+                                            is_first, subgrid_type, conversion_factor, overwrite_value)
+    
+      ! This procedure registers the interface variable by associating the data pointer with 
+      ! the scalar input data argument.  It also sets a number of required and optional arguments
+      ! for metadata associated with the variable.
 
       class(fates_interface_variable_type), intent(inout) :: this
       class(*), target, intent(in) :: data
       logical, intent(in)          :: active
       logical, intent(in)          :: accumulate
       logical, intent(in)          :: is_first
-      logical, intent(in)          :: is_last
+      integer, intent(in)          :: subgrid_type
       real(r8), intent(in)         :: conversion_factor
       real(r8), intent(in)         :: overwrite_value
 
@@ -290,17 +329,21 @@ module FatesInterfaceVariableTypeMod
       this%active = active
       this%accumulate = accumulate
       this%zero_first = is_first
-      this%last_patch = is_last
       this%data_rank = rank(data)
       this%conversion_factor = conversion_factor
       this%overwrite_value = overwrite_value
+      this%subgrid_type = subgrid_type
 
     end subroutine RegisterInterfaceVariable_0d
 
   ! ====================================================================================
     
     subroutine RegisterInterfaceVariable_1d(this, data, active, accumulate, &
-                                            is_first, is_last, conversion_factor, overwrite_value)
+                                            is_first, subgrid_type, conversion_factor, overwrite_value)
+
+      ! This procedure registers the interface variable by associating the data pointer with 
+      ! the 1D array input data argument.  It also sets a number of required and optional arguments
+      ! for metadata associated with the variable.
 
       class(fates_interface_variable_type), intent(inout) :: this
 
@@ -308,7 +351,7 @@ module FatesInterfaceVariableTypeMod
       logical, intent(in)          :: active
       logical, intent(in)          :: accumulate
       logical, intent(in)          :: is_first
-      logical, intent(in)          :: is_last
+      integer, intent(in)          :: subgrid_type  
       real(r8), intent(in)         :: conversion_factor
       real(r8), intent(in)         :: overwrite_value
 
@@ -316,25 +359,29 @@ module FatesInterfaceVariableTypeMod
       this%active = active
       this%accumulate = accumulate
       this%zero_first = is_first
-      this%last_patch = is_last
       this%data_rank = rank(data)
       this%data_size(1) = size(data, dim=1)
       this%conversion_factor = conversion_factor
       this%overwrite_value = overwrite_value
+      this%subgrid_type = subgrid_type
 
     end subroutine RegisterInterfaceVariable_1d
 
   ! ====================================================================================
     
     subroutine RegisterInterfaceVariable_2d(this, data, active, accumulate, &
-                                            is_first, is_last, conversion_factor, overwrite_value)
+                                            is_first, subgrid_type, conversion_factor, overwrite_value)
+
+      ! This procedure registers the interface variable by associating the data pointer with 
+      ! the 2D array input data argument.  It also sets a number of required and optional arguments
+      ! for metadata associated with the variable.
 
       class(fates_interface_variable_type), intent(inout) :: this
       class(*), target, intent(in)  :: data(:,:)
       logical, intent(in)           :: active
       logical, intent(in)          :: accumulate
       logical, intent(in)          :: is_first
-      logical, intent(in)          :: is_last 
+      integer, intent(in)          :: subgrid_type
       real(r8), intent(in)         :: conversion_factor
       real(r8), intent(in)         :: overwrite_value
       
@@ -342,18 +389,40 @@ module FatesInterfaceVariableTypeMod
       this%active = active
       this%accumulate = accumulate
       this%zero_first = is_first
-      this%last_patch = is_last
       this%data_rank = rank(data) 
       this%data_size(1) = size(data, dim=1)
       this%data_size(2) = size(data, dim=2)
+      this%subgrid_type = subgrid_type
       this%conversion_factor = conversion_factor
       this%overwrite_value = overwrite_value
 
     end subroutine RegisterInterfaceVariable_2d
 
   ! ====================================================================================
+
+    subroutine SetLastState(this, last_state)
+    
+      ! This procedure sets the last state logical metadata for the calling interface variable
+
+      class(fates_interface_variable_type), intent(inout) :: this
+      logical, intent(in) :: last_state
+
+      this%is_last = last_state
+
+    end subroutine SetLastState
+
+  ! ====================================================================================
     
     subroutine UpdateInterfaceVariable(this, var)
+    
+      ! This is the main procedure that drives the updates between the HLM and FATES.
+      ! It updates the calling interface variable data with data from the argument
+      ! interface variable.  Directionality of the update is from the argument to the
+      ! caller.  The bulk of the code here is type selects to handle the polymorphic
+      ! data pointers in the interface variables types.  
+      ! This procedure utilizes metadata stored in the interface variables to determine
+      ! how updates should be handled, for example whether or not to zero the calling
+      ! interface variable data prior to adding the argument variable data to it.
 
       ! Arguments
       class(fates_interface_variable_type), intent(inout) :: this ! variable being updated
@@ -390,7 +459,7 @@ module FatesInterfaceVariableTypeMod
                       dest = source
                     end if
                     ! Apply conversion factor if this is the last patch associated with the subgrid unit
-                    if (this%last_patch) then
+                    if (this%is_last) then
                       dest = dest * var%conversion_factor
                     end if
                   end if
@@ -439,7 +508,7 @@ module FatesInterfaceVariableTypeMod
                     else
                       dest = source
                     end if
-                    if (this%last_patch) then
+                    if (this%is_last) then
                       dest = dest * var%conversion_factor
                     end if
                   end if
@@ -488,7 +557,7 @@ module FatesInterfaceVariableTypeMod
                     else
                       dest = source
                     end if
-                    if (this%last_patch) then
+                    if (this%is_last) then
                       dest = dest * var%conversion_factor
                     end if
                   end if
@@ -529,6 +598,9 @@ module FatesInterfaceVariableTypeMod
   ! ====================================================================================
     
     subroutine CompareRegistryVariableSizes(this, var) 
+    
+      ! This procedure checks to make sure that the ranks and size of the
+      ! data associated with the interface variables is the same.
       
       class(fates_interface_variable_type), intent(in) :: this ! variable being updated
       class(fates_interface_variable_type), intent(in) :: var  ! variable update source
