@@ -5888,6 +5888,7 @@ contains
     integer  :: j_t,j_b  ! top and bottom soil layer matching current rhiz layer
     integer  :: nlevrhiz ! number of rhizosphere layers
     integer  :: nlevsoil ! number of soil layers
+    integer  :: ifp      ! index of the fates patch number
     real(r8) :: mean_soil_vwc    ! mean soil volumetric water content [m3/m3]
     real(r8) :: mean_soil_vwcsat ! mean soil saturated volumetric water content [m3/m3]
     real(r8) :: mean_soil_matpot ! mean soil water potential [MPa]
@@ -5926,6 +5927,10 @@ contains
 
          do s = 1,nsites
 
+            ! Prior to multi-column fates conversion, we can use the fates patch number
+            ! associated with the first patch on the site for the boundary condition indexing.
+            ifp = 1
+
             call this%zero_site_hvars(sites(s),upfreq_in=group_hydr_simple)
 
             site_hydr => sites(s)%si_hydr
@@ -5960,8 +5965,13 @@ contains
                   !                        with model internals and physics. Should
                   !                        implement caps inside the functions
                   !                        if desired. (RGK 12-2021)
-                  vwc_sat = bc_in(s)%watsat_sl(j_bc)
+                  vwc_sat = sites(s)%bc_in(ifp)%watsat_sl(j_bc)
                   depth_frac = bc_in(s)%dz_sisl(j_bc)/site_hydr%dz_rhiz(j)
+
+                  ! Override the watsat_sl if patch doesn't have exposed vegetation
+                  if (.not. bc_in(s)%filter_btran) then
+                    vwc_sat = -999._r8
+                  end if
 
                   ! If there are any roots, we use root weighting
                   if(sum(site_hydr%l_aroot_layer(:),dim=1) > nearzero) then
@@ -6034,6 +6044,10 @@ contains
          call this%flush_hvars(nc,upfreq_in=group_hydr_complx)
          
          do s = 1,nsites
+          
+            ! Prior to multi-column fates conversion, we can use the fates patch number
+            ! associated with the first patch on the site for the boundary condition indexing.
+            ifp = 1
             
             site_hydr => sites(s)%si_hydr
             nlevrhiz = site_hydr%nlevrhiz
@@ -6067,8 +6081,13 @@ contains
                   !                        with model internals and physics. Should
                   !                        implement caps inside the functions
                   !                        if desired. (RGK 12-2021)
-                  vwc_sat = bc_in(s)%watsat_sl(j_bc)
+                  vwc_sat = sites(s)%bc_in(ifp)%watsat_sl(j_bc)
                   depth_frac = bc_in(s)%dz_sisl(j_bc)/site_hydr%dz_rhiz(j)
+
+                  ! Override the watsat_sl if patch doesn't have exposed vegetation
+                  if (.not. bc_in(s)%filter_btran) then
+                    vwc_sat = -999._r8
+                  end if
 
                   ! If there are any roots, we use root weighting
                   if(sum(site_hydr%l_aroot_layer(:),dim=1) > nearzero) then

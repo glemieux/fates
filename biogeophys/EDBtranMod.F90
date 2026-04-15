@@ -125,6 +125,7 @@ contains
     real(r8) :: sum_pftgs         ! sum of weighted conductances (for normalization)
     real(r8), allocatable :: root_resis(:,:)  ! Root resistance in each pft x layer
     real(r8) :: effective_porosity            ! Effective porosity in each soil layer
+    real(r8) :: water_saturation              ! Water saturation in each soil layer
     !------------------------------------------------------------------------------
 
     associate(                                 &
@@ -166,11 +167,13 @@ contains
                       ! If it does, locally override the inbound effective porosity values from the host
                       ! Note that filter_btran will need to be converted to handle MCF
                       effective_porosity = sites(s)%bc_in(ifp)%eff_porosity_sl(j)
+                      water_saturation = sites(s)%bc_in(ifp)%watsat_sl(j)
                       if (.not. bc_in(s)%filter_btran) then
                          effective_porosity = -999._r8
+                         water_saturation = -999._r8
                       end if
 
-                      rresis  = min( (effective_porosity/bc_in(s)%watsat_sl(j))*               &
+                      rresis  = min( (effective_porosity/water_saturation) * &
                            (smp_node - smpsc(ft)) / (smpso(ft) - smpsc(ft)), 1._r8)
 
                       root_resis(ft,j) = sites(s)%rootfrac_scr(j)*rresis
