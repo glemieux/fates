@@ -2982,6 +2982,7 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
       r = this%sites(s)%GetRegistryIndex(ifp)
 
       ! Register the boundary conditions that are necessary for allocating other boundary conditions first
+      call this%registry(r)%Register(key=hlm_fates_nlevground, data=bc_in%nlevgrnd, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_decomp_max, data=bc_in%nlevdecomp_full, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_decomp, data=bc_in%nlevdecomp, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_soil_level, data=bc_in%nlevsoil, hlm_flag=.false.)

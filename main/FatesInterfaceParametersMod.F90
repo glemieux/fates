@@ -11,6 +11,7 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_soil_level = 'soil_level_number'
   character(len=*), parameter, public :: hlm_fates_decomp_frac_moisture = 'decomp_frac_moisture'
   character(len=*), parameter, public :: hlm_fates_decomp_frac_temperature = 'decomp_frac_temperature'
+  character(len=*), parameter, public :: hlm_fates_nlevground = 'nlevground'
   character(len=*), parameter, public :: hlm_fates_litter_carbon_cellulose = 'litter_carbon_cellulose'
   character(len=*), parameter, public :: hlm_fates_litter_carbon_lignin = 'litter_carbon_lignin'
   character(len=*), parameter, public :: hlm_fates_litter_carbon_labile = 'litter_carbon_labile'

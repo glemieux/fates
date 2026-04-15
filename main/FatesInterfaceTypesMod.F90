@@ -392,6 +392,7 @@ module FatesInterfaceTypesMod
 
       ! Soil layer structure
 
+      integer              :: nlevgrnd           ! the number of ground layers in this column
       integer              :: nlevsoil           ! the number of soil layers in this column
       integer              :: nlevdecomp         ! the number of active soil layers in the column
       integer              :: nlevdecomp_full    ! the maximum possible soil layers for any column
@@ -1166,6 +1167,8 @@ module FatesInterfaceTypesMod
     ! Define the interface registry names and indices
     ! Variables that need to be updated during initialization and are necessary for other boundary conditions
     ! such as dimensions
+    call this%DefineInterfaceVariable(key=hlm_fates_nlevground, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_init_dims)
     call this%DefineInterfaceVariable(key=hlm_fates_decomp_max, initialize=initialize, index=index, &
                                       update_frequency=registry_update_init_dims)
     call this%DefineInterfaceVariable(key=hlm_fates_decomp, initialize=initialize, index=index, &
