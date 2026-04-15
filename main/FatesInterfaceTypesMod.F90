@@ -983,6 +983,7 @@ module FatesInterfaceTypesMod
     allocate(this%w_scalar_sisl(this%nlevdecomp_full))
     allocate(this%t_scalar_sisl(this%nlevdecomp_full))
     allocate(this%eff_porosity_sl(this%nlevgrnd))
+    allocate(this%watsat_sl(this%nlevgrnd))
     
     ! Unset variables
     this%decomp_id = fates_unset_int
@@ -990,6 +991,7 @@ module FatesInterfaceTypesMod
     this%w_scalar_sisl = nan
     this%t_scalar_sisl = nan
     this%eff_porosity_sl = nan
+    this%watsat_sl = nan
     this%max_thaw_depth_index = fates_unset_int
 
   end subroutine InitializeBCIn
@@ -1196,6 +1198,8 @@ module FatesInterfaceTypesMod
     call this%DefineInterfaceVariable(key=hlm_fates_litter_carbon_total, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
     call this%DefineInterfaceVariable(key=hlm_fates_effective_porosity, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_soil_water_saturation, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
 
     ! Define the N and P litter fluxes if in CNP mode

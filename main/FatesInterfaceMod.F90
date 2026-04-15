@@ -319,7 +319,6 @@ contains
     fates%bc_in(s)%solad_parb(:,:)     = 0.0_r8
     fates%bc_in(s)%solai_parb(:,:)     = 0.0_r8
     fates%bc_in(s)%smp_sl(:)           = 0.0_r8
-    fates%bc_in(s)%watsat_sl(:)        = 0.0_r8
     fates%bc_in(s)%tempk_sl(:)         = 0.0_r8
     fates%bc_in(s)%h2o_liqvol_sl(:)    = 0.0_r8
     fates%bc_in(s)%fcansno_pa(:)       = 0.0_r8
@@ -540,7 +539,6 @@ contains
       
       ! Hydrology
       allocate(bc_in%smp_sl(nlevsoil_in))
-      allocate(bc_in%watsat_sl(nlevsoil_in))
       allocate(bc_in%tempk_sl(nlevsoil_in))
       allocate(bc_in%h2o_liqvol_sl(nlevsoil_in))
       
@@ -3004,6 +3002,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                      data=bc_in%t_scalar_sisl, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_effective_porosity, &                               
                                      data=bc_in%eff_porosity_sl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_soil_water_saturation, &                               
+                                    data=bc_in%watsat_sl, hlm_flag=.false.)
       
       ! bc_out
       nlevdecomp = bc_in%nlevdecomp
