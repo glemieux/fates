@@ -5150,8 +5150,9 @@ contains
     real(r8)                , intent(in)            :: dt_tstep
 
     ! Locals
-    integer  :: s        ! The local site index
-    integer  :: io_si     ! The site index of the IO array
+    integer  :: s          ! The local site index
+    integer  :: io_si      ! The site index of the IO array
+    integer  :: ifp        ! fates patch index
     integer  :: age_class  ! class age index
     real(r8) :: site_area_veg_inv  ! inverse canopy area of the site (1/m2)
     real(r8) :: site_area_rad_inv   ! inverse canopy area of site for only
@@ -5201,9 +5202,12 @@ contains
          call this%zero_site_hvars(sites(s), upfreq_in=group_hifr_simple)
 
          io_si  = sites(s)%h_gid
+         
+         ! Temporarily hard code ifp to 1.  This will be updated for future multicolumn fates
+         ifp = 1
 
-         hio_nep_si(io_si) = -bc_in(s)%tot_het_resp * kg_per_g
-         hio_hr_si(io_si)  =  bc_in(s)%tot_het_resp * kg_per_g
+         hio_nep_si(io_si) = -sites(s)%bc_in(ifp)%tot_het_resp * kg_per_g
+         hio_hr_si(io_si)  =  sites(s)%bc_in(ifp)%tot_het_resp * kg_per_g
 
          ! Diagnostics that are only incremented if we called the radiation solver
          ! We do not call the radiation solver if

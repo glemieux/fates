@@ -192,6 +192,7 @@ module FatesInterfaceMod
          procedure, public :: UpdateInterfaceVariables
          procedure, public :: UpdateInterfaceVariablesTimestep
          procedure, public :: UpdateLitterFluxes
+         procedure, public :: UpdateInterfaceVariablesTimeStep
       
    end type fates_interface_type
    
@@ -325,7 +326,6 @@ contains
     fates%bc_in(s)%albgr_dir_rb(:)     = 0.0_r8
     fates%bc_in(s)%albgr_dif_rb(:)     = 0.0_r8
     fates%bc_in(s)%max_rooting_depth_index_col = 0
-    fates%bc_in(s)%tot_het_resp        = 0.0_r8
     fates%bc_in(s)%snow_depth_si       = 0.0_r8
     fates%bc_in(s)%frac_sno_eff_si     = 0.0_r8
     
@@ -3004,6 +3004,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                      data=bc_in%eff_porosity_sl, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_soil_water_saturation, &                               
                                     data=bc_in%watsat_sl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_heterotrophic_respiration, &                               
+                                    data=bc_in%tot_het_resp, hlm_flag=.false.)
       
       ! bc_out
       nlevdecomp = bc_in%nlevdecomp
@@ -3211,6 +3213,33 @@ subroutine UpdateLitterFluxes(this, dtime)
    end do
 
 end subroutine UpdateLitterFluxes
+
+! ======================================================================================
+
+subroutine UpdateInterfaceVariablesTimeStep(this)
+
+   ! This procedure handles update to the interface variables that should be updated 
+   ! for each host land model time step
+   
+   ! Arguments
+   class(fates_interface_type), intent(inout) :: this
+   
+   ! Locals
+   integer :: n  ! active registry index iterator
+   integer :: r  ! registry index 
+
+   ! Set the registry active state
+   call this%SetRegistryActiveState()
+
+   ! Loop through the active registries and update the model time step interface variables 
+   do n = 1, this%num_active_patches
+      r = this%filter_registry_active(n)
+      
+      call this%registry(r)%UpdateTimeStep()
+      
+   end do
+
+end subroutine UpdateInterfaceVariablesTimeStep
 
 ! ======================================================================================
 
