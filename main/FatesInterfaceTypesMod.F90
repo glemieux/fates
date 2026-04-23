@@ -2016,10 +2016,10 @@ module FatesInterfaceTypesMod
       j = this%filter_timestep(i)
       
       ! Skip updating litter flux variables as they are handled via a separate update call
-      if (any(this%filter_litter_flux(:) == j)) then
-        write(fates_log(),*) 'SLS: skipping update of variable with index ', j, ' as it is included in the litter flux filter'
-      else
-        write(fates_log(),*) 'SLS: updating variable with index ', j, ' in UpdateTimestepInterfaceVariables()'
+      if (.not. (any(this%filter_litter_flux(:) == j) .or. &
+                 this%key(j) == hlm_fates_litter_carbon_total .or. &
+                 this%key(j) == hlm_fates_litter_phosphorus_total .or. &
+                 this%key(j) == hlm_fates_litter_nitrogen_total)) then
         call this%fates_vars(j)%Update(this%hlm_vars(j))
       end if
 
