@@ -325,18 +325,17 @@ contains
 
          allocate(rootfr_ft(numpft, bc_in(s)%nlevsoil))
 
-         do ft = 1,numpft
-            call set_root_fraction(rootfr_ft(ft,:), ft, &
-                 bc_in(s)%zi_sisl, &
-                 bc_in(s)%max_rooting_depth_index_col)
-         end do
-
-
          currentpatch => sites(s)%oldest_patch
          do while (associated(currentpatch))
 
             ifp = currentPatch%patchno
             
+            do ft = 1,numpft
+               call set_root_fraction(rootfr_ft(ft,:), ft, &
+                    bc_in(s)%zi_sisl, &
+                    sites(s)%bc_in(ifp)%max_rooting_depth_index_col )
+            end do
+
             if_notbare: if(currentpatch%nocomp_pft_label.ne.nocomp_bareground)then
 
                NCL_p = currentPatch%NCL_p

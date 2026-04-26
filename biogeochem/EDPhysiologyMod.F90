@@ -425,7 +425,7 @@ contains
 
   ! ============================================================================
 
-  subroutine PreDisturbanceLitterFluxes( currentSite, currentPatch, bc_in )
+  subroutine PreDisturbanceLitterFluxes( currentSite, currentPatch)
 
     ! -----------------------------------------------------------------------------------
     !
@@ -446,7 +446,6 @@ contains
     ! !ARGUMENTS
     type(ed_site_type), intent(inout)  :: currentSite
     type(fates_patch_type), intent(inout) :: currentPatch
-    type(bc_in_type), intent(in)       :: bc_in
 
     !
     ! !LOCAL VARIABLES:
@@ -476,12 +475,12 @@ contains
          ! Send fluxes from newly created litter into the litter pools
          ! This litter flux is from non-disturbance inducing mortality, as well
          ! as litter fluxes from live trees
-         call CWDInput(currentSite, currentPatch, litt,bc_in)
+         call CWDInput(currentSite, currentPatch, litt)
 
          ! Only calculate fragmentation flux over layers that are active
          ! (RGK-Mar2019) SHOULD WE MAX THIS AT 1? DONT HAVE TO
 
-         nlev_eff_decomp = max(bc_in%max_rooting_depth_index_col, 1)
+         nlev_eff_decomp = max(currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col, 1)
          call CWDOut(litt,currentPatch%fragmentation_scaler,nlev_eff_decomp)
 
          ! Fragmentation flux to soil decomposition model [kg/site/day]
@@ -924,6 +923,7 @@ contains
     integer  :: i_wmem            ! Loop counter for water mem days
     integer  :: i_tmem            ! Loop counter for veg temp mem days
     integer  :: ipft              ! plant functional type index
+    integer  :: ifp               ! fates patch index
     integer  :: j                 ! Soil layer index
     real(r8) :: mean_10day_liqvol ! mean soil liquid volume over last 10 days [m3/m3]
     real(r8) :: mean_10day_smp    ! mean soil matric potential over last 10 days [mm]
@@ -1187,10 +1187,14 @@ contains
           currentSite%smp_memory   (i_wmem,ipft) = currentSite%smp_memory   (i_wmem-1,ipft)
        end do
 
+       ! Temporarily set the bc index to one for multi-column fates refactor
+       ifp = 1
+
        ! Find the rooting depth distribution for PFT
        call set_root_fraction( currentSite%rootfrac_scr, ipft, currentSite%zi_soil, &
-                               bc_in%max_rooting_depth_index_col )
-       nlevroot = max(2,min(ubound(currentSite%zi_soil,1),bc_in%max_rooting_depth_index_col))
+                               currentSite%bc_in(ifp)%max_rooting_depth_index_col )
+       nlevroot = max(2,min(ubound(currentSite%zi_soil,1), &
+                                   currentSite%bc_in(ifp)%max_rooting_depth_index_col))
 
        ! The top most layer is typically very thin (~ 2cm) and dries rather quickly. Despite
        ! being thin, it can have a non-negligible rooting fraction (e.g., using
@@ -2799,7 +2803,7 @@ contains
 
    ! ======================================================================================
 
-  subroutine CWDInput( currentSite, currentPatch, litt, bc_in)
+  subroutine CWDInput( currentSite, currentPatch, litt )
 
     !
     ! !DESCRIPTION:
@@ -2818,7 +2822,6 @@ contains
     type(ed_site_type), intent(inout), target :: currentSite
     type(fates_patch_type),intent(inout), target :: currentPatch
     type(litter_type),intent(inout),target    :: litt
-    type(bc_in_type),intent(in)               :: bc_in
 
     !
     ! !LOCAL VARIABLES:
@@ -2893,7 +2896,7 @@ contains
 
        pft = currentCohort%pft
        call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-           bc_in%max_rooting_depth_index_col)
+           currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
        store_m_turnover  = currentCohort%prt%GetTurnover(store_organ,element_id)
        fnrt_m_turnover   = currentCohort%prt%GetTurnover(fnrt_organ,element_id)
