@@ -648,7 +648,7 @@ contains
           ! Then zero out the daily uptakes, they have been used
 
           
-          call EffluxIntoLitterPools(currentSite, currentPatch, currentCohort, bc_in )
+          call EffluxIntoLitterPools(currentSite, currentPatch, currentCohort)
 
           if(element_pos(nitrogen_element)>0) then
              ! Mass balance for N uptake
