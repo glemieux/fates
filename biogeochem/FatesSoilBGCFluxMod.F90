@@ -331,7 +331,7 @@ contains
                 pft   = ccohort%pft
                 
                 call set_root_fraction(csite%rootfrac_scr, pft, csite%zi_soil, &
-                     bc_in%max_rooting_depth_index_col )
+                     csite%bc_in(cpatch%patchno)%max_rooting_depth_index_col )
                 
                 fnrt_c   = ccohort%prt%GetState(fnrt_organ, carbon12_element)
                 
