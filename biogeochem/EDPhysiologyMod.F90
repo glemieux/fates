@@ -923,6 +923,7 @@ contains
     integer  :: i_wmem            ! Loop counter for water mem days
     integer  :: i_tmem            ! Loop counter for veg temp mem days
     integer  :: ipft              ! plant functional type index
+    integer  :: ifp               ! fates patch index
     integer  :: j                 ! Soil layer index
     real(r8) :: mean_10day_liqvol ! mean soil liquid volume over last 10 days [m3/m3]
     real(r8) :: mean_10day_smp    ! mean soil matric potential over last 10 days [mm]
@@ -1186,10 +1187,14 @@ contains
           currentSite%smp_memory   (i_wmem,ipft) = currentSite%smp_memory   (i_wmem-1,ipft)
        end do
 
+       ! Temporarily set the bc index to one for multi-column fates refactor
+       ifp = 1
+
        ! Find the rooting depth distribution for PFT
        call set_root_fraction( currentSite%rootfrac_scr, ipft, currentSite%zi_soil, &
-                               bc_in%max_rooting_depth_index_col )
-       nlevroot = max(2,min(ubound(currentSite%zi_soil,1),bc_in%max_rooting_depth_index_col))
+                               currentSite%bc_in(ifp)%max_rooting_depth_index_col )
+       nlevroot = max(2,min(ubound(currentSite%zi_soil,1), &
+                                   currentSite%bc_in(ifp)%max_rooting_depth_index_col))
 
        ! The top most layer is typically very thin (~ 2cm) and dries rather quickly. Despite
        ! being thin, it can have a non-negligible rooting fraction (e.g., using
