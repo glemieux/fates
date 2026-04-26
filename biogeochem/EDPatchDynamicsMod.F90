@@ -773,7 +773,7 @@ contains
                                     newPatch, patch_site_areadis)
                             case (dtype_ilandusechange)
                                call landusechange_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in, &
+                                    newPatch, patch_site_areadis, &
                                     clearing_matrix(i_donorpatch_landuse_type,i_landusechange_receiverpatchlabel))
 
                                ! if land use change, then may need to change nocomp pft, so tag as having transitioned LU
@@ -2612,8 +2612,8 @@ contains
     ! ============================================================================
 
   subroutine landusechange_litter_fluxes(currentSite, currentPatch, &
-       newPatch, patch_site_areadis, bc_in,  &
-       clearing_matrix_element)
+       newPatch, patch_site_areadis, clearing_matrix_element)
+       
     !
     ! !DESCRIPTION:
     !  CWD pool from land use change.
@@ -2628,7 +2628,6 @@ contains
     type(fates_patch_type) , intent(inout), target :: currentPatch   ! Donor Patch
     type(fates_patch_type) , intent(inout), target :: newPatch   ! New Patch
     real(r8)               , intent(in)            :: patch_site_areadis ! Area being donated
-    type(bc_in_type)       , intent(in)            :: bc_in
     logical                , intent(in)            :: clearing_matrix_element ! whether or not to clear vegetation
 
     !
@@ -2769,7 +2768,7 @@ contains
              site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
              call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-                  bc_in%max_rooting_depth_index_col)
+                  currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
              ! Contribution of dead trees to root litter (no root burn flux to atm)
              do dcmpy=1,ndcmpy
