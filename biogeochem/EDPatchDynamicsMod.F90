@@ -758,7 +758,7 @@ contains
                             select case(i_disturbance_type)
                             case (dtype_ilog)
                                call logging_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in)
+                                    newPatch, patch_site_areadis)
 
                                ! if transitioning from primary to secondary, then may need to change nocomp pft,
                                ! so tag as having transitioned LU
