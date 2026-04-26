@@ -767,7 +767,7 @@ contains
                                end if
                             case (dtype_ifire)
                                call fire_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in)
+                                    newPatch, patch_site_areadis)
                             case (dtype_ifall)
                                call mortality_litter_fluxes(currentSite, currentPatch, &
                                     newPatch, patch_site_areadis,bc_in)
@@ -2142,7 +2142,7 @@ contains
   ! ============================================================================
 
   subroutine fire_litter_fluxes(currentSite, currentPatch, &
-       newPatch, patch_site_areadis, bc_in)
+       newPatch, patch_site_areadis)
     !
     ! !DESCRIPTION:
     !  CWD pool burned by a fire. 
@@ -2161,7 +2161,6 @@ contains
     type(fates_patch_type) , intent(inout), target :: currentPatch   ! Donor Patch
     type(fates_patch_type) , intent(inout), target :: newPatch   ! New Patch
     real(r8)            , intent(in)            :: patch_site_areadis ! Area being donated
-    type(bc_in_type)    , intent(in)            :: bc_in
 
     !
     ! !LOCAL VARIABLES:
@@ -2304,7 +2303,7 @@ contains
              site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
              call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-                  bc_in%max_rooting_depth_index_col)
+                  currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
              ! Contribution of dead trees to root litter (no root burn flux to atm)
              do dcmpy=1,ndcmpy
