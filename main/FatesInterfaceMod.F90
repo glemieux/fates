@@ -324,7 +324,6 @@ contains
     fates%bc_in(s)%fcansno_pa(:)       = 0.0_r8
     fates%bc_in(s)%albgr_dir_rb(:)     = 0.0_r8
     fates%bc_in(s)%albgr_dif_rb(:)     = 0.0_r8
-    fates%bc_in(s)%max_rooting_depth_index_col = 0
     fates%bc_in(s)%snow_depth_si       = 0.0_r8
     fates%bc_in(s)%frac_sno_eff_si     = 0.0_r8
     

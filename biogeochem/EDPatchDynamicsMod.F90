@@ -758,7 +758,7 @@ contains
                             select case(i_disturbance_type)
                             case (dtype_ilog)
                                call logging_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in)
+                                    newPatch, patch_site_areadis)
 
                                ! if transitioning from primary to secondary, then may need to change nocomp pft,
                                ! so tag as having transitioned LU
@@ -767,13 +767,13 @@ contains
                                end if
                             case (dtype_ifire)
                                call fire_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in)
+                                    newPatch, patch_site_areadis)
                             case (dtype_ifall)
                                call mortality_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in)
+                                    newPatch, patch_site_areadis)
                             case (dtype_ilandusechange)
                                call landusechange_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in, &
+                                    newPatch, patch_site_areadis, &
                                     clearing_matrix(i_donorpatch_landuse_type,i_landusechange_receiverpatchlabel))
 
                                ! if land use change, then may need to change nocomp pft, so tag as having transitioned LU
@@ -1380,6 +1380,9 @@ contains
 
                    call InsertPatch(currentSite, newPatch)
 
+                   ! Now that the new patch is inserted, update the patch numbers
+                   call set_patchno(currentSite,.false.,0)
+
                    ! sort out the cohorts, since some of them may be so small as to need removing.
                    ! the first call to terminate cohorts removes sparse number densities,
                    ! the second call removes for all other reasons (sparse culling must happen
@@ -1394,7 +1397,6 @@ contains
 
 
                 call check_patch_area(currentSite)
-                call set_patchno(currentSite,.false.,0)
 
              end do landusechange_receiverpatchlabel_loop
           end do landuse_donortype_loop
@@ -2142,7 +2144,7 @@ contains
   ! ============================================================================
 
   subroutine fire_litter_fluxes(currentSite, currentPatch, &
-       newPatch, patch_site_areadis, bc_in)
+       newPatch, patch_site_areadis)
     !
     ! !DESCRIPTION:
     !  CWD pool burned by a fire. 
@@ -2161,7 +2163,6 @@ contains
     type(fates_patch_type) , intent(inout), target :: currentPatch   ! Donor Patch
     type(fates_patch_type) , intent(inout), target :: newPatch   ! New Patch
     real(r8)            , intent(in)            :: patch_site_areadis ! Area being donated
-    type(bc_in_type)    , intent(in)            :: bc_in
 
     !
     ! !LOCAL VARIABLES:
@@ -2304,7 +2305,7 @@ contains
              site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
              call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-                  bc_in%max_rooting_depth_index_col)
+                  currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
              ! Contribution of dead trees to root litter (no root burn flux to atm)
              do dcmpy=1,ndcmpy
@@ -2381,7 +2382,7 @@ contains
   ! ============================================================================
 
   subroutine mortality_litter_fluxes(currentSite, currentPatch, &
-       newPatch, patch_site_areadis,bc_in)
+       newPatch, patch_site_areadis)
     !
     ! !DESCRIPTION:
     ! Carbon going from mortality associated with disturbance into CWD pools. 
@@ -2403,7 +2404,6 @@ contains
     type(fates_patch_type) , intent(inout), target :: currentPatch
     type(fates_patch_type) , intent(inout), target :: newPatch
     real(r8)            , intent(in)            :: patch_site_areadis
-    type(bc_in_type)    , intent(in)            :: bc_in
     !
     ! !LOCAL VARIABLES:
     type(fates_cohort_type), pointer      :: currentCohort
@@ -2531,7 +2531,7 @@ contains
           bg_wood = num_dead * (struct_m + sapw_m) * (1.0_r8-prt_params%allom_agb_frac(pft))
           
           call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-               bc_in%max_rooting_depth_index_col)
+               currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
           ! Adjust how wood is partitioned between the cwd classes based on cohort dbh
 	  call adjust_SF_CWD_frac(currentCohort%dbh,ncwd,SF_val_CWD_frac,SF_val_CWD_frac_adj)
@@ -2614,8 +2614,8 @@ contains
     ! ============================================================================
 
   subroutine landusechange_litter_fluxes(currentSite, currentPatch, &
-       newPatch, patch_site_areadis, bc_in,  &
-       clearing_matrix_element)
+       newPatch, patch_site_areadis, clearing_matrix_element)
+       
     !
     ! !DESCRIPTION:
     !  CWD pool from land use change.
@@ -2630,7 +2630,6 @@ contains
     type(fates_patch_type) , intent(inout), target :: currentPatch   ! Donor Patch
     type(fates_patch_type) , intent(inout), target :: newPatch   ! New Patch
     real(r8)               , intent(in)            :: patch_site_areadis ! Area being donated
-    type(bc_in_type)       , intent(in)            :: bc_in
     logical                , intent(in)            :: clearing_matrix_element ! whether or not to clear vegetation
 
     !
@@ -2771,7 +2770,7 @@ contains
              site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
              call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-                  bc_in%max_rooting_depth_index_col)
+                  currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
              ! Contribution of dead trees to root litter (no root burn flux to atm)
              do dcmpy=1,ndcmpy

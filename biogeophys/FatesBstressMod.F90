@@ -68,7 +68,7 @@ contains
 
                  call set_root_fraction(sites(s)%rootfrac_scr, ft, &
                       sites(s)%zi_soil, &
-                      bc_in(s)%max_rooting_depth_index_col )
+                      sites(s)%bc_in(cpatch%patchno)%max_rooting_depth_index_col )
 
                  do j = 1,bc_in(s)%nlevsoil
                     
