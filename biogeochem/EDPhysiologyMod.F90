@@ -425,7 +425,7 @@ contains
 
   ! ============================================================================
 
-  subroutine PreDisturbanceLitterFluxes( currentSite, currentPatch, bc_in )
+  subroutine PreDisturbanceLitterFluxes( currentSite, currentPatch)
 
     ! -----------------------------------------------------------------------------------
     !
@@ -446,7 +446,6 @@ contains
     ! !ARGUMENTS
     type(ed_site_type), intent(inout)  :: currentSite
     type(fates_patch_type), intent(inout) :: currentPatch
-    type(bc_in_type), intent(in)       :: bc_in
 
     !
     ! !LOCAL VARIABLES:
@@ -476,12 +475,12 @@ contains
          ! Send fluxes from newly created litter into the litter pools
          ! This litter flux is from non-disturbance inducing mortality, as well
          ! as litter fluxes from live trees
-         call CWDInput(currentSite, currentPatch, litt,bc_in)
+         call CWDInput(currentSite, currentPatch, litt)
 
          ! Only calculate fragmentation flux over layers that are active
          ! (RGK-Mar2019) SHOULD WE MAX THIS AT 1? DONT HAVE TO
 
-         nlev_eff_decomp = max(bc_in%max_rooting_depth_index_col, 1)
+         nlev_eff_decomp = max(currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col, 1)
          call CWDOut(litt,currentPatch%fragmentation_scaler,nlev_eff_decomp)
 
          ! Fragmentation flux to soil decomposition model [kg/site/day]
@@ -2799,7 +2798,7 @@ contains
 
    ! ======================================================================================
 
-  subroutine CWDInput( currentSite, currentPatch, litt, bc_in)
+  subroutine CWDInput( currentSite, currentPatch, litt )
 
     !
     ! !DESCRIPTION:
@@ -2818,7 +2817,6 @@ contains
     type(ed_site_type), intent(inout), target :: currentSite
     type(fates_patch_type),intent(inout), target :: currentPatch
     type(litter_type),intent(inout),target    :: litt
-    type(bc_in_type),intent(in)               :: bc_in
 
     !
     ! !LOCAL VARIABLES:
@@ -2893,7 +2891,7 @@ contains
 
        pft = currentCohort%pft
        call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-           bc_in%max_rooting_depth_index_col)
+           currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
        store_m_turnover  = currentCohort%prt%GetTurnover(store_organ,element_id)
        fnrt_m_turnover   = currentCohort%prt%GetTurnover(fnrt_organ,element_id)

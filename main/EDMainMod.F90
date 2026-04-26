@@ -775,7 +775,7 @@ contains
 
        call GenerateDamageAndLitterFluxes( currentSite, currentPatch)
 
-       call PreDisturbanceLitterFluxes( currentSite, currentPatch, bc_in)
+       call PreDisturbanceLitterFluxes( currentSite, currentPatch )
 
        call PreDisturbanceIntegrateLitter(currentPatch )
 
