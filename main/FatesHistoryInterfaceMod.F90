@@ -2366,7 +2366,7 @@ contains
     if(hlm_hist_level_dynam>0) then
        call update_history_dyn_sitelevel(this,nc,nsites,sites)
        if(hlm_hist_level_dynam>1) then
-          call update_history_dyn_subsite(this,nc,nsites,sites,bc_in)
+          call update_history_dyn_subsite(this,nc,nsites,sites)
           call update_history_dyn_subsite_ageclass(this,nc,nsites,sites)
           call reset_history_dyn_subsite(this, nsites, sites)
        end if
@@ -3063,7 +3063,7 @@ contains
 
   ! =========================================================================================
 
-  subroutine update_history_dyn_subsite(this,nc,nsites,sites,bc_in)
+  subroutine update_history_dyn_subsite(this,nc,nsites,sites)
 
     ! ---------------------------------------------------------------------------------
     ! This subroutine is intended to update all history variables with upfreq ==
@@ -3077,7 +3077,6 @@ contains
     integer                 , intent(in)            :: nc   ! clump index
     integer                 , intent(in)            :: nsites
     type(ed_site_type)      , intent(inout), target :: sites(nsites)
-    type(bc_in_type)        , intent(in)            :: bc_in(nsites)
 
     type(fates_cohort_type), pointer :: ccohort
     type(fates_patch_type),  pointer :: cpatch
@@ -3534,7 +3533,7 @@ contains
                    endif
 
                    call set_root_fraction(sites(s)%rootfrac_scr, ccohort%pft, sites(s)%zi_soil, &
-                        bc_in(s)%max_rooting_depth_index_col )
+                        sites(s)%bc_in(cpatch%patchno)%max_rooting_depth_index_col )
 
                    ! Update biomass components
                    ! Mass pools [kg]
