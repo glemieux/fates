@@ -770,7 +770,7 @@ contains
                                     newPatch, patch_site_areadis)
                             case (dtype_ifall)
                                call mortality_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in)
+                                    newPatch, patch_site_areadis)
                             case (dtype_ilandusechange)
                                call landusechange_litter_fluxes(currentSite, currentPatch, &
                                     newPatch, patch_site_areadis,bc_in, &
@@ -2380,7 +2380,7 @@ contains
   ! ============================================================================
 
   subroutine mortality_litter_fluxes(currentSite, currentPatch, &
-       newPatch, patch_site_areadis,bc_in)
+       newPatch, patch_site_areadis)
     !
     ! !DESCRIPTION:
     ! Carbon going from mortality associated with disturbance into CWD pools. 
@@ -2402,7 +2402,6 @@ contains
     type(fates_patch_type) , intent(inout), target :: currentPatch
     type(fates_patch_type) , intent(inout), target :: newPatch
     real(r8)            , intent(in)            :: patch_site_areadis
-    type(bc_in_type)    , intent(in)            :: bc_in
     !
     ! !LOCAL VARIABLES:
     type(fates_cohort_type), pointer      :: currentCohort
@@ -2530,7 +2529,7 @@ contains
           bg_wood = num_dead * (struct_m + sapw_m) * (1.0_r8-prt_params%allom_agb_frac(pft))
           
           call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-               bc_in%max_rooting_depth_index_col)
+               currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
           ! Adjust how wood is partitioned between the cwd classes based on cohort dbh
 	  call adjust_SF_CWD_frac(currentCohort%dbh,ncwd,SF_val_CWD_frac,SF_val_CWD_frac_adj)
