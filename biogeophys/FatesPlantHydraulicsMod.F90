@@ -1530,6 +1530,7 @@ subroutine HydrSiteColdStart(sites, bc_in )
   integer :: j,j_t,j_b
   integer :: nsites
   integer :: nlevrhiz
+  integer :: ifp
   class(wrf_type_vg), pointer :: wrf_vg
   class(wkf_type_vg), pointer :: wkf_vg
   class(wrf_type_cch), pointer :: wrf_cch
@@ -1541,13 +1542,15 @@ subroutine HydrSiteColdStart(sites, bc_in )
 
   do s = 1,nsites
 
+     ifp = 1
+
      csite_hydr => sites(s)%si_hydr
      nlevrhiz  =  csite_hydr%nlevrhiz
 
      do j = 1,nlevrhiz
         j_t = csite_hydr%map_r2s(j,1) ! top soil layer matching rhiz layer
         j_b = csite_hydr%map_r2s(j,2) ! bottom soil layer matching rhiz layer
-        eff_por = csite_hydr%AggBCToRhiz(bc_in(s)%eff_porosity_sl,j,bc_in(s)%dz_sisl)
+        eff_por = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%eff_porosity_sl,j,bc_in(s)%dz_sisl)
 
         ! [kg/m2] / ([m] * [kg/m3]) = [m3/m3]
         h2osoi_liqvol = min(eff_por, &
@@ -2756,12 +2759,14 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
 
            sumweight = 0._r8
            do j_bc = j_t,j_b
+              ! Temporarily set ifp index for mcf update
+              ifp = 1
               if(rootflux_disagg == soilk_disagg)then
                  if(qflx_soil2root_rhiz>0._r8 )then
                     ! Weight disaggregation by K*dz, but only for flux
                     ! into the root, othersize weight by root length
                     ! h2osoi_liqvol: [kg/m2] / [m] / [kg/m3] = [m3/m3]
-                    eff_por       = bc_in(s)%eff_porosity_sl(j_bc)
+                    eff_por       = sites(s)%bc_in(ifp)%eff_porosity_sl(j_bc)
                     h2osoi_liqvol = min(eff_por, bc_in(s)%h2o_liq_sisl(j_bc)/(bc_in(s)%dz_sisl(j_bc)*denh2o))
                     psi_layer     = csite_hydr%wrf_soil(j)%p%psi_from_th(h2osoi_liqvol)
                     ftc_layer     = csite_hydr%wkf_soil(j)%p%ftc_from_psi(psi_layer)

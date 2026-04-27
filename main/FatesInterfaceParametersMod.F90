@@ -24,6 +24,7 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_litter_nitrogen_lignin = 'litter_nitrogen_lignin'
   character(len=*), parameter, public :: hlm_fates_litter_nitrogen_labile = 'litter_nitrogen_labile'
   character(len=*), parameter, public :: hlm_fates_litter_nitrogen_total= 'litter_nitrogen_total'
+  character(len=*), parameter, public :: hlm_fates_effective_porosity = 'effective_porosity'
 
   ! Registry update frequency parameters
   integer, parameter, public :: registry_update_init_dims = 0  ! variable dimension that needs to be updated during initialization

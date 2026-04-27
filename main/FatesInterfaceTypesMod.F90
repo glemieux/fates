@@ -981,12 +981,14 @@ module FatesInterfaceTypesMod
     allocate(this%dz_decomp_sisl(this%nlevdecomp_full))
     allocate(this%w_scalar_sisl(this%nlevdecomp_full))
     allocate(this%t_scalar_sisl(this%nlevdecomp_full))
+    allocate(this%eff_porosity_sl(this%nlevgrnd))
     
     ! Unset variables
     this%decomp_id = fates_unset_int
     this%dz_decomp_sisl = nan
     this%w_scalar_sisl = nan
     this%t_scalar_sisl = nan
+    this%eff_porosity_sl = nan
     this%max_thaw_depth_index = fates_unset_int
 
   end subroutine InitializeBCIn
@@ -1192,6 +1194,8 @@ module FatesInterfaceTypesMod
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
     call this%DefineInterfaceVariable(key=hlm_fates_litter_carbon_total, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
+    call this%DefineInterfaceVariable(key=hlm_fates_effective_porosity, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
 
     ! Define the N and P litter fluxes if in CNP mode
     ! We could define the interface variables always, even if not registered, but this helps reduce the memory needs
