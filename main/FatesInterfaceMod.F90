@@ -327,8 +327,6 @@ contains
     fates%bc_in(s)%albgr_dif_rb(:)     = 0.0_r8
     fates%bc_in(s)%max_rooting_depth_index_col = 0
     fates%bc_in(s)%tot_het_resp        = 0.0_r8
-    fates%bc_in(s)%tot_somc            = 0.0_r8 
-    fates%bc_in(s)%tot_litc            = 0.0_r8
     fates%bc_in(s)%snow_depth_si       = 0.0_r8
     fates%bc_in(s)%frac_sno_eff_si     = 0.0_r8
     

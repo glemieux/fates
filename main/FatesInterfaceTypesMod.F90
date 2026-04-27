@@ -528,8 +528,6 @@ module FatesInterfaceTypesMod
       ! BGC Accounting
 
       real(r8) :: tot_het_resp  ! total heterotrophic respiration  (gC/m2/s)
-      real(r8) :: tot_somc      ! total soil organic matter carbon (gc/m2)
-      real(r8) :: tot_litc      ! total litter carbon tracked in the HLM (gc/m2)
 
       ! Canopy Structure
 
