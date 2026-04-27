@@ -124,6 +124,7 @@ contains
     real(r8) :: temprootr
     real(r8) :: sum_pftgs         ! sum of weighted conductances (for normalization)
     real(r8), allocatable :: root_resis(:,:)  ! Root resistance in each pft x layer
+    real(r8) :: effective_porosity            ! Effective porosity in each soil layer
     !------------------------------------------------------------------------------
 
     associate(                                 &
@@ -160,8 +161,16 @@ contains
                    if ( check_layer_water(bc_in(s)%h2o_liqvol_sl(j),bc_in(s)%tempk_sl(j)) )  then
 
                       smp_node = max(smpsc(ft), bc_in(s)%smp_sl(j))
+                      
+                      ! Check that the patch has exposed vegetation
+                      ! If it does, locally override the inbound effective porosity values from the host
+                      ! Note that filter_btran will need to be converted to handle MCF
+                      effective_porosity = sites(s)%bc_in(ifp)%eff_porosity_sl(j)
+                      if (.not. bc_in(s)%filter_btran) then
+                         effective_porosity = -999._r8
+                      end if
 
-                      rresis  = min( (bc_in(s)%eff_porosity_sl(j)/bc_in(s)%watsat_sl(j))*               &
+                      rresis  = min( (effective_porosity/bc_in(s)%watsat_sl(j))*               &
                            (smp_node - smpsc(ft)) / (smpso(ft) - smpsc(ft)), 1._r8)
 
                       root_resis(ft,j) = sites(s)%rootfrac_scr(j)*rresis
@@ -247,6 +256,7 @@ contains
                 enddo
                 
              end if
+
           endif if_bare
           cpatch => cpatch%younger
        end do
