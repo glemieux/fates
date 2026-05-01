@@ -929,6 +929,7 @@ module FatesInterfaceTypesMod
       procedure :: SetLastState
       procedure :: UpdateLitterFluxes
       procedure :: Update => UpdateInterfaceVariables
+      procedure :: UpdateTimeStep => UpdateInterfaceVariablesTimestep
 
       generic :: Register => RegisterInterfaceVariables_0d, & 
                              RegisterInterfaceVariables_1d, &
@@ -1908,6 +1909,25 @@ module FatesInterfaceTypesMod
     end do
 
   end subroutine UpdateInterfaceVariables
+
+  ! ======================================================================================
+
+  subroutine UpdateInterfaceVariablesTimestep(this)
+
+    ! This procedure updates interface variables that need to be updated on the model timestep
+
+    class(fates_interface_registry_type), intent(inout) :: this
+
+    integer :: n
+    integer :: i
+
+    ! Iterate over the timestep filter to update the individual variables
+    do n = 1, this%num_api_vars_update_timestep
+       i = this%filter_timestep(n)
+       call this%fates_vars(i)%Update(this%hlm_vars(i))
+    end do
+
+  end subroutine UpdateInterfaceVariablesTimestep
 
   ! ======================================================================================
   
