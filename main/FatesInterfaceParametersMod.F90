@@ -11,6 +11,7 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_soil_level = 'soil_level_number'
   character(len=*), parameter, public :: hlm_fates_decomp_frac_moisture = 'decomp_frac_moisture'
   character(len=*), parameter, public :: hlm_fates_decomp_frac_temperature = 'decomp_frac_temperature'
+  character(len=*), parameter, public :: hlm_fates_nlevground = 'nlevground'
   character(len=*), parameter, public :: hlm_fates_litter_carbon_cellulose = 'litter_carbon_cellulose'
   character(len=*), parameter, public :: hlm_fates_litter_carbon_lignin = 'litter_carbon_lignin'
   character(len=*), parameter, public :: hlm_fates_litter_carbon_labile = 'litter_carbon_labile'
@@ -23,6 +24,9 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_litter_nitrogen_lignin = 'litter_nitrogen_lignin'
   character(len=*), parameter, public :: hlm_fates_litter_nitrogen_labile = 'litter_nitrogen_labile'
   character(len=*), parameter, public :: hlm_fates_litter_nitrogen_total= 'litter_nitrogen_total'
+  character(len=*), parameter, public :: hlm_fates_effective_porosity = 'effective_porosity'
+  character(len=*), parameter, public :: hlm_fates_soil_water_saturation = 'soil_water_saturation'
+  character(len=*), parameter, public :: hlm_fates_heterotrophic_respiration = 'heterotrophic_respiration'
 
   ! Registry update frequency parameters
   integer, parameter, public :: registry_update_init_dims = 0  ! variable dimension that needs to be updated during initialization

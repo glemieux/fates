@@ -331,7 +331,7 @@ contains
                 pft   = ccohort%pft
                 
                 call set_root_fraction(csite%rootfrac_scr, pft, csite%zi_soil, &
-                     bc_in%max_rooting_depth_index_col )
+                     csite%bc_in(cpatch%patchno)%max_rooting_depth_index_col )
                 
                 fnrt_c   = ccohort%prt%GetState(fnrt_organ, carbon12_element)
                 
@@ -488,7 +488,7 @@ contains
           bc_out%ft_index(icomp) = pft
            
           call set_root_fraction(csite%rootfrac_scr, pft, csite%zi_soil, &
-               bc_in%max_rooting_depth_index_col )
+               csite%bc_in(cpatch%patchno)%max_rooting_depth_index_col )
 
           fnrt_c   = ccohort%prt%GetState(fnrt_organ, carbon12_element)
 
@@ -541,7 +541,7 @@ contains
 
   ! =====================================================================================
 
-  subroutine EffluxIntoLitterPools(csite, cpatch, ccohort, bc_in )
+  subroutine EffluxIntoLitterPools(csite, cpatch, ccohort)
 
     ! -----------------------------------------------------------------------------------
     ! This subroutine just handles the transfer of exudation/efflux from plants
@@ -554,7 +554,6 @@ contains
     type(ed_site_type), intent(inout)   :: csite
     type(fates_patch_type), intent(inout) :: cpatch
     type(fates_cohort_type), intent(inout),target :: ccohort
-    type(bc_in_type), intent(in) :: bc_in
 
     ! locals
     integer :: el                           ! element loop index
@@ -564,7 +563,7 @@ contains
     
     call set_root_fraction(csite%rootfrac_scr, &
          ccohort%pft, csite%zi_soil, &
-         bc_in%max_rooting_depth_index_col )
+         csite%bc_in(cpatch%patchno)%max_rooting_depth_index_col )
     
     ! Loop over the different elements. 
     do el = 1, num_elements

@@ -190,7 +190,9 @@ module FatesInterfaceMod
          procedure         :: SetRegistryActiveState
          procedure         :: SetRegistryLastState
          procedure, public :: UpdateInterfaceVariables
+         procedure, public :: UpdateInterfaceVariablesTimestep
          procedure, public :: UpdateLitterFluxes
+         procedure, public :: UpdateInterfaceVariablesTimeStep
       
    end type fates_interface_type
    
@@ -318,17 +320,11 @@ contains
     fates%bc_in(s)%solad_parb(:,:)     = 0.0_r8
     fates%bc_in(s)%solai_parb(:,:)     = 0.0_r8
     fates%bc_in(s)%smp_sl(:)           = 0.0_r8
-    fates%bc_in(s)%eff_porosity_sl(:)  = 0.0_r8
-    fates%bc_in(s)%watsat_sl(:)        = 0.0_r8
     fates%bc_in(s)%tempk_sl(:)         = 0.0_r8
     fates%bc_in(s)%h2o_liqvol_sl(:)    = 0.0_r8
     fates%bc_in(s)%fcansno_pa(:)       = 0.0_r8
     fates%bc_in(s)%albgr_dir_rb(:)     = 0.0_r8
     fates%bc_in(s)%albgr_dif_rb(:)     = 0.0_r8
-    fates%bc_in(s)%max_rooting_depth_index_col = 0
-    fates%bc_in(s)%tot_het_resp        = 0.0_r8
-    fates%bc_in(s)%tot_somc            = 0.0_r8 
-    fates%bc_in(s)%tot_litc            = 0.0_r8
     fates%bc_in(s)%snow_depth_si       = 0.0_r8
     fates%bc_in(s)%frac_sno_eff_si     = 0.0_r8
     
@@ -542,8 +538,6 @@ contains
       
       ! Hydrology
       allocate(bc_in%smp_sl(nlevsoil_in))
-      allocate(bc_in%eff_porosity_sl(nlevsoil_in))
-      allocate(bc_in%watsat_sl(nlevsoil_in))
       allocate(bc_in%tempk_sl(nlevsoil_in))
       allocate(bc_in%h2o_liqvol_sl(nlevsoil_in))
       
@@ -2982,6 +2976,7 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
       r = this%sites(s)%GetRegistryIndex(ifp)
 
       ! Register the boundary conditions that are necessary for allocating other boundary conditions first
+      call this%registry(r)%Register(key=hlm_fates_nlevground, data=bc_in%nlevgrnd, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_decomp_max, data=bc_in%nlevdecomp_full, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_decomp, data=bc_in%nlevdecomp, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_soil_level, data=bc_in%nlevsoil, hlm_flag=.false.)
@@ -3004,6 +2999,12 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                      data=bc_in%w_scalar_sisl, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_decomp_frac_temperature, &                               
                                      data=bc_in%t_scalar_sisl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_effective_porosity, &                               
+                                     data=bc_in%eff_porosity_sl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_soil_water_saturation, &                               
+                                    data=bc_in%watsat_sl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_heterotrophic_respiration, &                               
+                                    data=bc_in%tot_het_resp, hlm_flag=.false.)
       
       ! bc_out
       nlevdecomp = bc_in%nlevdecomp
@@ -3154,6 +3155,36 @@ end subroutine UpdateInterfaceVariables
 
 ! ======================================================================================
 
+subroutine UpdateInterfaceVariablesTimeStep(this)
+
+   ! This procedure handles updating the interface variables that need to be updated at 
+   ! every model time step.
+
+   ! Arguments 
+   class(fates_interface_type), intent(inout) :: this
+   
+   ! Locals
+   integer :: n  ! active registry index iterator
+   integer :: r  ! registry index 
+
+   ! Set the registry active state
+   call this%SetRegistryActiveState()
+
+   ! Set the registry last state
+   call this%SetRegistryLastState()
+   
+   ! Loop through the active registries and update the litter fluxes
+   do n = 1, this%num_active_patches
+      r = this%filter_registry_active(n)
+      
+      call this%registry(r)%UpdateTimestep()
+      
+   end do
+
+end subroutine UpdateInterfaceVariablesTimeStep
+
+! ======================================================================================
+
 subroutine UpdateLitterFluxes(this, dtime)
 
    ! This procedure handles the updating of litter fluxes from FATES to the HLM.
@@ -3181,6 +3212,33 @@ subroutine UpdateLitterFluxes(this, dtime)
    end do
 
 end subroutine UpdateLitterFluxes
+
+! ======================================================================================
+
+subroutine UpdateInterfaceVariablesTimeStep(this)
+
+   ! This procedure handles update to the interface variables that should be updated 
+   ! for each host land model time step
+   
+   ! Arguments
+   class(fates_interface_type), intent(inout) :: this
+   
+   ! Locals
+   integer :: n  ! active registry index iterator
+   integer :: r  ! registry index 
+
+   ! Set the registry active state
+   call this%SetRegistryActiveState()
+
+   ! Loop through the active registries and update the model time step interface variables 
+   do n = 1, this%num_active_patches
+      r = this%filter_registry_active(n)
+      
+      call this%registry(r)%UpdateTimeStep()
+      
+   end do
+
+end subroutine UpdateInterfaceVariablesTimeStep
 
 ! ======================================================================================
 

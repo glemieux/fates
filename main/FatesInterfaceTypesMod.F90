@@ -392,6 +392,7 @@ module FatesInterfaceTypesMod
 
       ! Soil layer structure
 
+      integer              :: nlevgrnd           ! the number of ground layers in this column
       integer              :: nlevsoil           ! the number of soil layers in this column
       integer              :: nlevdecomp         ! the number of active soil layers in the column
       integer              :: nlevdecomp_full    ! the maximum possible soil layers for any column
@@ -527,8 +528,6 @@ module FatesInterfaceTypesMod
       ! BGC Accounting
 
       real(r8) :: tot_het_resp  ! total heterotrophic respiration  (gC/m2/s)
-      real(r8) :: tot_somc      ! total soil organic matter carbon (gc/m2)
-      real(r8) :: tot_litc      ! total litter carbon tracked in the HLM (gc/m2)
 
       ! Canopy Structure
 
@@ -930,6 +929,7 @@ module FatesInterfaceTypesMod
       procedure :: SetLastState
       procedure :: UpdateLitterFluxes
       procedure :: Update => UpdateInterfaceVariables
+      procedure :: UpdateTimeStep => UpdateInterfaceVariablesTimeStep
 
       generic :: Register => RegisterInterfaceVariables_0d, & 
                              RegisterInterfaceVariables_1d, &
@@ -982,12 +982,16 @@ module FatesInterfaceTypesMod
     allocate(this%dz_decomp_sisl(this%nlevdecomp_full))
     allocate(this%w_scalar_sisl(this%nlevdecomp_full))
     allocate(this%t_scalar_sisl(this%nlevdecomp_full))
+    allocate(this%eff_porosity_sl(this%nlevgrnd))
+    allocate(this%watsat_sl(this%nlevgrnd))
     
     ! Unset variables
     this%decomp_id = fates_unset_int
     this%dz_decomp_sisl = nan
     this%w_scalar_sisl = nan
     this%t_scalar_sisl = nan
+    this%eff_porosity_sl = nan
+    this%watsat_sl = nan
     this%max_thaw_depth_index = fates_unset_int
 
   end subroutine InitializeBCIn
@@ -1166,6 +1170,8 @@ module FatesInterfaceTypesMod
     ! Define the interface registry names and indices
     ! Variables that need to be updated during initialization and are necessary for other boundary conditions
     ! such as dimensions
+    call this%DefineInterfaceVariable(key=hlm_fates_nlevground, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_init_dims)
     call this%DefineInterfaceVariable(key=hlm_fates_decomp_max, initialize=initialize, index=index, &
                                       update_frequency=registry_update_init_dims)
     call this%DefineInterfaceVariable(key=hlm_fates_decomp, initialize=initialize, index=index, &
@@ -1191,6 +1197,12 @@ module FatesInterfaceTypesMod
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
     call this%DefineInterfaceVariable(key=hlm_fates_litter_carbon_total, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
+    call this%DefineInterfaceVariable(key=hlm_fates_effective_porosity, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_soil_water_saturation, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_heterotrophic_respiration, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
 
     ! Define the N and P litter fluxes if in CNP mode
     ! We could define the interface variables always, even if not registered, but this helps reduce the memory needs
@@ -1905,6 +1917,25 @@ module FatesInterfaceTypesMod
   end subroutine UpdateInterfaceVariables
 
   ! ======================================================================================
+
+  subroutine UpdateInterfaceVariablesTimestep(this)
+
+    ! This procedure updates interface variables that need to be updated on the model timestep
+
+    class(fates_interface_registry_type), intent(inout) :: this
+
+    integer :: n
+    integer :: i
+
+    ! Iterate over the timestep filter to update the individual variables
+    do n = 1, this%num_api_vars_update_timestep
+       i = this%filter_timestep(n)
+       call this%fates_vars(i)%Update(this%hlm_vars(i))
+    end do
+
+  end subroutine UpdateInterfaceVariablesTimestep
+
+  ! ======================================================================================
   
   ! subroutine UpdateLitterFluxes(this, dtime)
   subroutine UpdateLitterFluxes(this)
@@ -1967,6 +1998,35 @@ module FatesInterfaceTypesMod
     
   end subroutine UpdateLitterFluxes
 
+  ! ======================================================================================
+  
+  subroutine UpdateInterfaceVariablesTimeStep(this)
+  
+    ! This procedure updates the interface variables that are updated on the model time-step.
+
+    class(fates_interface_registry_type), intent(inout) :: this  ! registry being updated
+
+    integer :: i  ! update iterator
+    integer :: j  ! variable index
+    
+    ! Update the boundary conditions necessary during time-step updates only
+    do i = 1, this%num_api_vars_update_timestep
+      
+      ! Get the variable index from the filter
+      j = this%filter_timestep(i)
+      
+      ! Skip updating litter flux variables as they are handled via a separate update call
+      if (.not. (any(this%filter_litter_flux(:) == j) .or. &
+                 this%key(j) == hlm_fates_litter_carbon_total .or. &
+                 this%key(j) == hlm_fates_litter_phosphorus_total .or. &
+                 this%key(j) == hlm_fates_litter_nitrogen_total)) then
+        call this%fates_vars(j)%Update(this%hlm_vars(j))
+      end if
+
+    end do
+    
+  end subroutine UpdateInterfaceVariablesTimeStep
+  
   ! ======================================================================================
 
   integer function GetRegistryVariableIndex(this, key) result(index)
