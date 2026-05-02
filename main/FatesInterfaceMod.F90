@@ -190,6 +190,7 @@ module FatesInterfaceMod
          procedure         :: SetRegistryActiveState
          procedure         :: SetRegistryLastState
          procedure, public :: UpdateInterfaceVariables
+         procedure, public :: UpdateInterfaceVariablesTimestep
          procedure, public :: UpdateLitterFluxes
       
    end type fates_interface_type
@@ -3150,6 +3151,33 @@ subroutine UpdateInterfaceVariables(this, initialize, restarting)
    end do
    
 end subroutine UpdateInterfaceVariables
+
+! ======================================================================================
+
+subroutine UpdateInterfaceVariablesTimeStep(this)
+
+   ! This procedure handles updating the interface variables that need to be updated at 
+   ! every model time step.
+
+   ! Arguments 
+   class(fates_interface_type), intent(inout) :: this
+   
+   ! Locals
+   integer :: n  ! active registry index iterator
+   integer :: r  ! registry index 
+
+   ! Set the registry active state
+   call this%SetRegistryActiveState()
+
+   ! Loop through the active registries and update the litter fluxes
+   do n = 1, this%num_active_patches
+      r = this%filter_registry_active(n)
+      
+      call this%registry(r)%UpdateTimestep()
+      
+   end do
+
+end subroutine UpdateInterfaceVariablesTimeStep
 
 ! ======================================================================================
 

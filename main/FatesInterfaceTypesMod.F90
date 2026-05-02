@@ -929,6 +929,7 @@ module FatesInterfaceTypesMod
       procedure :: SetLastState
       procedure :: UpdateLitterFluxes
       procedure :: Update => UpdateInterfaceVariables
+      procedure :: UpdateTimeStep => UpdateInterfaceVariablesTimeStep
 
       generic :: Register => RegisterInterfaceVariables_0d, & 
                              RegisterInterfaceVariables_1d, &
@@ -1972,6 +1973,35 @@ module FatesInterfaceTypesMod
     
   end subroutine UpdateLitterFluxes
 
+  ! ======================================================================================
+  
+  subroutine UpdateInterfaceVariablesTimeStep(this)
+  
+    ! This procedure updates the interface variables that are updated on the model time-step.
+
+    class(fates_interface_registry_type), intent(inout) :: this  ! registry being updated
+
+    integer :: i  ! update iterator
+    integer :: j  ! variable index
+    
+    ! Update the boundary conditions necessary during time-step updates only
+    do i = 1, this%num_api_vars_update_timestep
+      
+      ! Get the variable index from the filter
+      j = this%filter_timestep(i)
+      
+      ! Skip updating litter flux variables as they are handled via a separate update call
+      if (any(this%filter_litter_flux(:) == j)) then
+        write(fates_log(),*) 'SLS: skipping update of variable with index ', j, ' as it is included in the litter flux filter'
+      else
+        write(fates_log(),*) 'SLS: updating variable with index ', j, ' in UpdateTimestepInterfaceVariables()'
+        call this%fates_vars(j)%Update(this%hlm_vars(j))
+      end if
+
+    end do
+    
+  end subroutine UpdateInterfaceVariablesTimeStep
+  
   ! ======================================================================================
 
   integer function GetRegistryVariableIndex(this, key) result(index)
