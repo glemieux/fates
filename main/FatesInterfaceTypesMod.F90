@@ -929,6 +929,7 @@ module FatesInterfaceTypesMod
       procedure :: SetLastState
       procedure :: UpdateLitterFluxes
       procedure :: Update => UpdateInterfaceVariables
+      procedure :: UpdateHistory => UpdateInterfaceVariablesHistory
       procedure :: UpdateTimeStep => UpdateInterfaceVariablesTimeStep
 
       generic :: Register => RegisterInterfaceVariables_0d, & 
@@ -1200,6 +1201,8 @@ module FatesInterfaceTypesMod
     call this%DefineInterfaceVariable(key=hlm_fates_effective_porosity, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
     call this%DefineInterfaceVariable(key=hlm_fates_soil_water_saturation, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_heterotrophic_respiration, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
 
     ! Define the N and P litter fluxes if in CNP mode
@@ -1976,6 +1979,24 @@ module FatesInterfaceTypesMod
 
     
   end subroutine UpdateLitterFluxes
+
+  ! ======================================================================================
+  
+  subroutine UpdateInterfaceVariablesHistory(this)
+  
+    ! This procedure updates the interface variables that are updated for the fates history
+    ! update only.  Since the subset of these variables is currently very small, a filter
+    ! had not been implemented for this set but could be added in the future if desired.
+
+    class(fates_interface_registry_type), intent(inout) :: this  ! registry being updated
+
+    integer :: i  ! update iterator
+    
+    ! Update the boundary conditions necessary for fates history output by key selection
+    i = this%GetRegistryVariableIndex(hlm_fates_heterotrophic_respiration)
+    call this%fates_vars(i)%Update(this%hlm_vars(i))
+    
+  end subroutine UpdateInterfaceVariablesHistory
 
   ! ======================================================================================
   

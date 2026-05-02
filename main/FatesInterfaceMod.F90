@@ -325,7 +325,6 @@ contains
     fates%bc_in(s)%albgr_dir_rb(:)     = 0.0_r8
     fates%bc_in(s)%albgr_dif_rb(:)     = 0.0_r8
     fates%bc_in(s)%max_rooting_depth_index_col = 0
-    fates%bc_in(s)%tot_het_resp        = 0.0_r8
     fates%bc_in(s)%snow_depth_si       = 0.0_r8
     fates%bc_in(s)%frac_sno_eff_si     = 0.0_r8
     
@@ -3004,6 +3003,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                      data=bc_in%eff_porosity_sl, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_soil_water_saturation, &                               
                                     data=bc_in%watsat_sl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_heterotrophic_respiration, &                               
+                                    data=bc_in%tot_het_resp, hlm_flag=.false.)
       
       ! bc_out
       nlevdecomp = bc_in%nlevdecomp
@@ -3154,17 +3155,25 @@ end subroutine UpdateInterfaceVariables
 
 ! ======================================================================================
 
-subroutine UpdateInterfaceVariablesTimeStep(this)
+subroutine UpdateInterfaceVariablesTimeStep(this, update_history)
 
    ! This procedure handles updating the interface variables that need to be updated at 
    ! every model time step.
 
    ! Arguments 
    class(fates_interface_type), intent(inout) :: this
+   logical, optional, intent(in)              :: update_history
    
    ! Locals
    integer :: n  ! active registry index iterator
    integer :: r  ! registry index 
+
+   logical :: update_history_local  ! local flag for updating history variables
+
+   update_history_local = .false.
+   if (present(update_history)) then
+      update_history_local = update_history
+   end if
 
    ! Set the registry active state
    call this%SetRegistryActiveState()
@@ -3173,7 +3182,12 @@ subroutine UpdateInterfaceVariablesTimeStep(this)
    do n = 1, this%num_active_patches
       r = this%filter_registry_active(n)
       
-      call this%registry(r)%UpdateTimestep()
+      if (update_history_local) then
+         call this%registry(r)%UpdateHistory()
+      else
+         call this%registry(r)%UpdateTimestep()
+      end if
+
       
    end do
 
