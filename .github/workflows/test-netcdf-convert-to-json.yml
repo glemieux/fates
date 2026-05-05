@@ -27,13 +27,13 @@ jobs:
       run: pip install xarray numpy
 
     - name: Generate NetCDF from CDL
-      run: ncgen -o fates_params_test.nc parameter_files/archive/api40.0.0_060625_params_default.cdl
+      run: ncgen -o fates_params_test.nc testing/fates_parameter_test.cdl
 
     - name: Validate NetCDF file
-      run: ncdump -h fates_params_default.nc
+      run: ncdump -h fates_params_test.nc
 
     - name: Convert NetCDF to JSON
       run: python tools/netcdf_to_json.py fates_params_test.nc fates_params_test.json
 
     - name: Check JSON output exists
-      run: ls -la fates_params_default.json
+      run: ls -la fates_params_test.json
