@@ -531,7 +531,7 @@ module FatesInterfaceTypesMod
 
       ! Canopy Structure
 
-      real(r8) :: snow_depth_si    ! Depth of snow in snowy areas of site (m)
+      real(r8) :: snow_depth    ! Depth of snow in snowy areas of site (m)
       real(r8) :: frac_sno_eff_si  ! Fraction of ground covered by snow (0-1)
 
       ! Hydrology variables for BTRAN
@@ -993,6 +993,7 @@ module FatesInterfaceTypesMod
     this%eff_porosity_sl = nan
     this%watsat_sl = nan
     this%max_thaw_depth_index = fates_unset_int
+    this%snow_depth = nan
 
   end subroutine InitializeBCIn
 
@@ -1202,6 +1203,8 @@ module FatesInterfaceTypesMod
     call this%DefineInterfaceVariable(key=hlm_fates_soil_water_saturation, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
     call this%DefineInterfaceVariable(key=hlm_fates_heterotrophic_respiration, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_snow_depth, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
 
     ! Define the N and P litter fluxes if in CNP mode

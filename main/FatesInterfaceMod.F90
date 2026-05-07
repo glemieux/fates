@@ -324,7 +324,6 @@ contains
     fates%bc_in(s)%fcansno_pa(:)       = 0.0_r8
     fates%bc_in(s)%albgr_dir_rb(:)     = 0.0_r8
     fates%bc_in(s)%albgr_dif_rb(:)     = 0.0_r8
-    fates%bc_in(s)%snow_depth_si       = 0.0_r8
     fates%bc_in(s)%frac_sno_eff_si     = 0.0_r8
     
     if(do_fates_salinity)then
@@ -3004,7 +3003,9 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                     data=bc_in%watsat_sl, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_heterotrophic_respiration, &                               
                                     data=bc_in%tot_het_resp, hlm_flag=.false.)
-      
+      call this%registry(r)%Register(key=hlm_fates_snow_depth, &                               
+                                    data=bc_in%snow_depth, hlm_flag=.false.)
+
       ! bc_out
       nlevdecomp = bc_in%nlevdecomp
       call this%registry(r)%Register(key=hlm_fates_litter_carbon_cellulose, &

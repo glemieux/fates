@@ -940,9 +940,14 @@ contains
     type(bc_in_type)        , intent(in)            :: bc_in(:)
 
     integer  :: s
+    integer  :: ifp
 
     do s = 1, size(sites,dim=1)
-       sites(s)%snow_depth = bc_in(s)%snow_depth_si * bc_in(s)%frac_sno_eff_si
+      
+       ! Prior to multicolumn fates, this can be hardcoded to 1
+       ifp = 1 
+    
+       sites(s)%snow_depth = sites(s)%bc_in(ifp)%snow_depth * bc_in(s)%frac_sno_eff_si
     end do
 
     return
