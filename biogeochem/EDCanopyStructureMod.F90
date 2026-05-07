@@ -939,15 +939,25 @@ contains
     type(ed_site_type)      , intent(inout), target :: sites(:)
     type(bc_in_type)        , intent(in)            :: bc_in(:)
 
+    ! Local
+    type (fates_patch_type)  , pointer :: currentPatch
+
     integer  :: s
     integer  :: ifp
 
     do s = 1, size(sites,dim=1)
       
-       ! Prior to multicolumn fates, this can be hardcoded to 1
-       ifp = 1 
-    
-       sites(s)%snow_depth = sites(s)%bc_in(ifp)%snow_depth * bc_in(s)%frac_sno_eff_si
+      currentPatch => sites(s)%oldest_patch
+
+      do while(associated(currentPatch))
+         
+         ifp = currentPatch%patchno
+         currentPatch%snow_depth = sites(s)%bc_in(ifp)%snow_depth * bc_in(s)%frac_sno_eff_si
+         
+         currentPatch => currentPatch%younger
+         
+      end do 
+
     end do
 
     return
@@ -1129,15 +1139,15 @@ contains
                         ( real(iv,r8)/currentCohort%NV * crown_depth )
 
                    fraction_exposed = 1.0_r8
-                   if(currentSite%snow_depth  > layer_top_height)then
+                   if(cpatch%snow_depth  > layer_top_height)then
                       fraction_exposed = 0._r8
                    endif
-                   if(currentSite%snow_depth < layer_bottom_height)then
+                   if(cpatch%snow_depth < layer_bottom_height)then
                       fraction_exposed = 1._r8
                    endif
-                   if(currentSite%snow_depth >= layer_bottom_height .and. &
-                        currentSite%snow_depth <= layer_top_height) then !only partly hidden...
-                      fraction_exposed =  1._r8 - max(0._r8,(min(1.0_r8,(currentSite%snow_depth -layer_bottom_height)/ &
+                   if(cpatch%snow_depth >= layer_bottom_height .and. &
+                        cpatch%snow_depth <= layer_top_height) then !only partly hidden...
+                      fraction_exposed =  1._r8 - max(0._r8,(min(1.0_r8,(cpatch%snow_depth -layer_bottom_height)/ &
                            (layer_top_height-layer_bottom_height ))))
                    endif
 
@@ -1175,7 +1185,7 @@ contains
                         currentCohort%treesai,                  &
                         currentCohort%height,                   &
                         iv,currentCohort%nv,currentCohort%pft,  &
-                        currentSite%snow_depth,                    &
+                        cpatch%snow_depth,                    &
                         vai_top,vai_bot,                          &
                         elai_layer,esai_layer,tlai_layer,tsai_layer)
 

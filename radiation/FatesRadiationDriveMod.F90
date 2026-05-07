@@ -185,7 +185,7 @@ contains
                         if(debug) then
                            currentPatch%twostr%band(ib)%Rbeam_atm = 1._r8
                            currentPatch%twostr%band(ib)%Rdiff_atm = 1._r8
-                           call CheckPatchRadiationBalance(currentPatch, sites(s)%snow_depth, & 
+                           call CheckPatchRadiationBalance(currentPatch, currentPatch%snow_depth, & 
                                 ib, bc_out(s)%fabd_parb(ifp,ib),bc_out(s)%fabi_parb(ifp,ib))
                            currentPatch%twostr%band(ib)%Rbeam_atm = fates_unset_r8
                            currentPatch%twostr%band(ib)%Rdiff_atm = fates_unset_r8
