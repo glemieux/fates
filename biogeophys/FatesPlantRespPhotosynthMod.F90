@@ -436,7 +436,7 @@ contains
                                    iv,                                 &
                                    currentCohort%nv,                   &
                                    currentCohort%pft,                  &
-                                   sites(s)%snow_depth,                &
+                                   currentPatch%snow_depth,                &
                                    cohort_vaitop(iv),                  &
                                    cohort_vaibot(iv),                  & 
                                    cohort_layer_elai(iv),              &
