@@ -28,6 +28,7 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_soil_water_saturation = 'soil_water_saturation'
   character(len=*), parameter, public :: hlm_fates_heterotrophic_respiration = 'heterotrophic_respiration'
   character(len=*), parameter, public :: hlm_fates_snow_depth = 'snow_depth'
+  character(len=*), parameter, public :: hlm_fates_snow_cover_frac = 'snow_cover_frac'
 
   ! Registry update frequency parameters
   integer, parameter, public :: registry_update_init_dims = 0  ! variable dimension that needs to be updated during initialization

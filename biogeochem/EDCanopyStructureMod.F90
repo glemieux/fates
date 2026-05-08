@@ -952,7 +952,7 @@ contains
       do while(associated(currentPatch))
          
          ifp = currentPatch%patchno
-         currentPatch%snow_depth = sites(s)%bc_in(ifp)%snow_depth * bc_in(s)%frac_sno_eff_si
+         currentPatch%snow_depth = sites(s)%bc_in(ifp)%snow_depth * sites(s)%bc_in(ifp)%frac_snow_eff
          
          currentPatch => currentPatch%younger
          
