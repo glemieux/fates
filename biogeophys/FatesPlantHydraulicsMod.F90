@@ -1904,8 +1904,12 @@ subroutine ConstrainRecruitNumber(csite,ccohort, cpatch, bc_in, mean_temp)
 
   integer :: el                         ! element loop index
   integer :: element_id                 ! global element identifier index
+  integer :: ifp                        ! current patch index
   real(r8) :: leaf_m, store_m, sapw_m   ! Element mass in organ tissues
   real(r8) :: fnrt_m, struct_m, repro_m ! Element mass in organ tissues
+
+  ! Get the current patch index
+  ifp = cpatch%patchno
 
   csite_hydr => csite%si_hydr
   ccohort_hydr =>ccohort%co_hydr
@@ -1921,7 +1925,7 @@ subroutine ConstrainRecruitNumber(csite,ccohort, cpatch, bc_in, mean_temp)
 
   do j=1,csite_hydr%nlevrhiz
 
-     watres_local = csite_hydr%wrf_soil(j)%p%th_from_psi(bc_in%smpmin_si*denh2o*grav_earth*m_per_mm*mpa_per_pa)
+     watres_local = csite_hydr%wrf_soil(j)%p%th_from_psi(csite%bc_in(ifp)%smpmin*denh2o*grav_earth*m_per_mm*mpa_per_pa)
      
      total_water = sum(csite_hydr%v_shell(j,:)*csite_hydr%h2osoi_liqvol_shell(j,:))
      total_water_min = sum(csite_hydr%v_shell(j,:)*watres_local)
