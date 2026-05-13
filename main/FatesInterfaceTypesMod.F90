@@ -498,9 +498,6 @@ module FatesInterfaceTypesMod
       ! air temperature at agcm reference height (kelvin)
       real(r8), allocatable :: tgcm_pa(:)
 
-      ! soil temperature (Kelvin)
-      real(r8), allocatable :: t_soisno_sl(:)
-
       ! Canopy Radiation Boundaries
       ! ---------------------------------------------------------------------------------
 

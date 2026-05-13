@@ -375,6 +375,7 @@ contains
     integer  :: io_si                 ! global site index for history writing
     integer  :: iscpf                 ! index for the size-class x pft multiplexed bins
     integer  :: el                    ! Counter for element type (c,n,p,etc)
+    integer  :: ifp                   ! Patch number index
     real(r8) :: cohort_biomass_store  ! remembers the biomass in the cohort for balance checking
     real(r8) :: dbh_old               ! dbh of plant before daily PRT [cm]
     real(r8) :: height_old            ! height of plant before daily PRT [m]
@@ -469,6 +470,9 @@ contains
        ! are derived from the donor and have been modified accordingly
        newly_recovered = .false.
        
+       ! Get the current patch number
+       ifp = currentPatch%patchno
+       
        currentCohort => currentPatch%shortest
        do while(associated(currentCohort))
 
@@ -489,7 +493,7 @@ contains
                currentPatch%btran_ft, mean_temp,                               &
                currentPatch%land_use_label,                                    &
                currentPatch%age_since_anthro_disturbance, current_fates_landuse_state_vector,   &
-               harvestable_forest_c, harvest_tag)
+               harvestable_forest_c, harvest_tag, ifp)
 
 
              ! -----------------------------------------------------------------------------

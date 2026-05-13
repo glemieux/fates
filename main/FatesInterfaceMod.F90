@@ -551,7 +551,6 @@ contains
       allocate(bc_in%rb_pa(maxpatch_total))
       allocate(bc_in%t_veg_pa(maxpatch_total))
       allocate(bc_in%tgcm_pa(maxpatch_total))
-      allocate(bc_in%t_soisno_sl(nlevsoil_in))
 
       ! Canopy Radiation
       bc_in%coszen = nan
