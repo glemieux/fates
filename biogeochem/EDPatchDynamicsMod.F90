@@ -205,6 +205,7 @@ contains
     integer  :: threshold_sizeclass
     integer  :: i_dist
     integer  :: h_index
+    integer  :: ifp
     real(r8) :: harvest_rate
     real(r8) :: tempsum
     real(r8) :: mean_temp
@@ -241,12 +242,15 @@ contains
     currentPatch => site_in%oldest_patch
     do while (associated(currentPatch))   
 
+       ! Get current patch index
+       ifp = currentPatch%patchno
+
        currentCohort => currentPatch%shortest
        do while(associated(currentCohort))        
           ! Mortality for trees in the understorey.
           !currentCohort%patchptr => currentPatch
           mean_temp = currentPatch%tveg24%GetMean()
-          call mortality_rates(currentCohort,bc_in,currentPatch%btran_ft,      &
+          call mortality_rates(currentCohort,site_in%bc_in(ifp)%tempk_sl,currentPatch%btran_ft,      &
             mean_temp, cmort,hmort,bmort,frmort,smort,asmort,dgmort)
           currentCohort%dmort  = cmort+hmort+bmort+frmort+smort+asmort+dgmort
           call carea_allom(currentCohort%dbh,currentCohort%n,site_in%spread,currentCohort%pft, &

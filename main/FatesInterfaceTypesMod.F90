@@ -498,9 +498,6 @@ module FatesInterfaceTypesMod
       ! air temperature at agcm reference height (kelvin)
       real(r8), allocatable :: tgcm_pa(:)
 
-      ! soil temperature (Kelvin)
-      real(r8), allocatable :: t_soisno_sl(:)
-
       ! Canopy Radiation Boundaries
       ! ---------------------------------------------------------------------------------
 
@@ -987,7 +984,7 @@ module FatesInterfaceTypesMod
     allocate(this%watsat_sl(this%nlevgrnd))
     allocate(this%h2o_liqvol_sl(this%nlevgrnd))
     allocate(this%tempk_sl(this%nlevgrnd))
-    
+
     ! Unset variables
     this%decomp_id = fates_unset_int
     this%dz_decomp_sisl = nan
@@ -1922,11 +1919,16 @@ module FatesInterfaceTypesMod
 
     integer :: n
     integer :: ibc
+    integer :: j
 
     ! Iterate over all registered variables
     do n = 1, this%num_api_vars_bc_in
        ibc = this%filter_bc_in(n)
-      call this%fates_vars(ibc)%Update(this%hlm_vars(ibc))
+
+       ! Skip updating the soil temperature
+       j = this%GetRegistryVariableIndex(hlm_fates_soil_temperature)
+       if (ibc .ne. j) call this%fates_vars(ibc)%Update(this%hlm_vars(ibc))
+      
     end do
 
   end subroutine UpdateInterfaceVariables
