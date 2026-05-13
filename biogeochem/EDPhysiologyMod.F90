@@ -968,6 +968,7 @@ contains
                                         !   leafless before flushing leaves again.
 
      real(r8), allocatable :: h2o_liquid_volume(:)  ! Liquid water volume in current soil layer
+     real(r8), allocatable :: soil_temperature(:)   ! Soil temperature per layer
 
     ! Logical tests to make code more readable
     logical  :: smoist_below_threshold   ! Is soil moisture below threshold?
@@ -1173,6 +1174,7 @@ contains
 
     ! allocate temporary array for liquid water volume in soil layers
     allocate(h2o_liquid_volume(nlevroot))
+    allocate(soil_temperature(nlevroot))
 
     ! Loop through every PFT to assign the elongation factor.
     ! Add PFT look to account for different PFT rooting depth profiles.
@@ -1217,8 +1219,10 @@ contains
 
        ! Check that the patch has exposed vegetation
        h2o_liquid_volume = currentSite%bc_in(ifp)%h2o_liqvol_sl
+       soil_temperature = currentSite%bc_in(ifp)%tempk_sl
        if (.not. bc_in%filter_btran) then
           h2o_liquid_volume(:) = -999._r8
+          soil_temperature(:) = -999._r8
        end if
 
        currentSite%liqvol_memory(1,ipft) = sum( h2o_liquid_volume       (2:nlevroot) * &
@@ -1226,7 +1230,7 @@ contains
                                                 rootfrac_notop
        currentSite%smp_memory   (1,ipft)  = 0._r8
        do j = 2,nlevroot
-          if(check_layer_water(h2o_liquid_volume(j),bc_in%tempk_sl(j)) ) then
+          if(check_layer_water(h2o_liquid_volume(j),soil_temperature(j)) ) then
              currentSite%smp_memory   (1,ipft) = currentSite%smp_memory   (1,ipft) + &
                   bc_in%smp_sl            (j) * &
                   currentSite%rootfrac_scr(j)  / &
@@ -1537,8 +1541,9 @@ contains
 
     end do pft_elong_loop
 
-    ! deallocate the temporary array
+    ! deallocate the temporary arrays
     deallocate(h2o_liquid_volume)
+    deallocate(soil_temperature)
 
     call phenology_leafonoff(currentSite)
 

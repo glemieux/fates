@@ -985,6 +985,7 @@ module FatesInterfaceTypesMod
     allocate(this%eff_porosity_sl(this%nlevgrnd))
     allocate(this%watsat_sl(this%nlevgrnd))
     allocate(this%h2o_liqvol_sl(this%nlevgrnd))
+    allocate(this%tempk_sl(this%nlevgrnd))
     
     ! Unset variables
     this%decomp_id = fates_unset_int
@@ -997,6 +998,7 @@ module FatesInterfaceTypesMod
     this%snow_depth = nan
     this%frac_snow_eff = nan
     this%h2o_liqvol_sl= nan
+    this%tempk_sl = nan
 
   end subroutine InitializeBCIn
 
@@ -1212,6 +1214,8 @@ module FatesInterfaceTypesMod
     call this%DefineInterfaceVariable(key=hlm_fates_snow_cover_frac, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
     call this%DefineInterfaceVariable(key=hlm_fates_soil_h2o_liquid, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_soil_temperature, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
 
     ! Define the N and P litter fluxes if in CNP mode
