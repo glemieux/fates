@@ -5961,7 +5961,7 @@ contains
 
                do j_bc = j_t,j_b
 
-                  vwc     = bc_in(s)%h2o_liqvol_sl(j_bc)
+                  vwc     = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j_bc)
                   psi     = site_hydr%wrf_soil(j)%p%psi_from_th(vwc) ! MLO: Any reason for not using smp_sl?
                   ! cap capillary pressure
                   ! psi = max(-1e5_r8,psi) Removing cap as that is inconstistent
@@ -5973,6 +5973,7 @@ contains
 
                   ! Override the watsat_sl if patch doesn't have exposed vegetation
                   if (.not. bc_in(s)%filter_btran) then
+                    vwc = -999._r8
                     vwc_sat = -999._r8
                   end if
 
@@ -6077,7 +6078,7 @@ contains
 
                do j_bc = j_t,j_b
 
-                  vwc     = bc_in(s)%h2o_liqvol_sl(j_bc)
+                  vwc     = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j_bc)
                   psi     = site_hydr%wrf_soil(j)%p%psi_from_th(vwc) ! MLO: Any reason for not using smp_sl?
                   ! cap capillary pressure
                   ! psi = max(-1e5_r8,psi) Removing cap as that is inconstistent
@@ -6089,6 +6090,7 @@ contains
 
                   ! Override the watsat_sl if patch doesn't have exposed vegetation
                   if (.not. bc_in(s)%filter_btran) then
+                    vwc = -999._r8
                     vwc_sat = -999._r8
                   end if
 

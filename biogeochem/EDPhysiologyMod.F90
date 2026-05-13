@@ -967,6 +967,8 @@ contains
      real(r8) :: phen_doff_time         ! Minimum number of days that plants must remain
                                         !   leafless before flushing leaves again.
 
+     real(r8), allocatable :: h2o_liquid_volume(:)  ! Liquid water volume in current soil layer
+
     ! Logical tests to make code more readable
     logical  :: smoist_below_threshold   ! Is soil moisture below threshold?
     logical  :: recent_flush             ! Last full flushing event is still very recent.
@@ -1169,7 +1171,8 @@ contains
        if ( debug ) write(fates_log(),*) 'leaves off'
     endif
 
-
+    ! allocate temporary array for liquid water volume in soil layers
+    allocate(h2o_liquid_volume(nlevroot))
 
     ! Loop through every PFT to assign the elongation factor.
     ! Add PFT look to account for different PFT rooting depth profiles.
@@ -1212,12 +1215,18 @@ contains
        ! Set the memory to be the weighted average of the soil properties, using the
        ! root fraction of each layer (except the topmost one) as the weighting factor.
 
-       currentSite%liqvol_memory(1,ipft) = sum( bc_in%h2o_liqvol_sl     (2:nlevroot) * &
+       ! Check that the patch has exposed vegetation
+       h2o_liquid_volume = currentSite%bc_in(ifp)%h2o_liqvol_sl
+       if (.not. bc_in%filter_btran) then
+          h2o_liquid_volume(:) = -999._r8
+       end if
+
+       currentSite%liqvol_memory(1,ipft) = sum( h2o_liquid_volume       (2:nlevroot) * &
                                                 currentSite%rootfrac_scr(2:nlevroot) ) / &
                                                 rootfrac_notop
        currentSite%smp_memory   (1,ipft)  = 0._r8
        do j = 2,nlevroot
-          if(check_layer_water(bc_in%h2o_liqvol_sl(j),bc_in%tempk_sl(j)) ) then
+          if(check_layer_water(h2o_liquid_volume(j),bc_in%tempk_sl(j)) ) then
              currentSite%smp_memory   (1,ipft) = currentSite%smp_memory   (1,ipft) + &
                   bc_in%smp_sl            (j) * &
                   currentSite%rootfrac_scr(j)  / &
@@ -1230,7 +1239,7 @@ contains
                   rootfrac_notop
           end if
        end do
-
+       
        ! Calculate the mean soil moisture ( liquid volume (m3/m3) and matric potential (mm))
        !    over the last 10 days
        mean_10day_liqvol = sum(currentSite%liqvol_memory(1:numWaterMem,ipft)) / &
@@ -1527,6 +1536,9 @@ contains
        end select case_drought_phen
 
     end do pft_elong_loop
+
+    ! deallocate the temporary array
+    deallocate(h2o_liquid_volume)
 
     call phenology_leafonoff(currentSite)
 

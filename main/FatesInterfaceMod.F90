@@ -320,7 +320,6 @@ contains
     fates%bc_in(s)%solai_parb(:,:)     = 0.0_r8
     fates%bc_in(s)%smp_sl(:)           = 0.0_r8
     fates%bc_in(s)%tempk_sl(:)         = 0.0_r8
-    fates%bc_in(s)%h2o_liqvol_sl(:)    = 0.0_r8
     fates%bc_in(s)%fcansno_pa(:)       = 0.0_r8
     fates%bc_in(s)%albgr_dir_rb(:)     = 0.0_r8
     fates%bc_in(s)%albgr_dif_rb(:)     = 0.0_r8
@@ -536,7 +535,6 @@ contains
       ! Hydrology
       allocate(bc_in%smp_sl(nlevsoil_in))
       allocate(bc_in%tempk_sl(nlevsoil_in))
-      allocate(bc_in%h2o_liqvol_sl(nlevsoil_in))
       
       !BGC
       if(do_fates_salinity) then
@@ -3006,6 +3004,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                     data=bc_in%snow_depth, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_snow_cover_frac, &                               
                                     data=bc_in%frac_snow_eff, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_soil_h2o_liquid, &                               
+                                    data=bc_in%h2o_liqvol_sl, hlm_flag=.false.)
 
       ! bc_out
       nlevdecomp = bc_in%nlevdecomp
