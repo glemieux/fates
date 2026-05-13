@@ -85,7 +85,8 @@ contains
 
          if (bc_in(s)%filter_btran) then
             do j = 1,bc_in(s)%nlevsoil
-               bc_out(s)%active_suction_sl(j) = check_layer_water( sites(s)%bc_in(ifp)%h2o_liqvol_sl(j),bc_in(s)%tempk_sl(j) )
+               bc_out(s)%active_suction_sl(j) = check_layer_water( sites(s)%bc_in(ifp)%h2o_liqvol_sl(j), &
+                                                                   sites(s)%bc_in(ifp)%tempk_sl(j) )
             end do
          else
             bc_out(s)%active_suction_sl(:) = .false.
@@ -139,6 +140,7 @@ contains
     real(r8) :: effective_porosity            ! Effective porosity in each soil layer
     real(r8) :: water_saturation              ! Water saturation in each soil layer
     real(r8) :: h2o_liquid_volume             ! Liquid water volume in each soil layer
+    real(r8) :: soil_temperature              ! Soil temperature in each soil layer
     !------------------------------------------------------------------------------
 
     associate(                                 &
@@ -178,13 +180,15 @@ contains
                    effective_porosity = sites(s)%bc_in(ifp)%eff_porosity_sl(j)
                    water_saturation = sites(s)%bc_in(ifp)%watsat_sl(j)
                    h2o_liquid_volume = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j)
+                   soil_temperature = sites(s)%bc_in(ifp)%tempk_sl(j)
                    if (.not. bc_in(s)%filter_btran) then
                       effective_porosity = -999._r8
                       water_saturation = -999._r8
                       h2o_liquid_volume = -999._r8
+                      soil_temperature = -999._r8
                    end if
 
-                   if ( check_layer_water(h2o_liquid_volume,bc_in(s)%tempk_sl(j)) )  then
+                   if ( check_layer_water(h2o_liquid_volume,soil_temperature) )  then
 
                       smp_node = max(smpsc(ft), bc_in(s)%smp_sl(j))
                       

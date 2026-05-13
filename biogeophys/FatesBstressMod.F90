@@ -57,6 +57,7 @@ contains
       real(r8) :: salinity_node     ! salinity in the soil water [ppt]
       real(r8) :: rresis            ! salinity limitation to transpiration independent
       real(r8) :: h2o_liquid_volume ! liquid water volume in the soil layer
+      real(r8) :: soil_temperature  ! soil temperature in the soil layer
 
       !------------------------------------------------------------------------------
         
@@ -81,11 +82,13 @@ contains
 
                     ! Check that the patch has exposed vegetation 
                     h2o_liquid_volume = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j)
+                    soil_temperature = sites(s)%bc_in(ifp)%tempk_sl(j)
                     if (.not. bc_in(s)%filter_btran) then
                        h2o_liquid_volume = -999._r8
+                       soil_temperature = -999._r8
                     end if
                     
-                    if ( check_layer_water(h2o_liquid_volume,bc_in(s)%tempk_sl(j)) )  then
+                    if ( check_layer_water(h2o_liquid_volume,soil_temperature) )  then
                        
                        salinity_node =  bc_in(s)%salinity_sl(j)
                        
