@@ -570,7 +570,6 @@ contains
          allocate(bc_in%sucsat_sisl(nlevsoil_in))
          allocate(bc_in%bsw_sisl(nlevsoil_in))
          allocate(bc_in%hksat_sisl(nlevsoil_in))
-         allocate(bc_in%h2o_liq_sisl(nlevsoil_in)); bc_in%h2o_liq_sisl = nan
       end if
 
       ! Land use
@@ -3009,6 +3008,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
       if (hlm_use_planthydro == itrue) then
          call this%registry(r)%Register(key=hlm_fates_soil_potential_min, &                               
                                         data=bc_in%smpmin, hlm_flag=.false.)
+         call this%registry(r)%Register(key=hlm_fates_liquid_water, &                               
+                                        data=bc_in%h2o_liq_sisl, hlm_flag=.false.)
       end if
 
       ! bc_out

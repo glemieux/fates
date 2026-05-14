@@ -1554,7 +1554,7 @@ subroutine HydrSiteColdStart(sites, bc_in )
 
         ! [kg/m2] / ([m] * [kg/m3]) = [m3/m3]
         h2osoi_liqvol = min(eff_por, &
-             sum(bc_in(s)%h2o_liq_sisl(j_t:j_b))/(csite_hydr%dz_rhiz(j)*denh2o))
+             sum(sites(s)%bc_in(ifp)%h2o_liq_sisl(j_t:j_b))/(csite_hydr%dz_rhiz(j)*denh2o))
         csite_hydr%h2osoi_liqvol_shell(j,1:nshell) = h2osoi_liqvol
 
      end do
@@ -2235,6 +2235,7 @@ subroutine FillDrainRhizShells(nsites, sites, bc_in)
   real(r8) :: cumShellH2O                              ! sum of water in all the shells of a specific layer             [kg/m2]
   real(r8) :: h2osoi_liq_shell(nlevsoi_hyd_max,nshell) ! water in the rhizosphere shells                               [kg]
   integer  :: tmp                                      ! temporary
+  integer  :: ifp                                      ! patch index for accessing boundary condition water content
   logical  :: found                                    ! flag in search loop
   !-----------------------------------------------------------------------
 
@@ -2253,6 +2254,9 @@ subroutine FillDrainRhizShells(nsites, sites, bc_in)
      ! If there are just no plants in this site, don't bother shuffling water
      if( sum(csite_hydr%l_aroot_layer) <= nearzero ) cycle
      
+     ! Temporarily hardcode this prior to multi-column fates implementation
+     ifp = 1
+     
      do j = 1,csite_hydr%nlevrhiz
 
         j_t = csite_hydr%map_r2s(j,1) ! top soil layer matching rhiz layer
@@ -2263,7 +2267,7 @@ subroutine FillDrainRhizShells(nsites, sites, bc_in)
         cumShellH2O=sum(csite_hydr%h2osoi_liqvol_shell(j,:) *csite_hydr%v_shell(j,:)) * denh2o*AREA_INV
 
         ! [kg/m2]
-        dwat_kgm2 = sum(bc_in(s)%h2o_liq_sisl(j_t:j_b)) - cumShellH2O
+        dwat_kgm2 = sum(sites(s)%bc_in(ifp)%h2o_liq_sisl(j_t:j_b)) - cumShellH2O
 
         dwat_kg = dwat_kgm2 * AREA
 
@@ -2325,7 +2329,7 @@ subroutine FillDrainRhizShells(nsites, sites, bc_in)
              csite_hydr%v_shell(j,:) * denh2o
 
 
-        errh2o(j) = sum(h2osoi_liq_shell(j,:))*AREA_INV - sum(bc_in(s)%h2o_liq_sisl(j_t:j_b))
+        errh2o(j) = sum(h2osoi_liq_shell(j,:))*AREA_INV - sum(sites(s)%bc_in(ifp)%h2o_liq_sisl(j_t:j_b))
 
         if (abs(errh2o(j)) > 1.e-9_r8) then
            write(fates_log(),*)'WARNING:  water balance error in FillDrainRhizShells'
@@ -2771,7 +2775,7 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
                     ! into the root, othersize weight by root length
                     ! h2osoi_liqvol: [kg/m2] / [m] / [kg/m3] = [m3/m3]
                     eff_por       = sites(s)%bc_in(ifp)%eff_porosity_sl(j_bc)
-                    h2osoi_liqvol = min(eff_por, bc_in(s)%h2o_liq_sisl(j_bc)/(bc_in(s)%dz_sisl(j_bc)*denh2o))
+                    h2osoi_liqvol = min(eff_por, sites(s)%bc_in(ifp)%h2o_liq_sisl(j_bc)/(sites(s)%bc_in(ifp)%dz_sisl(j_bc)*denh2o))
                     psi_layer     = csite_hydr%wrf_soil(j)%p%psi_from_th(h2osoi_liqvol)
                     ftc_layer     = csite_hydr%wkf_soil(j)%p%ftc_from_psi(psi_layer)
                     weight_sl(j_bc) = bc_in(s)%hksat_sisl(j_bc)*ftc_layer*csite_hydr%rootl_sl(j_bc)
