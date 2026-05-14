@@ -392,6 +392,7 @@ module FatesInterfaceTypesMod
 
       ! Soil layer structure
 
+      integer              :: nlevgrnd           ! the number of ground layers in this column
       integer              :: nlevsoil           ! the number of soil layers in this column
       integer              :: nlevdecomp         ! the number of active soil layers in the column
       integer              :: nlevdecomp_full    ! the maximum possible soil layers for any column
@@ -497,9 +498,6 @@ module FatesInterfaceTypesMod
       ! air temperature at agcm reference height (kelvin)
       real(r8), allocatable :: tgcm_pa(:)
 
-      ! soil temperature (Kelvin)
-      real(r8), allocatable :: t_soisno_sl(:)
-
       ! Canopy Radiation Boundaries
       ! ---------------------------------------------------------------------------------
 
@@ -527,13 +525,11 @@ module FatesInterfaceTypesMod
       ! BGC Accounting
 
       real(r8) :: tot_het_resp  ! total heterotrophic respiration  (gC/m2/s)
-      real(r8) :: tot_somc      ! total soil organic matter carbon (gc/m2)
-      real(r8) :: tot_litc      ! total litter carbon tracked in the HLM (gc/m2)
 
       ! Canopy Structure
 
-      real(r8) :: snow_depth_si    ! Depth of snow in snowy areas of site (m)
-      real(r8) :: frac_sno_eff_si  ! Fraction of ground covered by snow (0-1)
+      real(r8) :: snow_depth    ! Depth of snow in snowy areas of site (m)
+      real(r8) :: frac_snow_eff ! Fraction of ground covered by snow (0-1)
 
       ! Hydrology variables for BTRAN
       ! ---------------------------------------------------------------------------------
@@ -575,7 +571,7 @@ module FatesInterfaceTypesMod
       real(r8),allocatable :: bsw_sisl(:)          ! Clapp and Hornberger "b"
       real(r8),allocatable :: hksat_sisl(:)        ! hydraulic conductivity at saturation (mm H2O /s)
       real(r8),allocatable :: h2o_liq_sisl(:)      ! Liquid water mass in each layer (kg/m2)
-      real(r8) :: smpmin_si                        ! restriction for min of soil potential (mm)
+      real(r8) :: smpmin                           ! restriction for min of soil potential (mm)
 
       ! Land use
       ! ---------------------------------------------------------------------------------
@@ -930,6 +926,7 @@ module FatesInterfaceTypesMod
       procedure :: SetLastState
       procedure :: UpdateLitterFluxes
       procedure :: Update => UpdateInterfaceVariables
+      procedure :: UpdateTimeStep => UpdateInterfaceVariablesTimeStep
 
       generic :: Register => RegisterInterfaceVariables_0d, & 
                              RegisterInterfaceVariables_1d, &
@@ -982,13 +979,26 @@ module FatesInterfaceTypesMod
     allocate(this%dz_decomp_sisl(this%nlevdecomp_full))
     allocate(this%w_scalar_sisl(this%nlevdecomp_full))
     allocate(this%t_scalar_sisl(this%nlevdecomp_full))
+    allocate(this%eff_porosity_sl(this%nlevgrnd))
+    allocate(this%watsat_sl(this%nlevgrnd))
+    allocate(this%h2o_liqvol_sl(this%nlevgrnd))
+    allocate(this%tempk_sl(this%nlevgrnd))
+    allocate(this%h2o_liq_sisl(this%nlevgrnd))
     
     ! Unset variables
     this%decomp_id = fates_unset_int
     this%dz_decomp_sisl = nan
     this%w_scalar_sisl = nan
     this%t_scalar_sisl = nan
+    this%eff_porosity_sl = nan
+    this%watsat_sl = nan
     this%max_thaw_depth_index = fates_unset_int
+    this%snow_depth = nan
+    this%frac_snow_eff = nan
+    this%h2o_liqvol_sl= nan
+    this%tempk_sl = nan
+    this%smpmin = nan
+    this%h2o_liq_sisl = nan
 
   end subroutine InitializeBCIn
 
@@ -1166,6 +1176,8 @@ module FatesInterfaceTypesMod
     ! Define the interface registry names and indices
     ! Variables that need to be updated during initialization and are necessary for other boundary conditions
     ! such as dimensions
+    call this%DefineInterfaceVariable(key=hlm_fates_nlevground, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_init_dims)
     call this%DefineInterfaceVariable(key=hlm_fates_decomp_max, initialize=initialize, index=index, &
                                       update_frequency=registry_update_init_dims)
     call this%DefineInterfaceVariable(key=hlm_fates_decomp, initialize=initialize, index=index, &
@@ -1191,6 +1203,28 @@ module FatesInterfaceTypesMod
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
     call this%DefineInterfaceVariable(key=hlm_fates_litter_carbon_total, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
+    call this%DefineInterfaceVariable(key=hlm_fates_effective_porosity, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_soil_water_saturation, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_heterotrophic_respiration, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_snow_depth, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_snow_cover_frac, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_soil_h2o_liquid, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_soil_temperature, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_soil_potential_min, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    
+    ! Define hydraulics boundary conditions if in hydro mode
+    if (hlm_use_planthydro == itrue) then
+      call this%DefineInterfaceVariable(key=hlm_fates_liquid_water, initialize=initialize, index=index, &
+                                        update_frequency=registry_update_timestep, bc_dir=bc_in)
+    end if
 
     ! Define the N and P litter fluxes if in CNP mode
     ! We could define the interface variables always, even if not registered, but this helps reduce the memory needs
@@ -1967,6 +2001,35 @@ module FatesInterfaceTypesMod
     
   end subroutine UpdateLitterFluxes
 
+  ! ======================================================================================
+  
+  subroutine UpdateInterfaceVariablesTimeStep(this)
+  
+    ! This procedure updates the interface variables that are updated on the model time-step.
+
+    class(fates_interface_registry_type), intent(inout) :: this  ! registry being updated
+
+    integer :: i  ! update iterator
+    integer :: j  ! variable index
+    
+    ! Update the boundary conditions necessary during time-step updates only
+    do i = 1, this%num_api_vars_update_timestep
+      
+      ! Get the variable index from the filter
+      j = this%filter_timestep(i)
+      
+      ! Skip updating litter flux variables as they are handled via a separate update call
+      if (.not. (any(this%filter_litter_flux(:) == j) .or. &
+                 this%key(j) == hlm_fates_litter_carbon_total .or. &
+                 this%key(j) == hlm_fates_litter_phosphorus_total .or. &
+                 this%key(j) == hlm_fates_litter_nitrogen_total)) then
+        call this%fates_vars(j)%Update(this%hlm_vars(j))
+      end if
+
+    end do
+    
+  end subroutine UpdateInterfaceVariablesTimeStep
+  
   ! ======================================================================================
 
   integer function GetRegistryVariableIndex(this, key) result(index)

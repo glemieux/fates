@@ -56,7 +56,7 @@ module EDMortalityFunctionsMod
 
 contains
 
-  subroutine mortality_rates( cohort_in,bc_in, btran_ft, mean_temp,             &
+  subroutine mortality_rates( cohort_in, soil_temp, btran_ft, mean_temp,             &
       cmort,hmort,bmort, frmort,smort,asmort,dgmort )
 
     ! ============================================================================
@@ -71,7 +71,7 @@ contains
     use FatesInterfaceTypesMod, only : hlm_mort_cstarvation_model
     
     type (fates_cohort_type), intent(in) :: cohort_in 
-    type (bc_in_type), intent(in) :: bc_in
+    real(r8), intent(in)          :: soil_temp(:)
     real(r8), intent(in)          :: btran_ft(maxpft) 
     real(r8), intent(in)          :: mean_temp
     real(r8),intent(out) :: bmort ! background mortality : Fraction per year
@@ -183,7 +183,7 @@ contains
           ! falls below a threshold and plants have leaves.
           if ( (.not. is_decid_dormant) .and. &
                ( btran_ft(cohort_in%pft) <= hf_sm_threshold ) .and. &
-               ( ( minval(bc_in%t_soisno_sl) - tfrz ) > soil_tfrz_thresh ) ) then
+               ( ( minval(soil_temp) - tfrz ) > soil_tfrz_thresh ) ) then
              hmort = EDPftvarcon_inst%mort_scalar_hydrfailure(cohort_in%pft)*((hf_sm_threshold- btran_ft(cohort_in%pft))/hf_sm_threshold)
           else
              hmort = 0.0_r8
@@ -280,7 +280,7 @@ contains
 
  subroutine Mortality_Derivative( currentSite, currentCohort, bc_in, btran_ft, &
       mean_temp, land_use_label, age_since_anthro_disturbance,       &
-      current_fates_landuse_state_vector, harvestable_forest_c, harvest_tag)
+      current_fates_landuse_state_vector, harvestable_forest_c, harvest_tag, ifp)
 
     !
     ! !DESCRIPTION:
@@ -308,6 +308,7 @@ contains
                                               ! 0 - successful;
                                               ! 1 - unsuccessful since not enough carbon
                                               ! 2 - not applicable
+    integer,          intent(in)               :: ifp  ! current patch index 
     !
     ! !LOCAL VARIABLES:
     real(r8) :: cmort    ! starvation mortality rate (fraction per year)
@@ -326,7 +327,7 @@ contains
     
     ! Mortality for trees in the understorey. 
     !if trees are in the canopy, then their death is 'disturbance'. This probably needs a different terminology
-    call mortality_rates(currentCohort,bc_in,btran_ft, mean_temp,              &
+    call mortality_rates(currentCohort,currentSite%bc_in(ifp)%tempk_sl,btran_ft, mean_temp,              &
       cmort,hmort,bmort,frmort, smort, asmort, dgmort)
     call LoggingMortality_frac(currentSite, bc_in, ipft, currentCohort%dbh, currentCohort%canopy_layer, &
                                currentCohort%lmort_direct,                       &
