@@ -983,6 +983,7 @@ module FatesInterfaceTypesMod
     allocate(this%watsat_sl(this%nlevgrnd))
     allocate(this%h2o_liqvol_sl(this%nlevgrnd))
     allocate(this%tempk_sl(this%nlevgrnd))
+    allocate(this%h2o_liq_sisl(this%nlevgrnd))
     
     ! Unset variables
     this%decomp_id = fates_unset_int
@@ -997,6 +998,7 @@ module FatesInterfaceTypesMod
     this%h2o_liqvol_sl= nan
     this%tempk_sl = nan
     this%smpmin = nan
+    this%h2o_liq_sisl = nan
 
   end subroutine InitializeBCIn
 
@@ -1217,6 +1219,12 @@ module FatesInterfaceTypesMod
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
     call this%DefineInterfaceVariable(key=hlm_fates_soil_potential_min, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
+    
+    ! Define hydraulics boundary conditions if in hydro mode
+    if (hlm_use_planthydro == itrue) then
+      call this%DefineInterfaceVariable(key=hlm_fates_liquid_water, initialize=initialize, index=index, &
+                                        update_frequency=registry_update_timestep, bc_dir=bc_in)
+    end if
 
     ! Define the N and P litter fluxes if in CNP mode
     ! We could define the interface variables always, even if not registered, but this helps reduce the memory needs
