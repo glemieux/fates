@@ -3006,6 +3006,11 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
       call this%registry(r)%Register(key=hlm_fates_soil_temperature, &                               
                                     data=bc_in%tempk_sl, hlm_flag=.false.)
 
+      if (hlm_use_planthydro == itrue) then
+         call this%registry(r)%Register(key=hlm_fates_soil_potential_min, &                               
+                                        data=bc_in%smpmin, hlm_flag=.false.)
+      end if
+
       ! bc_out
       nlevdecomp = bc_in%nlevdecomp
       call this%registry(r)%Register(key=hlm_fates_litter_carbon_cellulose, &

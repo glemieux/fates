@@ -31,6 +31,7 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_snow_cover_frac = 'snow_cover_frac'
   character(len=*), parameter, public :: hlm_fates_soil_h2o_liquid = 'soil_h2o_liquid_volume_content'
   character(len=*), parameter, public :: hlm_fates_soil_temperature = 'soil_temperature'
+  character(len=*), parameter, public :: hlm_fates_soil_potential_min = 'soil_potential_minimum'
 
   ! Registry update frequency parameters
   integer, parameter, public :: registry_update_init_dims = 0  ! variable dimension that needs to be updated during initialization

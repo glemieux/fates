@@ -571,7 +571,7 @@ module FatesInterfaceTypesMod
       real(r8),allocatable :: bsw_sisl(:)          ! Clapp and Hornberger "b"
       real(r8),allocatable :: hksat_sisl(:)        ! hydraulic conductivity at saturation (mm H2O /s)
       real(r8),allocatable :: h2o_liq_sisl(:)      ! Liquid water mass in each layer (kg/m2)
-      real(r8) :: smpmin_si                        ! restriction for min of soil potential (mm)
+      real(r8) :: smpmin                           ! restriction for min of soil potential (mm)
 
       ! Land use
       ! ---------------------------------------------------------------------------------
@@ -997,6 +997,7 @@ module FatesInterfaceTypesMod
     this%frac_snow_eff = nan
     this%h2o_liqvol_sl= nan
     this%tempk_sl = nan
+    this%smpmin = nan
 
   end subroutine InitializeBCIn
 
@@ -1215,6 +1216,12 @@ module FatesInterfaceTypesMod
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
     call this%DefineInterfaceVariable(key=hlm_fates_soil_temperature, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
+    
+    ! Define hydraulics boundary conditions if in hydro mode
+    if (hlm_use_planthydro == itrue) then
+      call this%DefineInterfaceVariable(key=hlm_fates_soil_potential_min, initialize=initialize, index=index, &
+                                        update_frequency=registry_update_timestep, bc_dir=bc_in)
+    end if
 
     ! Define the N and P litter fluxes if in CNP mode
     ! We could define the interface variables always, even if not registered, but this helps reduce the memory needs
