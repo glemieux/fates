@@ -70,16 +70,28 @@ contains
     ! !LOCAL VARIABLES:
     integer  :: s                 ! site
     integer  :: j                 ! soil layer
+    integer  :: ifp               ! patch vector index for the site
+
+    type(fates_patch_type), pointer :: currentPatch ! Current Patch Pointer
+
     !------------------------------------------------------------------------------
 
     do s = 1,nsites
-       if (bc_in(s)%filter_btran) then
-          do j = 1,bc_in(s)%nlevsoil
-             bc_out(s)%active_suction_sl(j) = check_layer_water( bc_in(s)%h2o_liqvol_sl(j),bc_in(s)%tempk_sl(j) )
-          end do
-       else
-          bc_out(s)%active_suction_sl(:) = .false.
-       end if
+
+       currentPatch => sites(s)%oldest_patch
+       do while (associated(currentPatch))
+       
+         ifp = currentPatch%patchno
+
+         if (bc_in(s)%filter_btran) then
+            do j = 1,bc_in(s)%nlevsoil
+               bc_out(s)%active_suction_sl(j) = check_layer_water( sites(s)%bc_in(ifp)%h2o_liqvol_sl(j),bc_in(s)%tempk_sl(j) )
+            end do
+         else
+            bc_out(s)%active_suction_sl(:) = .false.
+         end if
+         currentPatch => currentPatch%younger
+       end do
     end do
 
   end subroutine get_active_suction_layers
@@ -126,6 +138,7 @@ contains
     real(r8), allocatable :: root_resis(:,:)  ! Root resistance in each pft x layer
     real(r8) :: effective_porosity            ! Effective porosity in each soil layer
     real(r8) :: water_saturation              ! Water saturation in each soil layer
+    real(r8) :: h2o_liquid_volume             ! Liquid water volume in each soil layer
     !------------------------------------------------------------------------------
 
     associate(                                 &
@@ -159,20 +172,22 @@ contains
                    ! Calculations are only relevant where liquid water exists
                    ! see clm_fates%wrap_btran for calculation with CLM/ALM
 
-                   if ( check_layer_water(bc_in(s)%h2o_liqvol_sl(j),bc_in(s)%tempk_sl(j)) )  then
+                   ! Check that the patch has exposed vegetation
+                   ! If it does, locally override the inbound effective porosity values from the host
+                   ! Note that filter_btran will need to be converted to handle MCF
+                   effective_porosity = sites(s)%bc_in(ifp)%eff_porosity_sl(j)
+                   water_saturation = sites(s)%bc_in(ifp)%watsat_sl(j)
+                   h2o_liquid_volume = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j)
+                   if (.not. bc_in(s)%filter_btran) then
+                      effective_porosity = -999._r8
+                      water_saturation = -999._r8
+                      h2o_liquid_volume = -999._r8
+                   end if
+
+                   if ( check_layer_water(h2o_liquid_volume,bc_in(s)%tempk_sl(j)) )  then
 
                       smp_node = max(smpsc(ft), bc_in(s)%smp_sl(j))
                       
-                      ! Check that the patch has exposed vegetation
-                      ! If it does, locally override the inbound effective porosity values from the host
-                      ! Note that filter_btran will need to be converted to handle MCF
-                      effective_porosity = sites(s)%bc_in(ifp)%eff_porosity_sl(j)
-                      water_saturation = sites(s)%bc_in(ifp)%watsat_sl(j)
-                      if (.not. bc_in(s)%filter_btran) then
-                         effective_porosity = -999._r8
-                         water_saturation = -999._r8
-                      end if
-
                       rresis  = min( (effective_porosity/water_saturation) * &
                            (smp_node - smpsc(ft)) / (smpso(ft) - smpsc(ft)), 1._r8)
 
