@@ -2026,6 +2026,7 @@ subroutine UpdateSizeDepRhizVolLenCon(currentSite, bc_in)
                                                                  ! absorbing root radius rs1
                                                                  ! 1.e-5_r8 from Rudinger et al 1994
   integer                        :: nlevrhiz
+  INTEGER                        :: ifp
   integer, parameter :: k_inner = 1   ! innermost rhizosphere shell
   !-----------------------------------------------------------------------
 
@@ -2070,8 +2071,11 @@ subroutine UpdateSizeDepRhizVolLenCon(currentSite, bc_in)
      !          * 9.8-1 [s2 m-1]
      !          * 1e6 [Pa MPa-1]
      !                           = [kg s-1 m-1 MPa-1]
+     
+     ! Temporary hardcode of patch for multi-column fates
+     ifp = 1
 
-     hksat_s = csite_hydr%AggBCToRhiz(bc_in%hksat_sisl,j,bc_in%dz_sisl) * &
+     hksat_s = csite_hydr%AggBCToRhiz(currentSite%bc_in(ifp)%hksat_sisl,j,bc_in%dz_sisl) * &
           m_per_mm * 1._r8/grav_earth * pa_per_mpa
 
      ! proceed only if the total absorbing root length (site-level) has changed in this layer
@@ -2778,7 +2782,7 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
                     h2osoi_liqvol = min(eff_por, sites(s)%bc_in(ifp)%h2o_liq_sisl(j_bc)/(sites(s)%bc_in(ifp)%dz_sisl(j_bc)*denh2o))
                     psi_layer     = csite_hydr%wrf_soil(j)%p%psi_from_th(h2osoi_liqvol)
                     ftc_layer     = csite_hydr%wkf_soil(j)%p%ftc_from_psi(psi_layer)
-                    weight_sl(j_bc) = bc_in(s)%hksat_sisl(j_bc)*ftc_layer*csite_hydr%rootl_sl(j_bc)
+                    weight_sl(j_bc) = sites(s)%bc_in(ifp)%hksat_sisl(j_bc)*ftc_layer*csite_hydr%rootl_sl(j_bc)
                  else
                     weight_sl(j_bc) = csite_hydr%rootl_sl(j_bc)
                  end if

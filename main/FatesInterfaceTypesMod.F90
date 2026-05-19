@@ -985,6 +985,7 @@ module FatesInterfaceTypesMod
     allocate(this%h2o_liqvol_sl(this%nlevgrnd))
     allocate(this%tempk_sl(this%nlevgrnd))
     allocate(this%h2o_liq_sisl(this%nlevgrnd))
+    allocate(this%hksat_sisl(this%nlevgrnd))
     
     ! Unset variables
     this%decomp_id = fates_unset_int
@@ -1000,6 +1001,7 @@ module FatesInterfaceTypesMod
     this%tempk_sl = nan
     this%smpmin = nan
     this%h2o_liq_sisl = nan
+    this%hksat_sisl = nan
 
   end subroutine InitializeBCIn
 
@@ -1225,6 +1227,8 @@ module FatesInterfaceTypesMod
                                         update_frequency=registry_update_timestep, bc_dir=bc_in)
       call this%DefineInterfaceVariable(key=hlm_fates_liquid_water, initialize=initialize, index=index, &
                                         update_frequency=registry_update_timestep, bc_dir=bc_in)
+      call this%DefineInterfaceVariable(key=hlm_fates_soil_saturated_hydr_cond, initialize=initialize, index=index, &
+                                        bc_dir=bc_in)
     end if
 
     ! Define the N and P litter fluxes if in CNP mode
