@@ -34,6 +34,7 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_soil_potential_min = 'soil_potential_minimum'
   character(len=*), parameter, public :: hlm_fates_liquid_water = 'liquid_water'
   character(len=*), parameter, public :: hlm_fates_soil_saturated_hydr_cond = 'hydraulic_conductivity_saturated'
+  character(len=*), parameter, public :: hlm_fates_soil_clapp_hornberger_b = 'clapp_hornberger_b'
 
   ! Registry update frequency parameters
   integer, parameter, public :: registry_update_init_dims = 0  ! variable dimension that needs to be updated during initialization

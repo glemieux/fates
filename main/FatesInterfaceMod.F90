@@ -335,7 +335,6 @@ contains
        fates%bc_in(s)%watsat_sisl(:) = 0.0_r8
        fates%bc_in(s)%watres_sisl(:) = 0.0_r8
        fates%bc_in(s)%sucsat_sisl(:) = 0.0_r8
-       fates%bc_in(s)%bsw_sisl(:) = 0.0_r8
     end if
 
     
@@ -567,7 +566,6 @@ contains
          allocate(bc_in%watsat_sisl(nlevsoil_in))
          allocate(bc_in%watres_sisl(nlevsoil_in))
          allocate(bc_in%sucsat_sisl(nlevsoil_in))
-         allocate(bc_in%bsw_sisl(nlevsoil_in))
       end if
 
       ! Land use
@@ -3010,6 +3008,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                         data=bc_in%h2o_liq_sisl, hlm_flag=.false.)
          call this%registry(r)%Register(key=hlm_fates_soil_saturated_hydr_cond, &                               
                                         data=bc_in%hksat_sisl, hlm_flag=.false.)
+         call this%registry(r)%Register(key=hlm_fates_soil_clapp_hornberger_b, &                               
+                                        data=bc_in%bsw_sisl, hlm_flag=.false.)
       end if
 
       ! bc_out
