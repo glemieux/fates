@@ -333,7 +333,6 @@ contains
        fates%bc_in(s)%swrad_net_pa(:) = 0.0_r8
        fates%bc_in(s)%lwrad_net_pa(:) = 0.0_r8
        fates%bc_in(s)%watsat_sisl(:) = 0.0_r8
-       fates%bc_in(s)%watres_sisl(:) = 0.0_r8
     end if
 
     
@@ -563,7 +562,6 @@ contains
          allocate(bc_in%lwrad_net_pa(maxpatch_total))
          
          allocate(bc_in%watsat_sisl(nlevsoil_in))
-         allocate(bc_in%watres_sisl(nlevsoil_in))
       end if
 
       ! Land use
@@ -3010,6 +3008,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                         data=bc_in%bsw_sisl, hlm_flag=.false.)
          call this%registry(r)%Register(key=hlm_fates_soil_suction_min, &                               
                                         data=bc_in%sucsat_sisl, hlm_flag=.false.)
+         call this%registry(r)%Register(key=hlm_fates_soil_water_vol_min, &                               
+                                        data=bc_in%watres_sisl, hlm_flag=.false.)
       end if
 
       ! bc_out

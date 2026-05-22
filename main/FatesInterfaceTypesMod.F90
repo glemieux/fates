@@ -988,7 +988,8 @@ module FatesInterfaceTypesMod
     allocate(this%hksat_sisl(this%nlevgrnd))
     allocate(this%bsw_sisl(this%nlevgrnd))
     allocate(this%sucsat_sisl(this%nlevgrnd))
-    
+    allocate(this%watres_sisl(this%nlevgrnd))
+
     ! Unset variables
     this%decomp_id = fates_unset_int
     this%dz_decomp_sisl = nan
@@ -1006,6 +1007,7 @@ module FatesInterfaceTypesMod
     this%hksat_sisl = nan
     this%bsw_sisl = nan
     this%sucsat_sisl = nan
+    this%watres_sisl = nan
 
   end subroutine InitializeBCIn
 
@@ -1236,6 +1238,8 @@ module FatesInterfaceTypesMod
       call this%DefineInterfaceVariable(key=hlm_fates_soil_suction_min, initialize=initialize, index=index, &
                                         update_frequency=registry_update_timestep, bc_dir=bc_in)
       call this%DefineInterfaceVariable(key=hlm_fates_liquid_water, initialize=initialize, index=index, &
+                                        update_frequency=registry_update_timestep, bc_dir=bc_in)
+      call this%DefineInterfaceVariable(key=hlm_fates_soil_water_vol_min, initialize=initialize, index=index, &
                                         update_frequency=registry_update_timestep, bc_dir=bc_in)
 
       ! Hydraulic daily timestep                                   
