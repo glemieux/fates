@@ -332,7 +332,6 @@ contains
        fates%bc_in(s)%qflx_transp_pa(:) = 0.0_r8
        fates%bc_in(s)%swrad_net_pa(:) = 0.0_r8
        fates%bc_in(s)%lwrad_net_pa(:) = 0.0_r8
-       fates%bc_in(s)%watsat_sisl(:) = 0.0_r8
     end if
 
     
@@ -561,7 +560,6 @@ contains
          allocate(bc_in%swrad_net_pa(maxpatch_total))
          allocate(bc_in%lwrad_net_pa(maxpatch_total))
          
-         allocate(bc_in%watsat_sisl(nlevsoil_in))
       end if
 
       ! Land use

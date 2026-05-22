@@ -404,14 +404,14 @@ contains
        select case(soil_wrf_type)
        case(van_genuchten_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
              allocate(wrf_vg)
              sites(s)%si_hydr%wrf_soil(j)%p => wrf_vg
              call wrf_vg%set_wrf_param([alpha_vg, psd_vg, m_vg, watsat, th_res_vg])
           end do
        case(campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
              sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
              bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wrf_cch)
@@ -422,7 +422,7 @@ contains
           end do
        case(smooth1_campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
              sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
              bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wrf_smooth_cch)
@@ -433,7 +433,7 @@ contains
           end do
        case(smooth2_campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
              sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
              bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wrf_smooth_cch)
@@ -463,7 +463,7 @@ contains
           end do
        case(campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
              sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
              bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wkf_cch)
@@ -474,7 +474,7 @@ contains
           end do
        case(smooth1_campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
              sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
              bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wkf_smooth_cch)
@@ -485,7 +485,7 @@ contains
           end do
        case(smooth2_campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
              sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
              bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wkf_smooth_cch)
@@ -1587,7 +1587,7 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,csite_hydr%nlevrhiz
            allocate(wrf_cch)
            csite_hydr%wrf_soil(j)%p => wrf_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
            sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
            bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wrf_cch%set_wrf_param([watsat, &
@@ -1598,7 +1598,7 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,csite_hydr%nlevrhiz
            allocate(wrf_smooth_cch)
            csite_hydr%wrf_soil(j)%p => wrf_smooth_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
            sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
            bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wrf_smooth_cch%set_wrf_param([watsat, &
@@ -1609,7 +1609,7 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,csite_hydr%nlevrhiz
            allocate(wrf_smooth_cch)
            csite_hydr%wrf_soil(j)%p => wrf_smooth_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
            sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
            bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wrf_smooth_cch%set_wrf_param([watsat, &
@@ -1636,7 +1636,7 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,sites(s)%si_hydr%nlevrhiz
            allocate(wkf_cch)
            csite_hydr%wkf_soil(j)%p => wkf_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
            sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
            bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wkf_cch%set_wkf_param([watsat, &
@@ -1647,7 +1647,7 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,sites(s)%si_hydr%nlevrhiz
            allocate(wkf_smooth_cch)
            csite_hydr%wkf_soil(j)%p => wkf_smooth_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
            sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
            bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wkf_smooth_cch%set_wkf_param([watsat, &
@@ -1658,7 +1658,7 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,sites(s)%si_hydr%nlevrhiz
            allocate(wkf_smooth_cch)
            csite_hydr%wkf_soil(j)%p => wkf_smooth_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
            sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
            bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wkf_smooth_cch%set_wkf_param([watsat, &
