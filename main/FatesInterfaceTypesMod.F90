@@ -1223,10 +1223,14 @@ module FatesInterfaceTypesMod
     
     ! Define hydraulics boundary conditions if in hydro mode
     if (hlm_use_planthydro == itrue) then
+    
+      ! Hydraulic model timestep
       call this%DefineInterfaceVariable(key=hlm_fates_soil_potential_min, initialize=initialize, index=index, &
                                         update_frequency=registry_update_timestep, bc_dir=bc_in)
       call this%DefineInterfaceVariable(key=hlm_fates_liquid_water, initialize=initialize, index=index, &
                                         update_frequency=registry_update_timestep, bc_dir=bc_in)
+
+      ! Hydraulic daily timestep                                   
       call this%DefineInterfaceVariable(key=hlm_fates_soil_saturated_hydr_cond, initialize=initialize, index=index, &
                                         bc_dir=bc_in)
     end if
