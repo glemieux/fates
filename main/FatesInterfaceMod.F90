@@ -422,7 +422,6 @@ contains
     fates%bc_out(s)%plant_stored_h2o_si = 0.0_r8
 
     ! Land Use realated
-    fates%bc_out(s)%ar_site = 0.0_r8
     fates%bc_out(s)%hrv_deadstemc_to_prod10c = 0.0_r8
     fates%bc_out(s)%hrv_deadstemc_to_prod100c = 0.0_r8
 
@@ -3015,6 +3014,9 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
       call this%registry(r)%Register(key=hlm_fates_gpp, data=bc_out%gpp_site, &
                                      hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
       
+      call this%registry(r)%Register(key=hlm_fates_ar, data=bc_out%ar_site, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
+
       ! Litter fluxes
       call this%registry(r)%Register(key=hlm_fates_litter_carbon_cellulose, &
                                      data=bc_out%litt_flux_cel_c_si(1:nlevdecomp), hlm_flag=.false., &

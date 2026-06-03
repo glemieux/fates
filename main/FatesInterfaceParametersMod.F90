@@ -38,6 +38,7 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_soil_suction_min = 'minimum_soil_suction'
   character(len=*), parameter, public :: hlm_fates_soil_water_vol_min = 'soil_water_volume_minimum'
   character(len=*), parameter, public :: hlm_fates_gpp = 'gross_primary_productivity'
+  character(len=*), parameter, public :: hlm_fates_ar = 'autotrophic_respiration'
 
   ! Registry update frequency parameters
   integer, parameter, public :: registry_update_init_dims = 0  ! variable dimension that needs to be updated during initialization

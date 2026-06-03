@@ -422,6 +422,7 @@ contains
     real(r8) :: nc_carbon
     real(r8) :: cc_carbon
     real(r8) :: gpp_local
+    real(r8) :: aresp_local
     
     integer,parameter :: leaf_c_id = 1
     
@@ -675,9 +676,13 @@ contains
                currentCohort%daily_c_efflux*currentCohort%n
 
           gpp_local = currentCohort%gpp_acc * currentCohort%n
+          aresp_local = currentCohort%resp_m_acc*currentCohort%n + &
+               currentCohort%resp_excess_hold*currentCohort%n + &
+               currentCohort%resp_g_acc_hold*currentCohort%n/real( hlm_days_per_year,r8)
 
            ! Accumulate into the patch level boundary condition output
           currentSite%bc_out(ifp)%gpp_site = currentSite%bc_out(ifp)%gpp_site + gpp_local         
+          currentSite%bc_out(ifp)%ar_site = currentSite%bc_out(ifp)%ar_site + aresp_local         
 
           ! And simultaneously add the input fluxes to mass balance accounting
           site_cmass%gpp_acc   = site_cmass%gpp_acc + &
@@ -852,8 +857,6 @@ contains
        call set_patchno(currentSite,.true.,1)
     end if
 
-    bc_out%ar_site  = site_cmass%aresp_acc * area_inv * days_per_sec
-    
     if(hlm_use_sp.eq.ifalse .and. (.not.is_restarting))then
        call canopy_spread(currentSite)
     else
@@ -1155,7 +1158,7 @@ contains
     type(fates_cohort_type), pointer :: currentCohort
 
     currentSite%bc_out(:)%gpp_site = 0._r8
-    bc_out%ar_site = 0._r8
+    currentSite%bc_out(:)%ar_site = 0._r8
     
     currentPatch => currentSite%youngest_patch
     do while(associated(currentPatch))
