@@ -2991,6 +2991,11 @@ contains
        site_mass%herbivory_flux_out = &
             site_mass%herbivory_flux_out + &
             leaf_herbivory * (1._r8 - herbivory_element_use_efficiency) * currentCohort%n
+            
+       ! Update the boundary condition output for herbivory flux
+       currentSite%bc_out(currentPatch%patchno)%grazing_closs_to_atm_si = &
+            currentSite%bc_out(currentPatch%patchno)%grazing_closs_to_atm_si + &
+            leaf_herbivory * (1._r8 - herbivory_element_use_efficiency) * currentCohort%n
 
        ! Assumption: turnover from deadwood and sapwood are lumped together in CWD pool
 

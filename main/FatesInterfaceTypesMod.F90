@@ -955,7 +955,6 @@ module FatesInterfaceTypesMod
     ! !ARGUMENTS
     type(bc_out_type), intent(inout)   :: bc_out
 
-    bc_out%grazing_closs_to_atm_si = nan    ! set via site_mass%burn_flux
     bc_out%fire_closs_to_atm_si    = nan    ! set via site_mass%herbivory_flux_out
 
   end subroutine ZeroBCOutCarbonFluxes
@@ -1035,6 +1034,7 @@ module FatesInterfaceTypesMod
     this%litt_flux_all_c = nan
     this%gpp_site = nan
     this%ar_site = nan
+    this%grazing_closs_to_atm_si = nan
 
     if (hlm_parteh_mode == prt_cnp_flex_allom_hyp) then
       allocate(this%litt_flux_cel_n_si(bc_in%nlevdecomp_full))
@@ -1251,6 +1251,8 @@ module FatesInterfaceTypesMod
     call this%DefineInterfaceVariable(key=hlm_fates_gpp, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
     call this%DefineInterfaceVariable(key=hlm_fates_ar, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_out)
+    call this%DefineInterfaceVariable(key=hlm_fates_grazing_loss_atm, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
 
     ! Define the N and P litter fluxes if in CNP mode
