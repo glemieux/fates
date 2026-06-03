@@ -383,12 +383,6 @@ contains
        call endrun(msg=errMsg(sourcefile, __LINE__))
     end select
 
-    ! carbon loss to atmosphere pathways
-    ! (these values are a unit conversion off of the
-    !  equivalent "site_mass%" diagnostics, so they are not
-    !  incremented but set during update_site())
-    fates%bc_out(s)%fire_closs_to_atm_si    = nan
-
     fates%bc_out(s)%rssun_pa(:)     = 0.0_r8
     fates%bc_out(s)%rssha_pa(:)     = 0.0_r8
     
@@ -3017,6 +3011,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                      hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
 
       call this%registry(r)%Register(key=hlm_fates_grazing_loss_atm, data=bc_out%grazing_closs_to_atm_si, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
+      call this%registry(r)%Register(key=hlm_fates_fire_loss_atm, data=bc_out%fire_closs_to_atm_si, &
                                      hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
 
       ! Litter fluxes

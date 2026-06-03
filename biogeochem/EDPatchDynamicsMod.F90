@@ -1141,6 +1141,13 @@ contains
                                      currentSite%mass_balance(el)%burn_flux_to_atm = &
                                           currentSite%mass_balance(el)%burn_flux_to_atm + &
                                           leaf_burn_frac * leaf_m * nc%n
+                                     
+                                     ! Update fire carbon loss boundary condition output
+                                     if (el == carbon12_element) then
+                                       currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                                            currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + &
+                                            leaf_burn_frac * leaf_m * nc%n * area_inv
+                                     end if
 
                                      ! This term increments the loss flux from surviving trees
                                      currentSite%flux_diags%elem(el)%burned_liveveg = &
@@ -1937,7 +1944,7 @@ contains
     ! !USES:
     !
     ! !ARGUMENTS:
-    type(ed_site_type)  , intent(in)    :: currentSite        ! site
+    type(ed_site_type), intent(inout)      :: currentSite        ! site
     type(fates_patch_type) , intent(in)    :: currentPatch       ! Donor patch
     type(fates_patch_type) , intent(inout) :: newPatch           ! New patch
     real(r8)            , intent(in)    :: patch_site_areadis ! Area being donated
@@ -2070,6 +2077,12 @@ contains
           curr_litt%ag_cwd(c) = curr_litt%ag_cwd(c) + donatable_mass*retain_m2
 
           site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
+          
+          ! Update the fire carbon loss boundary condition output
+          if (el == carbon12_element) then
+            currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+               currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+          end if
 
           ! Transfer below ground CWD (none burns)
           do sl = 1,currentSite%nlevsoil
@@ -2098,6 +2111,12 @@ contains
            curr_litt%leaf_fines(dcmpy) = curr_litt%leaf_fines(dcmpy) + donatable_mass*retain_m2
            
            site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
+
+            ! Update the fire carbon loss boundary condition output
+            if (el == carbon12_element) then
+              currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                 currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+            end if
 
            ! Transfer root fines (none burns)
            do sl = 1,currentSite%nlevsoil
@@ -2308,6 +2327,12 @@ contains
 
              site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
+             ! Update the fire carbon loss boundary condition output
+             if (el == carbon12_element) then
+               currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                  currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+             end if
+
              call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
                   currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
@@ -2369,6 +2394,13 @@ contains
                       burned_mass = num_dead_trees * SF_val_CWD_frac_adj(c) * bstem * &
                       currentCohort%fraction_crown_burned
                       site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
+
+                      ! Update the fire carbon loss boundary condition output
+                      if (el == carbon12_element) then
+                        currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                           currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+                      end if
+
                 endif
                 new_litt%ag_cwd(c) = new_litt%ag_cwd(c) + donatable_mass * donate_m2
                 curr_litt%ag_cwd(c) = curr_litt%ag_cwd(c) + donatable_mass * retain_m2
@@ -2773,6 +2805,12 @@ contains
 
              site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
+             ! Update the fire carbon loss boundary condition output
+             if (el == carbon12_element) then
+               currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                  currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+             end if
+
              call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
                   currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
@@ -2833,6 +2871,12 @@ contains
 
                    site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
+                   ! Update the fire carbon loss boundary condition output
+                   if (el == carbon12_element) then
+                     currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                        currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+                   end if
+
                 else ! all other pools can end up as timber products or burn or go to litter
                    donatable_mass = donatable_mass * (1.0_r8-EDPftvarcon_inst%landusechange_frac_exported(pft)) * &
                         (1.0_r8-EDPftvarcon_inst%landusechange_frac_burned(pft))
@@ -2845,6 +2889,12 @@ contains
                         EDPftvarcon_inst%landusechange_frac_exported(pft)
 
                    site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
+
+                   ! Update the fire carbon loss boundary condition output
+                   if (el == carbon12_element) then
+                     currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                        currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+                   end if
 
                    ! Amount of trunk mass exported off site [kg/m2]
                    elflux_diags%exported_harvest = elflux_diags%exported_harvest + &

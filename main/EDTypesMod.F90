@@ -936,6 +936,7 @@ contains
          ifp = currentPatch%patchno
 
          this%bc_out(ifp)%grazing_closs_to_atm_si = 0._r8
+         this%bc_out(ifp)%fire_closs_to_atm_si    = 0._r8
          this%bc_out(ifp)%gpp_site                = 0._r8
          this%bc_out(ifp)%ar_site                 = 0._r8
 

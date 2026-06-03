@@ -40,6 +40,7 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_gpp = 'gross_primary_productivity'
   character(len=*), parameter, public :: hlm_fates_ar = 'autotrophic_respiration'
   character(len=*), parameter, public :: hlm_fates_grazing_loss_atm = 'grazing_loss_to_atm'
+  character(len=*), parameter, public :: hlm_fates_fire_loss_atm = 'fire_loss_to_atm'
 
   ! Registry update frequency parameters
   integer, parameter, public :: registry_update_init_dims = 0  ! variable dimension that needs to be updated during initialization

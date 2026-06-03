@@ -27,7 +27,6 @@ module EDMainMod
   use FatesInterfaceTypesMod        , only : hlm_masterproc
   use FatesInterfaceTypesMod        , only : numpft
   use FatesInterfaceTypesMod        , only : hlm_use_nocomp
-  use FatesInterfaceTypesMod        , only : ZeroBCOutCarbonFluxes
   use PRTGenericMod            , only : prt_carbon_allom_hyp
   use PRTGenericMod            , only : prt_cnp_flex_allom_hyp
   use PRTGenericMod            , only : nitrogen_element
@@ -195,7 +194,6 @@ contains
     call ZeroLitterFluxes(currentSite)
 
     ! Zero diagnostic bc_out carbon fluxes
-    call ZeroBCOutCarbonFluxes(bc_out)
     call currentSite%ZeroBCOutCarbonFluxes()
 
     ! Zero mass balance
@@ -927,11 +925,6 @@ contains
     bc_out%veg_c_si = bc_out%veg_c_si * g_per_kg * AREA_INV
     bc_out%litter_cwd_c_si = bc_out%litter_cwd_c_si * g_per_kg * AREA_INV
     bc_out%seed_c_si = bc_out%seed_c_si * g_per_kg * AREA_INV
-
-    ! Set boundary condition to HLM for carbon loss to atm from fires and grazing
-    ! [kgC/ha/day]*[ha/m2]*[day/s] = [kg/m2/s] 
-    
-    bc_out%fire_closs_to_atm_si = site_cmass%burn_flux_to_atm * area_inv * days_per_sec
 
   end subroutine ed_update_site
 
