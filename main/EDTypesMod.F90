@@ -616,6 +616,7 @@ module EDTypesMod
        procedure, public :: get_secondary_young_fraction
        procedure, public :: GetRegistryIndex
        procedure, public :: SetRegistryIndex
+       procedure, public :: ZeroBCOutCarbonFluxes
 
   end type ed_site_type
   
@@ -917,5 +918,28 @@ contains
      endif
 
    end function get_secondary_young_fraction
+  
+   ! ======================================================================================
+
+   subroutine ZeroBCOutCarbonFluxes(this)
+
+     ! !ARGUMENTS
+     class(ed_site_type), intent(inout) :: this
+
+     ! LOCAL
+     type(fates_patch_type), pointer :: currentPatch
+     integer :: ifp
+     
+     currentPatch => this%oldest_patch
+     do while (associated(currentPatch))
+     
+         ifp = currentPatch%patchno
+
+         this%bc_out(ifp)%gpp_site                = 0._r8
+
+         currentPatch => currentPatch%younger
+     end do
+
+   end subroutine ZeroBCOutCarbonFluxes
 
 end module EDTypesMod
