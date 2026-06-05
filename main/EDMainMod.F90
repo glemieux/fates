@@ -922,7 +922,6 @@ contains
          bc_out%veg_c_si, bc_out%litter_cwd_c_si, bc_out%seed_c_si)
 
     ! because the outputs of SiteMassStock are in kg C/ha, convert units to g C/m2
-    bc_out%veg_c_si = bc_out%veg_c_si * g_per_kg * AREA_INV
     bc_out%litter_cwd_c_si = bc_out%litter_cwd_c_si * g_per_kg * AREA_INV
     bc_out%seed_c_si = bc_out%seed_c_si * g_per_kg * AREA_INV
 

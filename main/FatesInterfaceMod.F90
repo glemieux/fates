@@ -423,7 +423,6 @@ contains
        fates%bc_in(s)%hlm_luh_transitions(:) = 0.0_r8
     end if
 
-    fates%bc_out(s)%veg_c_si        = 0.0_r8
     fates%bc_out(s)%litter_cwd_c_si = 0.0_r8
     fates%bc_out(s)%seed_c_si       = 0.0_r8
 
@@ -3014,6 +3013,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                      hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
       call this%registry(r)%Register(key=hlm_fates_fire_loss_atm, data=bc_out%fire_closs_to_atm_si, &
                                      hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
+      call this%registry(r)%Register(key=hlm_fates_veg_carbon_total, data=bc_out%veg_c_si, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv)
 
       ! Litter fluxes
       call this%registry(r)%Register(key=hlm_fates_litter_carbon_cellulose, &
