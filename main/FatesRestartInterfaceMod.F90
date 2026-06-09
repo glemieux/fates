@@ -111,7 +111,7 @@ module FatesRestartInterfaceMod
   integer :: ir_min_allowed_landuse_fraction_si
   integer :: ir_landuse_vector_gt_min_si
   integer :: ir_area_bareground_si
-  integer :: ir_snow_depth_si
+  integer :: ir_snow_depth_pa
   integer :: ir_landuse_config_si
   integer :: ir_gpp_acc_si
   integer :: ir_aresp_acc_si
@@ -768,10 +768,6 @@ contains
          long_name='minimum allowed land use fraction at each site', units='fraction', flushval = flushzero, &
          hlms='CLM:ALM', initialize=initialize_variables, ivar=ivar, index = ir_area_bareground_si )
 
-    call this%set_restart_var(vname='fates_snow_depth_site', vtype=site_r8, &
-         long_name='average snow depth', units='m', flushval = flushzero, &
-         hlms='CLM:ALM', initialize=initialize_variables, ivar=ivar, index = ir_snow_depth_si )
-
     call this%set_restart_var(vname='fates_landuse_config_site', vtype=site_int, &
          long_name='hlm_use_potentialveg status of run that created this restart file', &
          units='kgC/m2', flushval = flushzero, &
@@ -802,6 +798,10 @@ contains
     call this%set_restart_var(vname='fates_fcansno_pa', vtype=cohort_r8, &
          long_name='Fraction of canopy covered in snow', units='unitless', flushval = flushinvalid, &
          hlms='CLM:ALM', initialize=initialize_variables, ivar=ivar, index = ir_fcansno_pa )
+
+    call this%set_restart_var(vname='fates_snow_depth_pa', vtype=cohort_r8, &
+         long_name='average snow depth', units='m', flushval = flushzero, &
+         hlms='CLM:ALM', initialize=initialize_variables, ivar=ivar, index = ir_snow_depth_pa )
 
     call this%set_restart_var(vname='fates_solar_zenith_angle', vtype=site_r8, &
          long_name='the angle of the solar zenith', units='radians', flushval = flushinvalid, &
@@ -2294,7 +2294,7 @@ contains
            rio_min_allowed_landuse_fraction_si  => this%rvars(ir_min_allowed_landuse_fraction_si)%r81d, &
            rio_landuse_vector_gt_min_si  => this%rvars(ir_landuse_vector_gt_min_si)%int1d, &
            rio_area_bareground_si      => this%rvars(ir_area_bareground_si)%r81d, &
-           rio_snow_depth_si           => this%rvars(ir_snow_depth_si)%r81d, &
+           rio_snow_depth_pa           => this%rvars(ir_snow_depth_pa)%r81d, &
            rio_landuse_config_s        => this%rvars(ir_landuse_config_si)%int1d, &
            rio_ncohort_pa              => this%rvars(ir_ncohort_pa)%int1d, &
            rio_fcansno_pa              => this%rvars(ir_fcansno_pa)%r81d, &
@@ -2803,6 +2803,8 @@ contains
 
              rio_fcansno_pa( io_idx_co_1st )   = cpatch%fcansno
 
+             rio_snow_depth_pa( io_idx_co_1st ) = cpatch%snow_depth
+
              if ( debug ) then
                 write(fates_log(),*) 'offsetNumCohorts III ' &
                       ,io_idx_co,cohortsperpatch
@@ -2983,7 +2985,6 @@ contains
           rio_solar_zenith_angle(io_idx_si) = sites(s)%coszen  
 
           rio_fireweather_index_si(io_idx_si) = sites(s)%fireWeather%fire_weather_index
-          rio_snow_depth_si(io_idx_si)   = sites(s)%snow_depth
 
           ! land use flag
           rio_landuse_config_si(io_idx_si) = hlm_use_potentialveg
@@ -3355,7 +3356,7 @@ contains
           rio_min_allowed_landuse_fraction_si                  => this%rvars(ir_min_allowed_landuse_fraction_si)%r81d, &
           rio_landuse_vector_gt_min_si               => this%rvars(ir_landuse_vector_gt_min_si)%int1d, &
           rio_area_bareground_si                  => this%rvars(ir_area_bareground_si)%r81d, &
-          rio_snow_depth_si           => this%rvars(ir_snow_depth_si)%r81d, &
+          rio_snow_depth_pa           => this%rvars(ir_snow_depth_pa)%r81d, &
           rio_landuse_config_si       => this%rvars(ir_landuse_config_si)%int1d, &
           rio_ncohort_pa              => this%rvars(ir_ncohort_pa)%int1d, &
           rio_fcansno_pa              => this%rvars(ir_fcansno_pa)%r81d, &
@@ -3820,6 +3821,7 @@ contains
              cpatch%area               = rio_area_pa(io_idx_co_1st)
              cpatch%age_class          = get_age_class_index(cpatch%age)
              cpatch%fcansno            = rio_fcansno_pa(io_idx_co_1st)
+             cpatch%snow_depth         = rio_snow_depth_pa(io_idx_co_1st)
 
              ! Set zenith angle info
 
@@ -4075,7 +4077,6 @@ contains
           sites(s)%coszen         = rio_solar_zenith_angle(io_idx_si)
          
           sites(s)%fireWeather%fire_weather_index  = rio_fireweather_index_si(io_idx_si)
-          sites(s)%snow_depth     = rio_snow_depth_si(io_idx_si)
 
           ! if needed, trigger the special procedure to initialize land use structure from a
           ! restart run that did not include land use.

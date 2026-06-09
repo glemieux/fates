@@ -52,9 +52,12 @@ contains
       type(fates_cohort_type),pointer            :: ccohort ! Current cohort pointer
       integer  :: s                 ! site
       integer  :: j                 ! soil layer
-      integer  :: ft                ! plant functional type index
+      integer  :: ft             
+      integer  :: ifp               ! patch index
       real(r8) :: salinity_node     ! salinity in the soil water [ppt]
       real(r8) :: rresis            ! salinity limitation to transpiration independent
+      real(r8) :: h2o_liquid_volume ! liquid water volume in the soil layer
+      real(r8) :: soil_temperature  ! soil temperature in the soil layer
 
       !------------------------------------------------------------------------------
         
@@ -63,19 +66,29 @@ contains
            cpatch => sites(s)%oldest_patch
            do while (associated(cpatch))                 
               
+              ifp = cpatch%patchno
+
               do ft = 1,numpft
                  cpatch%bstress_sal_ft(ft) = 0.0_r8
 
                  call set_root_fraction(sites(s)%rootfrac_scr, ft, &
                       sites(s)%zi_soil, &
-                      bc_in(s)%max_rooting_depth_index_col )
+                      sites(s)%bc_in(cpatch%patchno)%max_rooting_depth_index_col )
 
                  do j = 1,bc_in(s)%nlevsoil
                     
                     ! Calculations are only relevant where liquid water exists
                     ! see clm_fates%wrap_btran for calculation with CLM/ELM
+
+                    ! Check that the patch has exposed vegetation 
+                    h2o_liquid_volume = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j)
+                    soil_temperature = sites(s)%bc_in(ifp)%tempk_sl(j)
+                    if (.not. bc_in(s)%filter_btran) then
+                       h2o_liquid_volume = -999._r8
+                       soil_temperature = -999._r8
+                    end if
                     
-                    if ( check_layer_water(bc_in(s)%h2o_liqvol_sl(j),bc_in(s)%tempk_sl(j)) )  then
+                    if ( check_layer_water(h2o_liquid_volume,soil_temperature) )  then
                        
                        salinity_node =  bc_in(s)%salinity_sl(j)
                        

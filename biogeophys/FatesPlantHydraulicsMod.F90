@@ -342,6 +342,7 @@ contains
     integer                             :: s           ! site loop counter
     integer                             :: j           ! soil layer index
     integer                             :: j_bc        ! soil layer index of boundary condition
+    integer                             :: ifp         ! patch index
     class(wrf_type_vg), pointer         :: wrf_vg
     class(wkf_type_vg), pointer         :: wkf_vg
     class(wrf_type_cch), pointer        :: wrf_cch
@@ -397,19 +398,22 @@ contains
        ! Initialize the Water Retention Functions
        ! -----------------------------------------------------------------------------------
 
+       ! Temporarily hardcode patch index prior to multi-column fates
+       ifp = 1
+
        select case(soil_wrf_type)
        case(van_genuchten_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
              allocate(wrf_vg)
              sites(s)%si_hydr%wrf_soil(j)%p => wrf_vg
              call wrf_vg%set_wrf_param([alpha_vg, psd_vg, m_vg, watsat, th_res_vg])
           end do
        case(campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-             sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-             bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+             sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+             bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wrf_cch)
              sites(s)%si_hydr%wrf_soil(j)%p => wrf_cch
              call wrf_cch%set_wrf_param([watsat, &
@@ -418,9 +422,9 @@ contains
           end do
        case(smooth1_campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-             sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-             bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+             sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+             bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wrf_smooth_cch)
              sites(s)%si_hydr%wrf_soil(j)%p => wrf_smooth_cch
              call wrf_smooth_cch%set_wrf_param([watsat, &
@@ -429,9 +433,9 @@ contains
           end do
        case(smooth2_campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-             sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-             bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+             sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+             bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wrf_smooth_cch)
              sites(s)%si_hydr%wrf_soil(j)%p => wrf_smooth_cch
              call wrf_smooth_cch%set_wrf_param([watsat, &  
@@ -459,9 +463,9 @@ contains
           end do
        case(campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-             sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-             bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+             sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+             bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wkf_cch)
              sites(s)%si_hydr%wkf_soil(j)%p => wkf_cch
              call wkf_cch%set_wkf_param([watsat, &
@@ -470,9 +474,9 @@ contains
           end do
        case(smooth1_campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-             sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-             bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+             sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+             bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wkf_smooth_cch)
              sites(s)%si_hydr%wkf_soil(j)%p => wkf_smooth_cch
              call wkf_smooth_cch%set_wkf_param([watsat, &
@@ -481,9 +485,9 @@ contains
           end do
        case(smooth2_campbell_type)
           do j=1,sites(s)%si_hydr%nlevrhiz
-             watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-             sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-             bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+             watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+             sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+             bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
              allocate(wkf_smooth_cch)
              sites(s)%si_hydr%wkf_soil(j)%p => wkf_smooth_cch
              call wkf_smooth_cch%set_wkf_param([watsat, &
@@ -1530,6 +1534,7 @@ subroutine HydrSiteColdStart(sites, bc_in )
   integer :: j,j_t,j_b
   integer :: nsites
   integer :: nlevrhiz
+  integer :: ifp
   class(wrf_type_vg), pointer :: wrf_vg
   class(wkf_type_vg), pointer :: wkf_vg
   class(wrf_type_cch), pointer :: wrf_cch
@@ -1541,17 +1546,19 @@ subroutine HydrSiteColdStart(sites, bc_in )
 
   do s = 1,nsites
 
+     ifp = 1
+
      csite_hydr => sites(s)%si_hydr
      nlevrhiz  =  csite_hydr%nlevrhiz
 
      do j = 1,nlevrhiz
         j_t = csite_hydr%map_r2s(j,1) ! top soil layer matching rhiz layer
         j_b = csite_hydr%map_r2s(j,2) ! bottom soil layer matching rhiz layer
-        eff_por = csite_hydr%AggBCToRhiz(bc_in(s)%eff_porosity_sl,j,bc_in(s)%dz_sisl)
+        eff_por = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%eff_porosity_sl,j,bc_in(s)%dz_sisl)
 
         ! [kg/m2] / ([m] * [kg/m3]) = [m3/m3]
         h2osoi_liqvol = min(eff_por, &
-             sum(bc_in(s)%h2o_liq_sisl(j_t:j_b))/(csite_hydr%dz_rhiz(j)*denh2o))
+             sum(sites(s)%bc_in(ifp)%h2o_liq_sisl(j_t:j_b))/(csite_hydr%dz_rhiz(j)*denh2o))
         csite_hydr%h2osoi_liqvol_shell(j,1:nshell) = h2osoi_liqvol
 
      end do
@@ -1580,9 +1587,9 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,csite_hydr%nlevrhiz
            allocate(wrf_cch)
            csite_hydr%wrf_soil(j)%p => wrf_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-           sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-           bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+           sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+           bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wrf_cch%set_wrf_param([watsat, &
                 (-1.0_r8)*sucsat*denh2o*grav_earth*mpa_per_pa*m_per_mm , &
                 bsw])
@@ -1591,9 +1598,9 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,csite_hydr%nlevrhiz
            allocate(wrf_smooth_cch)
            csite_hydr%wrf_soil(j)%p => wrf_smooth_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-           sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-           bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+           sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+           bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wrf_smooth_cch%set_wrf_param([watsat, &
                 (-1.0_r8)*sucsat*denh2o*grav_earth*mpa_per_pa*m_per_mm , & 
                 bsw,1._r8])
@@ -1602,9 +1609,9 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,csite_hydr%nlevrhiz
            allocate(wrf_smooth_cch)
            csite_hydr%wrf_soil(j)%p => wrf_smooth_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-           sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-           bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+           sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+           bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wrf_smooth_cch%set_wrf_param([watsat, &
                 (-1.0_r8)*sucsat*denh2o*grav_earth*mpa_per_pa*m_per_mm , & 
                 bsw,2._r8])
@@ -1629,9 +1636,9 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,sites(s)%si_hydr%nlevrhiz
            allocate(wkf_cch)
            csite_hydr%wkf_soil(j)%p => wkf_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-           sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-           bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+           sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+           bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wkf_cch%set_wkf_param([watsat, &
                 (-1.0_r8)*sucsat*denh2o*grav_earth*mpa_per_pa*m_per_mm , &
                 bsw])
@@ -1640,9 +1647,9 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,sites(s)%si_hydr%nlevrhiz
            allocate(wkf_smooth_cch)
            csite_hydr%wkf_soil(j)%p => wkf_smooth_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-           sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-           bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+           sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+           bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wkf_smooth_cch%set_wkf_param([watsat, &
                 (-1.0_r8)*sucsat*denh2o*grav_earth*mpa_per_pa*m_per_mm , & 
                 bsw,1._r8])
@@ -1651,9 +1658,9 @@ subroutine HydrSiteColdStart(sites, bc_in )
         do j=1,sites(s)%si_hydr%nlevrhiz
            allocate(wkf_smooth_cch)
            csite_hydr%wkf_soil(j)%p => wkf_smooth_cch
-           watsat = csite_hydr%AggBCToRhiz(bc_in(s)%watsat_sisl,j,bc_in(s)%dz_sisl)
-           sucsat = csite_hydr%AggBCToRhiz(bc_in(s)%sucsat_sisl,j,bc_in(s)%dz_sisl)
-           bsw    = csite_hydr%AggBCToRhiz(bc_in(s)%bsw_sisl,j,bc_in(s)%dz_sisl)
+           watsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%watsat_sl,j,bc_in(s)%dz_sisl)
+           sucsat = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%sucsat_sisl,j,bc_in(s)%dz_sisl)
+           bsw    = csite_hydr%AggBCToRhiz(sites(s)%bc_in(ifp)%bsw_sisl,j,bc_in(s)%dz_sisl)
            call wkf_smooth_cch%set_wkf_param([watsat, &
                 (-1.0_r8)*sucsat*denh2o*grav_earth*mpa_per_pa*m_per_mm , & 
                 bsw,2._r8])
@@ -1901,8 +1908,12 @@ subroutine ConstrainRecruitNumber(csite,ccohort, cpatch, bc_in, mean_temp)
 
   integer :: el                         ! element loop index
   integer :: element_id                 ! global element identifier index
+  integer :: ifp                        ! current patch index
   real(r8) :: leaf_m, store_m, sapw_m   ! Element mass in organ tissues
   real(r8) :: fnrt_m, struct_m, repro_m ! Element mass in organ tissues
+
+  ! Get the current patch index
+  ifp = cpatch%patchno
 
   csite_hydr => csite%si_hydr
   ccohort_hydr =>ccohort%co_hydr
@@ -1918,7 +1929,7 @@ subroutine ConstrainRecruitNumber(csite,ccohort, cpatch, bc_in, mean_temp)
 
   do j=1,csite_hydr%nlevrhiz
 
-     watres_local = csite_hydr%wrf_soil(j)%p%th_from_psi(bc_in%smpmin_si*denh2o*grav_earth*m_per_mm*mpa_per_pa)
+     watres_local = csite_hydr%wrf_soil(j)%p%th_from_psi(csite%bc_in(ifp)%smpmin*denh2o*grav_earth*m_per_mm*mpa_per_pa)
      
      total_water = sum(csite_hydr%v_shell(j,:)*csite_hydr%h2osoi_liqvol_shell(j,:))
      total_water_min = sum(csite_hydr%v_shell(j,:)*watres_local)
@@ -2019,6 +2030,7 @@ subroutine UpdateSizeDepRhizVolLenCon(currentSite, bc_in)
                                                                  ! absorbing root radius rs1
                                                                  ! 1.e-5_r8 from Rudinger et al 1994
   integer                        :: nlevrhiz
+  INTEGER                        :: ifp
   integer, parameter :: k_inner = 1   ! innermost rhizosphere shell
   !-----------------------------------------------------------------------
 
@@ -2063,8 +2075,11 @@ subroutine UpdateSizeDepRhizVolLenCon(currentSite, bc_in)
      !          * 9.8-1 [s2 m-1]
      !          * 1e6 [Pa MPa-1]
      !                           = [kg s-1 m-1 MPa-1]
+     
+     ! Temporary hardcode of patch for multi-column fates
+     ifp = 1
 
-     hksat_s = csite_hydr%AggBCToRhiz(bc_in%hksat_sisl,j,bc_in%dz_sisl) * &
+     hksat_s = csite_hydr%AggBCToRhiz(currentSite%bc_in(ifp)%hksat_sisl,j,bc_in%dz_sisl) * &
           m_per_mm * 1._r8/grav_earth * pa_per_mpa
 
      ! proceed only if the total absorbing root length (site-level) has changed in this layer
@@ -2228,6 +2243,7 @@ subroutine FillDrainRhizShells(nsites, sites, bc_in)
   real(r8) :: cumShellH2O                              ! sum of water in all the shells of a specific layer             [kg/m2]
   real(r8) :: h2osoi_liq_shell(nlevsoi_hyd_max,nshell) ! water in the rhizosphere shells                               [kg]
   integer  :: tmp                                      ! temporary
+  integer  :: ifp                                      ! patch index for accessing boundary condition water content
   logical  :: found                                    ! flag in search loop
   !-----------------------------------------------------------------------
 
@@ -2246,6 +2262,9 @@ subroutine FillDrainRhizShells(nsites, sites, bc_in)
      ! If there are just no plants in this site, don't bother shuffling water
      if( sum(csite_hydr%l_aroot_layer) <= nearzero ) cycle
      
+     ! Temporarily hardcode this prior to multi-column fates implementation
+     ifp = 1
+     
      do j = 1,csite_hydr%nlevrhiz
 
         j_t = csite_hydr%map_r2s(j,1) ! top soil layer matching rhiz layer
@@ -2256,7 +2275,7 @@ subroutine FillDrainRhizShells(nsites, sites, bc_in)
         cumShellH2O=sum(csite_hydr%h2osoi_liqvol_shell(j,:) *csite_hydr%v_shell(j,:)) * denh2o*AREA_INV
 
         ! [kg/m2]
-        dwat_kgm2 = sum(bc_in(s)%h2o_liq_sisl(j_t:j_b)) - cumShellH2O
+        dwat_kgm2 = sum(sites(s)%bc_in(ifp)%h2o_liq_sisl(j_t:j_b)) - cumShellH2O
 
         dwat_kg = dwat_kgm2 * AREA
 
@@ -2318,7 +2337,7 @@ subroutine FillDrainRhizShells(nsites, sites, bc_in)
              csite_hydr%v_shell(j,:) * denh2o
 
 
-        errh2o(j) = sum(h2osoi_liq_shell(j,:))*AREA_INV - sum(bc_in(s)%h2o_liq_sisl(j_t:j_b))
+        errh2o(j) = sum(h2osoi_liq_shell(j,:))*AREA_INV - sum(sites(s)%bc_in(ifp)%h2o_liq_sisl(j_t:j_b))
 
         if (abs(errh2o(j)) > 1.e-9_r8) then
            write(fates_log(),*)'WARNING:  water balance error in FillDrainRhizShells'
@@ -2756,16 +2775,18 @@ subroutine hydraulics_bc ( nsites, sites, bc_in, bc_out, dtime)
 
            sumweight = 0._r8
            do j_bc = j_t,j_b
+              ! Temporarily set ifp index for mcf update
+              ifp = 1
               if(rootflux_disagg == soilk_disagg)then
                  if(qflx_soil2root_rhiz>0._r8 )then
                     ! Weight disaggregation by K*dz, but only for flux
                     ! into the root, othersize weight by root length
                     ! h2osoi_liqvol: [kg/m2] / [m] / [kg/m3] = [m3/m3]
-                    eff_por       = bc_in(s)%eff_porosity_sl(j_bc)
-                    h2osoi_liqvol = min(eff_por, bc_in(s)%h2o_liq_sisl(j_bc)/(bc_in(s)%dz_sisl(j_bc)*denh2o))
+                    eff_por       = sites(s)%bc_in(ifp)%eff_porosity_sl(j_bc)
+                    h2osoi_liqvol = min(eff_por, sites(s)%bc_in(ifp)%h2o_liq_sisl(j_bc)/(sites(s)%bc_in(ifp)%dz_sisl(j_bc)*denh2o))
                     psi_layer     = csite_hydr%wrf_soil(j)%p%psi_from_th(h2osoi_liqvol)
                     ftc_layer     = csite_hydr%wkf_soil(j)%p%ftc_from_psi(psi_layer)
-                    weight_sl(j_bc) = bc_in(s)%hksat_sisl(j_bc)*ftc_layer*csite_hydr%rootl_sl(j_bc)
+                    weight_sl(j_bc) = sites(s)%bc_in(ifp)%hksat_sisl(j_bc)*ftc_layer*csite_hydr%rootl_sl(j_bc)
                  else
                     weight_sl(j_bc) = csite_hydr%rootl_sl(j_bc)
                  end if

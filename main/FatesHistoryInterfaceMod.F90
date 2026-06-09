@@ -2366,7 +2366,7 @@ contains
     if(hlm_hist_level_dynam>0) then
        call update_history_dyn_sitelevel(this,nc,nsites,sites)
        if(hlm_hist_level_dynam>1) then
-          call update_history_dyn_subsite(this,nc,nsites,sites,bc_in)
+          call update_history_dyn_subsite(this,nc,nsites,sites)
           call update_history_dyn_subsite_ageclass(this,nc,nsites,sites)
           call reset_history_dyn_subsite(this, nsites, sites)
        end if
@@ -3063,7 +3063,7 @@ contains
 
   ! =========================================================================================
 
-  subroutine update_history_dyn_subsite(this,nc,nsites,sites,bc_in)
+  subroutine update_history_dyn_subsite(this,nc,nsites,sites)
 
     ! ---------------------------------------------------------------------------------
     ! This subroutine is intended to update all history variables with upfreq ==
@@ -3077,7 +3077,6 @@ contains
     integer                 , intent(in)            :: nc   ! clump index
     integer                 , intent(in)            :: nsites
     type(ed_site_type)      , intent(inout), target :: sites(nsites)
-    type(bc_in_type)        , intent(in)            :: bc_in(nsites)
 
     type(fates_cohort_type), pointer :: ccohort
     type(fates_patch_type),  pointer :: cpatch
@@ -3534,7 +3533,7 @@ contains
                    endif
 
                    call set_root_fraction(sites(s)%rootfrac_scr, ccohort%pft, sites(s)%zi_soil, &
-                        bc_in(s)%max_rooting_depth_index_col )
+                        sites(s)%bc_in(cpatch%patchno)%max_rooting_depth_index_col )
 
                    ! Update biomass components
                    ! Mass pools [kg]
@@ -5150,8 +5149,9 @@ contains
     real(r8)                , intent(in)            :: dt_tstep
 
     ! Locals
-    integer  :: s        ! The local site index
-    integer  :: io_si     ! The site index of the IO array
+    integer  :: s          ! The local site index
+    integer  :: io_si      ! The site index of the IO array
+    integer  :: ifp        ! fates patch index
     integer  :: age_class  ! class age index
     real(r8) :: site_area_veg_inv  ! inverse canopy area of the site (1/m2)
     real(r8) :: site_area_rad_inv   ! inverse canopy area of site for only
@@ -5201,9 +5201,12 @@ contains
          call this%zero_site_hvars(sites(s), upfreq_in=group_hifr_simple)
 
          io_si  = sites(s)%h_gid
+         
+         ! Temporarily hard code ifp to 1.  This will be updated for future multicolumn fates
+         ifp = 1
 
-         hio_nep_si(io_si) = -bc_in(s)%tot_het_resp * kg_per_g
-         hio_hr_si(io_si)  =  bc_in(s)%tot_het_resp * kg_per_g
+         hio_nep_si(io_si) = -sites(s)%bc_in(ifp)%tot_het_resp * kg_per_g
+         hio_hr_si(io_si)  =  sites(s)%bc_in(ifp)%tot_het_resp * kg_per_g
 
          ! Diagnostics that are only incremented if we called the radiation solver
          ! We do not call the radiation solver if
@@ -5888,6 +5891,7 @@ contains
     integer  :: j_t,j_b  ! top and bottom soil layer matching current rhiz layer
     integer  :: nlevrhiz ! number of rhizosphere layers
     integer  :: nlevsoil ! number of soil layers
+    integer  :: ifp      ! index of the fates patch number
     real(r8) :: mean_soil_vwc    ! mean soil volumetric water content [m3/m3]
     real(r8) :: mean_soil_vwcsat ! mean soil saturated volumetric water content [m3/m3]
     real(r8) :: mean_soil_matpot ! mean soil water potential [MPa]
@@ -5926,6 +5930,10 @@ contains
 
          do s = 1,nsites
 
+            ! Prior to multi-column fates conversion, we can use the fates patch number
+            ! associated with the first patch on the site for the boundary condition indexing.
+            ifp = 1
+
             call this%zero_site_hvars(sites(s),upfreq_in=group_hydr_simple)
 
             site_hydr => sites(s)%si_hydr
@@ -5953,15 +5961,21 @@ contains
 
                do j_bc = j_t,j_b
 
-                  vwc     = bc_in(s)%h2o_liqvol_sl(j_bc)
+                  vwc     = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j_bc)
                   psi     = site_hydr%wrf_soil(j)%p%psi_from_th(vwc) ! MLO: Any reason for not using smp_sl?
                   ! cap capillary pressure
                   ! psi = max(-1e5_r8,psi) Removing cap as that is inconstistent
                   !                        with model internals and physics. Should
                   !                        implement caps inside the functions
                   !                        if desired. (RGK 12-2021)
-                  vwc_sat = bc_in(s)%watsat_sl(j_bc)
+                  vwc_sat = sites(s)%bc_in(ifp)%watsat_sl(j_bc)
                   depth_frac = bc_in(s)%dz_sisl(j_bc)/site_hydr%dz_rhiz(j)
+
+                  ! Override the watsat_sl if patch doesn't have exposed vegetation
+                  if (.not. bc_in(s)%filter_btran) then
+                    vwc = -999._r8
+                    vwc_sat = -999._r8
+                  end if
 
                   ! If there are any roots, we use root weighting
                   if(sum(site_hydr%l_aroot_layer(:),dim=1) > nearzero) then
@@ -6034,6 +6048,10 @@ contains
          call this%flush_hvars(nc,upfreq_in=group_hydr_complx)
          
          do s = 1,nsites
+          
+            ! Prior to multi-column fates conversion, we can use the fates patch number
+            ! associated with the first patch on the site for the boundary condition indexing.
+            ifp = 1
             
             site_hydr => sites(s)%si_hydr
             nlevrhiz = site_hydr%nlevrhiz
@@ -6060,15 +6078,21 @@ contains
 
                do j_bc = j_t,j_b
 
-                  vwc     = bc_in(s)%h2o_liqvol_sl(j_bc)
+                  vwc     = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j_bc)
                   psi     = site_hydr%wrf_soil(j)%p%psi_from_th(vwc) ! MLO: Any reason for not using smp_sl?
                   ! cap capillary pressure
                   ! psi = max(-1e5_r8,psi) Removing cap as that is inconstistent
                   !                        with model internals and physics. Should
                   !                        implement caps inside the functions
                   !                        if desired. (RGK 12-2021)
-                  vwc_sat = bc_in(s)%watsat_sl(j_bc)
+                  vwc_sat = sites(s)%bc_in(ifp)%watsat_sl(j_bc)
                   depth_frac = bc_in(s)%dz_sisl(j_bc)/site_hydr%dz_rhiz(j)
+
+                  ! Override the watsat_sl if patch doesn't have exposed vegetation
+                  if (.not. bc_in(s)%filter_btran) then
+                    vwc = -999._r8
+                    vwc_sat = -999._r8
+                  end if
 
                   ! If there are any roots, we use root weighting
                   if(sum(site_hydr%l_aroot_layer(:),dim=1) > nearzero) then

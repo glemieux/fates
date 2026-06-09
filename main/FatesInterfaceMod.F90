@@ -190,6 +190,7 @@ module FatesInterfaceMod
          procedure         :: SetRegistryActiveState
          procedure         :: SetRegistryLastState
          procedure, public :: UpdateInterfaceVariables
+         procedure, public :: UpdateInterfaceVariablesTimestep
          procedure, public :: UpdateLitterFluxes
       
    end type fates_interface_type
@@ -318,19 +319,9 @@ contains
     fates%bc_in(s)%solad_parb(:,:)     = 0.0_r8
     fates%bc_in(s)%solai_parb(:,:)     = 0.0_r8
     fates%bc_in(s)%smp_sl(:)           = 0.0_r8
-    fates%bc_in(s)%eff_porosity_sl(:)  = 0.0_r8
-    fates%bc_in(s)%watsat_sl(:)        = 0.0_r8
-    fates%bc_in(s)%tempk_sl(:)         = 0.0_r8
-    fates%bc_in(s)%h2o_liqvol_sl(:)    = 0.0_r8
     fates%bc_in(s)%fcansno_pa(:)       = 0.0_r8
     fates%bc_in(s)%albgr_dir_rb(:)     = 0.0_r8
     fates%bc_in(s)%albgr_dif_rb(:)     = 0.0_r8
-    fates%bc_in(s)%max_rooting_depth_index_col = 0
-    fates%bc_in(s)%tot_het_resp        = 0.0_r8
-    fates%bc_in(s)%tot_somc            = 0.0_r8 
-    fates%bc_in(s)%tot_litc            = 0.0_r8
-    fates%bc_in(s)%snow_depth_si       = 0.0_r8
-    fates%bc_in(s)%frac_sno_eff_si     = 0.0_r8
     
     if(do_fates_salinity)then
        fates%bc_in(s)%salinity_sl(:)   = 0.0_r8
@@ -341,11 +332,6 @@ contains
        fates%bc_in(s)%qflx_transp_pa(:) = 0.0_r8
        fates%bc_in(s)%swrad_net_pa(:) = 0.0_r8
        fates%bc_in(s)%lwrad_net_pa(:) = 0.0_r8
-       fates%bc_in(s)%watsat_sisl(:) = 0.0_r8
-       fates%bc_in(s)%watres_sisl(:) = 0.0_r8
-       fates%bc_in(s)%sucsat_sisl(:) = 0.0_r8
-       fates%bc_in(s)%bsw_sisl(:) = 0.0_r8
-       fates%bc_in(s)%hksat_sisl(:) = 0.0_r8
     end if
 
     
@@ -397,13 +383,6 @@ contains
        call endrun(msg=errMsg(sourcefile, __LINE__))
     end select
 
-    ! carbon loss to atmosphere pathways
-    ! (these values are a unit conversion off of the
-    !  equivalent "site_mass%" diagnostics, so they are not
-    !  incremented but set during update_site())
-    fates%bc_out(s)%grazing_closs_to_atm_si = nan
-    fates%bc_out(s)%fire_closs_to_atm_si    = nan
-
     fates%bc_out(s)%rssun_pa(:)     = 0.0_r8
     fates%bc_out(s)%rssha_pa(:)     = 0.0_r8
     
@@ -436,8 +415,6 @@ contains
     fates%bc_out(s)%plant_stored_h2o_si = 0.0_r8
 
     ! Land Use realated
-    fates%bc_out(s)%gpp_site = 0.0_r8
-    fates%bc_out(s)%ar_site = 0.0_r8
     fates%bc_out(s)%hrv_deadstemc_to_prod10c = 0.0_r8
     fates%bc_out(s)%hrv_deadstemc_to_prod100c = 0.0_r8
 
@@ -445,10 +422,6 @@ contains
        fates%bc_in(s)%hlm_luh_states(:) = 0.0_r8
        fates%bc_in(s)%hlm_luh_transitions(:) = 0.0_r8
     end if
-
-    fates%bc_out(s)%veg_c_si        = 0.0_r8
-    fates%bc_out(s)%litter_cwd_c_si = 0.0_r8
-    fates%bc_out(s)%seed_c_si       = 0.0_r8
 
     return
   end subroutine zero_bcs
@@ -542,10 +515,6 @@ contains
       
       ! Hydrology
       allocate(bc_in%smp_sl(nlevsoil_in))
-      allocate(bc_in%eff_porosity_sl(nlevsoil_in))
-      allocate(bc_in%watsat_sl(nlevsoil_in))
-      allocate(bc_in%tempk_sl(nlevsoil_in))
-      allocate(bc_in%h2o_liqvol_sl(nlevsoil_in))
       
       !BGC
       if(do_fates_salinity) then
@@ -564,7 +533,6 @@ contains
       allocate(bc_in%rb_pa(maxpatch_total))
       allocate(bc_in%t_veg_pa(maxpatch_total))
       allocate(bc_in%tgcm_pa(maxpatch_total))
-      allocate(bc_in%t_soisno_sl(nlevsoil_in))
 
       ! Canopy Radiation
       bc_in%coszen = nan
@@ -579,12 +547,6 @@ contains
          allocate(bc_in%swrad_net_pa(maxpatch_total))
          allocate(bc_in%lwrad_net_pa(maxpatch_total))
          
-         allocate(bc_in%watsat_sisl(nlevsoil_in))
-         allocate(bc_in%watres_sisl(nlevsoil_in))
-         allocate(bc_in%sucsat_sisl(nlevsoil_in))
-         allocate(bc_in%bsw_sisl(nlevsoil_in))
-         allocate(bc_in%hksat_sisl(nlevsoil_in))
-         allocate(bc_in%h2o_liq_sisl(nlevsoil_in)); bc_in%h2o_liq_sisl = nan
       end if
 
       ! Land use
@@ -2982,6 +2944,7 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
       r = this%sites(s)%GetRegistryIndex(ifp)
 
       ! Register the boundary conditions that are necessary for allocating other boundary conditions first
+      call this%registry(r)%Register(key=hlm_fates_nlevground, data=bc_in%nlevgrnd, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_decomp_max, data=bc_in%nlevdecomp_full, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_decomp, data=bc_in%nlevdecomp, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_soil_level, data=bc_in%nlevsoil, hlm_flag=.false.)
@@ -3004,9 +2967,57 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                      data=bc_in%w_scalar_sisl, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_decomp_frac_temperature, &                               
                                      data=bc_in%t_scalar_sisl, hlm_flag=.false.)
-      
+      call this%registry(r)%Register(key=hlm_fates_effective_porosity, &                               
+                                     data=bc_in%eff_porosity_sl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_soil_water_saturation, &                               
+                                    data=bc_in%watsat_sl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_heterotrophic_respiration, &                               
+                                    data=bc_in%tot_het_resp, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_snow_depth, &                               
+                                    data=bc_in%snow_depth, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_snow_cover_frac, &                               
+                                    data=bc_in%frac_snow_eff, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_soil_h2o_liquid, &                               
+                                    data=bc_in%h2o_liqvol_sl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_soil_temperature, &                               
+                                    data=bc_in%tempk_sl, hlm_flag=.false.)
+
+      if (hlm_use_planthydro == itrue) then
+         call this%registry(r)%Register(key=hlm_fates_soil_potential_min, &                               
+                                        data=bc_in%smpmin, hlm_flag=.false.)
+         call this%registry(r)%Register(key=hlm_fates_liquid_water, &                               
+                                        data=bc_in%h2o_liq_sisl, hlm_flag=.false.)
+         call this%registry(r)%Register(key=hlm_fates_soil_saturated_hydr_cond, &                               
+                                        data=bc_in%hksat_sisl, hlm_flag=.false.)
+         call this%registry(r)%Register(key=hlm_fates_soil_clapp_hornberger_b, &                               
+                                        data=bc_in%bsw_sisl, hlm_flag=.false.)
+         call this%registry(r)%Register(key=hlm_fates_soil_suction_min, &                               
+                                        data=bc_in%sucsat_sisl, hlm_flag=.false.)
+         call this%registry(r)%Register(key=hlm_fates_soil_water_vol_min, &                               
+                                        data=bc_in%watres_sisl, hlm_flag=.false.)
+      end if
+
       ! bc_out
       nlevdecomp = bc_in%nlevdecomp
+      
+      call this%registry(r)%Register(key=hlm_fates_gpp, data=bc_out%gpp_site, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
+      
+      call this%registry(r)%Register(key=hlm_fates_ar, data=bc_out%ar_site, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
+
+      call this%registry(r)%Register(key=hlm_fates_grazing_loss_atm, data=bc_out%grazing_closs_to_atm_si, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
+      call this%registry(r)%Register(key=hlm_fates_fire_loss_atm, data=bc_out%fire_closs_to_atm_si, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv*days_per_sec)
+      call this%registry(r)%Register(key=hlm_fates_veg_carbon_total, data=bc_out%veg_c_si, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv)
+      call this%registry(r)%Register(key=hlm_fates_litter_cwd_carbon_total, data=bc_out%litter_cwd_c_si, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv)
+      call this%registry(r)%Register(key=hlm_fates_seed_carbon_total, data=bc_out%seed_c_si, &
+                                     hlm_flag=.false., conversion_factor=g_per_kg*area_inv)
+
+      ! Litter fluxes
       call this%registry(r)%Register(key=hlm_fates_litter_carbon_cellulose, &
                                      data=bc_out%litt_flux_cel_c_si(1:nlevdecomp), hlm_flag=.false., &
                                      conversion_factor=days_per_sec*g_per_kg)
@@ -3151,6 +3162,46 @@ subroutine UpdateInterfaceVariables(this, initialize, restarting)
    end do
    
 end subroutine UpdateInterfaceVariables
+
+! ======================================================================================
+
+subroutine UpdateInterfaceVariablesTimeStep(this, update_history)
+
+   ! This procedure handles updating the interface variables that need to be updated at 
+   ! every model time step.
+
+   ! Arguments 
+   class(fates_interface_type), intent(inout) :: this
+   logical, optional, intent(in)              :: update_history
+   
+   ! Locals
+   integer :: n  ! active registry index iterator
+   integer :: r  ! registry index 
+
+   logical :: update_history_local  ! local flag for updating history variables
+
+   update_history_local = .false.
+   if (present(update_history)) then
+      update_history_local = update_history
+   end if
+
+   ! Set the registry active state
+   call this%SetRegistryActiveState()
+
+   ! Loop through the active registries and update the litter fluxes
+   do n = 1, this%num_active_patches
+      r = this%filter_registry_active(n)
+      
+      if (update_history_local) then
+         call this%registry(r)%UpdateHistory()
+      else
+         call this%registry(r)%UpdateTimestep()
+      end if
+
+      
+   end do
+
+end subroutine UpdateInterfaceVariablesTimeStep
 
 ! ======================================================================================
 

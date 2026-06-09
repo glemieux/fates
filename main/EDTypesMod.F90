@@ -422,7 +422,6 @@ module EDTypesMod
 
      ! PHENOLOGY 
      real(r8) ::  grow_deg_days                                ! Phenology growing degree days
-     real(r8) ::  snow_depth                                   ! site-level snow depth (used for ELAI/TLAI calcs)
 
      integer  ::  cstatus                                      ! are leaves in this pixel on or off for cold decid
                                                                ! 0 = this site has not experienced a cold period over at least
@@ -617,6 +616,7 @@ module EDTypesMod
        procedure, public :: get_secondary_young_fraction
        procedure, public :: GetRegistryIndex
        procedure, public :: SetRegistryIndex
+       procedure, public :: ZeroBCOutCarbonFluxes
 
   end type ed_site_type
   
@@ -918,5 +918,31 @@ contains
      endif
 
    end function get_secondary_young_fraction
+  
+   ! ======================================================================================
+
+   subroutine ZeroBCOutCarbonFluxes(this)
+
+     ! !ARGUMENTS
+     class(ed_site_type), intent(inout) :: this
+
+     ! LOCAL
+     type(fates_patch_type), pointer :: currentPatch
+     integer :: ifp
+     
+     currentPatch => this%oldest_patch
+     do while (associated(currentPatch))
+     
+         ifp = currentPatch%patchno
+
+         this%bc_out(ifp)%grazing_closs_to_atm_si = 0._r8
+         this%bc_out(ifp)%fire_closs_to_atm_si    = 0._r8
+         this%bc_out(ifp)%gpp_site                = 0._r8
+         this%bc_out(ifp)%ar_site                 = 0._r8
+
+         currentPatch => currentPatch%younger
+     end do
+
+   end subroutine ZeroBCOutCarbonFluxes
 
 end module EDTypesMod
