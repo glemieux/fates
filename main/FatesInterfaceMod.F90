@@ -318,7 +318,6 @@ contains
      
     fates%bc_in(s)%solad_parb(:,:)     = 0.0_r8
     fates%bc_in(s)%solai_parb(:,:)     = 0.0_r8
-    fates%bc_in(s)%smp_sl(:)           = 0.0_r8
     fates%bc_in(s)%fcansno_pa(:)       = 0.0_r8
     fates%bc_in(s)%albgr_dir_rb(:)     = 0.0_r8
     fates%bc_in(s)%albgr_dif_rb(:)     = 0.0_r8
@@ -512,9 +511,6 @@ contains
       ! Radiation
       allocate(bc_in%solad_parb(maxpatch_total,num_swb))
       allocate(bc_in%solai_parb(maxpatch_total,num_swb))
-      
-      ! Hydrology
-      allocate(bc_in%smp_sl(nlevsoil_in))
       
       !BGC
       if(do_fates_salinity) then
@@ -2401,7 +2397,7 @@ contains
                  ! Calculate the soil moisture at the seedling rooting depth for each pft
 
                  ilayer_seedling_root = minloc(abs(bc_in(s)%z_sisl(:)-EDPftvarcon_inst%seedling_root_depth(pft)),dim=1)
-                 new_seedling_layer_smp = bc_in(s)%smp_sl(ilayer_seedling_root)
+                 new_seedling_layer_smp = sites(s)%bc_in(ifp)%smp_sl(ilayer_seedling_root)
 
                  ! Calculate the new moisture deficit day (mdd) value for each pft
                  new_seedling_mdd = (abs(EDPftvarcon_inst%seedling_psi_crit(pft)) - abs(new_seedling_layer_smp)) &
@@ -2980,6 +2976,8 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                     data=bc_in%h2o_liqvol_sl, hlm_flag=.false.)
       call this%registry(r)%Register(key=hlm_fates_soil_temperature, &                               
                                     data=bc_in%tempk_sl, hlm_flag=.false.)
+      call this%registry(r)%Register(key=hlm_fates_soil_suction_potential, &                               
+                                    data=bc_in%smp_sl, hlm_flag=.false.)
 
       if (hlm_use_planthydro == itrue) then
          call this%registry(r)%Register(key=hlm_fates_soil_potential_min, &                               

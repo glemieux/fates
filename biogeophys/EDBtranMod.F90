@@ -190,7 +190,7 @@ contains
 
                    if ( check_layer_water(h2o_liquid_volume,soil_temperature) )  then
 
-                      smp_node = max(smpsc(ft), bc_in(s)%smp_sl(j))
+                      smp_node = max(smpsc(ft), sites(s)%bc_in(ifp)%smp_sl(j))
                       
                       rresis  = min( (effective_porosity/water_saturation) * &
                            (smp_node - smpsc(ft)) / (smpso(ft) - smpsc(ft)), 1._r8)

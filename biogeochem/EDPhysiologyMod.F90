@@ -1232,7 +1232,7 @@ contains
        do j = 2,nlevroot
           if(check_layer_water(h2o_liquid_volume(j),soil_temperature(j)) ) then
              currentSite%smp_memory   (1,ipft) = currentSite%smp_memory   (1,ipft) + &
-                  bc_in%smp_sl            (j) * &
+                  currentSite%bc_in(ifp)%smp_sl(j) * &
                   currentSite%rootfrac_scr(j)  / &
                   rootfrac_notop
           else
@@ -2690,7 +2690,7 @@ contains
                      ilayer_seedling_root = minloc(abs(bc_in%z_sisl(:) -       &
                         EDPftvarcon_inst%seedling_root_depth(ft)), dim=1)
 
-                     seedling_layer_smp = bc_in%smp_sl(ilayer_seedling_root)
+                     seedling_layer_smp = currentSite%bc_in(currentPatch%patchno)%smp_sl(ilayer_seedling_root)
 
                      if (seedling_layer_smp < EDPftvarcon_inst%seedling_psi_crit(ft)) then
                         mass_avail = 0.0_r8

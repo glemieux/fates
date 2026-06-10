@@ -45,6 +45,7 @@ module FatesInterfaceParametersMod
   character(len=*), parameter, public :: hlm_fates_litter_cwd_carbon_total= 'litter_cwd_carbon_total'
   character(len=*), parameter, public :: hlm_fates_seed_carbon_total= 'seed_carbon_total'
   character(len=*), parameter, public :: hlm_fates_decomposer_biomass = 'decomposer_biomass'
+  character(len=*), parameter, public :: hlm_fates_soil_suction_potential = 'soil_suction_potential'
 
   ! Registry update frequency parameters
   integer, parameter, public :: registry_update_init_dims = 0  ! variable dimension that needs to be updated during initialization

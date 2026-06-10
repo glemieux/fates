@@ -971,6 +971,7 @@ module FatesInterfaceTypesMod
     allocate(this%bsw_sisl(this%nlevgrnd))
     allocate(this%sucsat_sisl(this%nlevgrnd))
     allocate(this%watres_sisl(this%nlevgrnd))
+    allocate(this%smp_sl(this%nlevgrnd))
 
     ! Unset variables
     this%decomp_id = fates_unset_int
@@ -990,6 +991,7 @@ module FatesInterfaceTypesMod
     this%bsw_sisl = nan
     this%sucsat_sisl = nan
     this%watres_sisl = nan
+    this%smp_sl = nan
 
   end subroutine InitializeBCIn
 
@@ -1222,6 +1224,8 @@ module FatesInterfaceTypesMod
     call this%DefineInterfaceVariable(key=hlm_fates_soil_h2o_liquid, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
     call this%DefineInterfaceVariable(key=hlm_fates_soil_temperature, initialize=initialize, index=index, &
+                                      update_frequency=registry_update_timestep, bc_dir=bc_in)
+    call this%DefineInterfaceVariable(key=hlm_fates_soil_suction_potential, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_in)
     
     ! Define hydraulics boundary conditions if in hydro mode
