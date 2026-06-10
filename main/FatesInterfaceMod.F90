@@ -646,7 +646,6 @@ contains
       allocate(bc_out%ft_index(max_comp_per_site))
          
       if(trim(hlm_nu_com).eq.'ECA') then
-         allocate(bc_out%decompmicc(nlevdecomp_in))
          allocate(bc_out%cn_scalar(max_comp_per_site))
          allocate(bc_out%cp_scalar(max_comp_per_site))
       end if
@@ -3016,6 +3015,11 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
                                      hlm_flag=.false., conversion_factor=g_per_kg*area_inv)
       call this%registry(r)%Register(key=hlm_fates_seed_carbon_total, data=bc_out%seed_c_si, &
                                      hlm_flag=.false., conversion_factor=g_per_kg*area_inv)
+
+      if(trim(hlm_nu_com).eq.'ECA') then
+         call this%registry(r)%Register(key=hlm_fates_decomposer_biomass, data=bc_out%decompmicc, &
+                                        hlm_flag=.false.)
+      end if
 
       ! Litter fluxes
       call this%registry(r)%Register(key=hlm_fates_litter_carbon_cellulose, &

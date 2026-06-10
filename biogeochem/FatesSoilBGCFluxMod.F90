@@ -439,6 +439,7 @@ contains
     integer                       :: j       ! soil layer index
     integer                       :: id      ! decomp index (might == j)
     integer                       :: pft     ! plant functional type
+    integer                       :: ifp     ! patch index
     type(fates_patch_type), pointer  :: cpatch  ! current patch pointer
     type(fates_cohort_type), pointer :: ccohort ! current cohort pointer
     real(r8) :: fnrt_c                       ! fine-root carbon [kg]
@@ -454,7 +455,6 @@ contains
     bc_out%veg_rootc(:,:) = 0._r8
     bc_out%ft_index(:)    = -1
     if(trim(hlm_nu_com).eq.'ECA')then
-       bc_out%decompmicc(:)  = 0._r8
        bc_out%cn_scalar(:)   = 1._r8
        bc_out%cp_scalar(:)   = 1._r8
     end if
@@ -475,6 +475,14 @@ contains
     icomp = 0
     cpatch => csite%oldest_patch
     do while (associated(cpatch))
+
+       ifp = cpatch%patchno
+
+       ! initialize decomposer biomass if in ECA mode
+       if(trim(hlm_nu_com).eq.'ECA')then
+         csite%bc_out(ifp)%decompmicc(:)  = 0._r8
+       end if
+
        ccohort => cpatch%tallest
        do while (associated(ccohort))
 
@@ -511,24 +519,24 @@ contains
                      exp(-decompmicc_lambda*abs(csite%z_soil(j)-decompmicc_zmax))
 
 
-                bc_out%decompmicc(id) = bc_out%decompmicc(id) + decompmicc_layer * veg_rootc
+                csite%bc_out(ifp)%decompmicc(id) = csite%bc_out(ifp)%decompmicc(id) + decompmicc_layer * veg_rootc
              end if
 
           end do
           ccohort => ccohort%shorter
        end do
 
+       ! We calculate the decomposer microbial biomass by weighting with the
+       ! root biomass. This is just the normalization step
+       if(trim(hlm_nu_com).eq.'ECA')then
+          do id = 1,bc_in%nlevdecomp
+             csite%bc_out(ifp)%decompmicc(id) = csite%bc_out(ifp)%decompmicc(id) / &
+                  max(nearzero,sum(bc_out%veg_rootc(:,id),dim=1))
+          end do
+       end if
+
        cpatch => cpatch%younger
     end do
-
-    ! We calculate the decomposer microbial biomass by weighting with the
-    ! root biomass. This is just the normalization step
-    if(trim(hlm_nu_com).eq.'ECA')then
-       do id = 1,bc_in%nlevdecomp
-          bc_out%decompmicc(id) = bc_out%decompmicc(id) / &
-               max(nearzero,sum(bc_out%veg_rootc(:,id),dim=1))
-       end do
-    end if
 
     if(fates_np_comp_scaling == coupled_np_comp_scaling) then
        bc_out%num_plant_comps = icomp

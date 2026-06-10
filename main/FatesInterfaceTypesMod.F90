@@ -1025,6 +1025,14 @@ module FatesInterfaceTypesMod
     this%litter_cwd_c_si = nan
     this%seed_c_si = nan
 
+    if (trim(hlm_nu_com) == 'ECA') then
+
+      allocate(this%decompmicc(bc_in%nlevdecomp_full))
+      
+      this%decompmicc = nan
+
+    end if
+
     if (hlm_parteh_mode == prt_cnp_flex_allom_hyp) then
       allocate(this%litt_flux_cel_n_si(bc_in%nlevdecomp_full))
       allocate(this%litt_flux_lig_n_si(bc_in%nlevdecomp_full))
@@ -1251,6 +1259,11 @@ module FatesInterfaceTypesMod
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
     call this%DefineInterfaceVariable(key=hlm_fates_seed_carbon_total, initialize=initialize, index=index, &
                                       update_frequency=registry_update_timestep, bc_dir=bc_out)
+
+    if(trim(hlm_nu_com).eq.'ECA') then
+      call this%DefineInterfaceVariable(key=hlm_fates_decomposer_biomass, initialize=initialize, index=index, &
+                                        update_frequency=registry_update_timestep, bc_dir=bc_out)
+    end if
 
     ! Define the N and P litter fluxes if in CNP mode
     ! We could define the interface variables always, even if not registered, but this helps reduce the memory needs
