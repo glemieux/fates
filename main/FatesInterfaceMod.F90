@@ -189,6 +189,7 @@ module FatesInterfaceMod
          procedure, public :: InitializeBoundaryConditions
          procedure         :: SetRegistryActiveState
          procedure         :: SetRegistryLastState
+         procedure, public :: UpdateInterfaceVariable
          procedure, public :: UpdateInterfaceVariables
          procedure, public :: UpdateInterfaceVariablesTimestep
          procedure, public :: UpdateLitterFluxes
@@ -3067,6 +3068,32 @@ subroutine InitializeBoundaryConditions(this, patches_per_site)
    end do
 
 end subroutine InitializeBoundaryConditions
+
+! ======================================================================================
+
+subroutine UpdateInterfaceVariable(this, key)
+
+   ! This procedure updates a single interface variable associated with the interface
+   ! key that is passed as the argument.  This procedure should be used sparingly
+   ! to address cases in which we can't simply update all variables at once.
+   ! Ideally usage of this procedure should be refactored if being called extensively
+   ! in an HLM-FATES interface module procedure.
+
+   ! Arguments
+   class(fates_interface_type), intent(inout) :: this
+   character(len=*), intent(in)               :: key
+   
+   ! Local
+   integer :: r   ! registry interface index
+   
+   ! Loop over all patches and update the variable associated with the key
+   do r = 1, this%npatches
+      call this%registry(r)%UpdateVariable(key)
+   end do
+   
+
+end subroutine
+
 
 ! ======================================================================================
 

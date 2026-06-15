@@ -928,6 +928,7 @@ module FatesInterfaceTypesMod
       procedure :: Update => UpdateInterfaceVariables
       procedure :: UpdateHistory => UpdateInterfaceVariablesHistory
       procedure :: UpdateTimeStep => UpdateInterfaceVariablesTimeStep
+      procedure :: UpdateVariable => UpdateInterfaceVariable
 
       generic :: Register => RegisterInterfaceVariables_0d, & 
                              RegisterInterfaceVariables_1d, &
@@ -1962,6 +1963,27 @@ module FatesInterfaceTypesMod
     
   end subroutine InitializeInterfaceVariables
   
+  ! ======================================================================================
+
+  subroutine UpdateInterfaceVariable(this, key)
+  
+    ! This procedure updates a specific interface variable
+
+    ! Arguments
+    class(fates_interface_registry_type), intent(inout) :: this
+    character(len=*), intent(in)               :: key
+
+    ! Local
+    integer :: i
+
+    ! Get the index associated with the key
+    i = this%GetRegistryVariableIndex(key)
+    
+    ! Update the variable
+    call this%fates_vars(i)%Update(this%hlm_vars(i))
+
+  end subroutine UpdateInterfaceVariable
+
   ! ======================================================================================
 
   subroutine UpdateInterfaceVariables(this)
