@@ -225,7 +225,7 @@ contains
                               0,                     &
                               cohort%nv,      &
                               cohort%pft,     &
-                              site%snow_depth,       &
+                              patch%snow_depth,       &
                               vai_top, vai_bot,      & 
                               elai_cohort,esai_cohort)
 

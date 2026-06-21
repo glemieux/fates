@@ -325,18 +325,17 @@ contains
 
          allocate(rootfr_ft(numpft, bc_in(s)%nlevsoil))
 
-         do ft = 1,numpft
-            call set_root_fraction(rootfr_ft(ft,:), ft, &
-                 bc_in(s)%zi_sisl, &
-                 bc_in(s)%max_rooting_depth_index_col)
-         end do
-
-
          currentpatch => sites(s)%oldest_patch
          do while (associated(currentpatch))
 
             ifp = currentPatch%patchno
             
+            do ft = 1,numpft
+               call set_root_fraction(rootfr_ft(ft,:), ft, &
+                    bc_in(s)%zi_sisl, &
+                    sites(s)%bc_in(ifp)%max_rooting_depth_index_col )
+            end do
+
             if_notbare: if(currentpatch%nocomp_pft_label.ne.nocomp_bareground)then
 
                NCL_p = currentPatch%NCL_p
@@ -437,7 +436,7 @@ contains
                                    iv,                                 &
                                    currentCohort%nv,                   &
                                    currentCohort%pft,                  &
-                                   sites(s)%snow_depth,                &
+                                   currentPatch%snow_depth,                &
                                    cohort_vaitop(iv),                  &
                                    cohort_vaibot(iv),                  & 
                                    cohort_layer_elai(iv),              &
@@ -1001,13 +1000,13 @@ contains
                         ! this variable is zeroed at the end of the FATES dynamics sequence
 
                         do j = 1,bc_in(s)%nlevsoil
-                           tcsoi  = q10_mr**((bc_in(s)%t_soisno_sl(j)-tfrz - 20.0_r8)/10.0_r8)
+                           tcsoi  = q10_mr**((sites(s)%bc_in(ifp)%tempk_sl(j)-tfrz - 20.0_r8)/10.0_r8)
 
                            fnrt_mr_layer = fnrt_n * maintresp_nonleaf_baserate * tcsoi * rootfr_ft(ft,j) * maintresp_reduction_factor
 
                            ! calculate the cost of carbon for N fixation in each soil layer and calculate N fixation rate based on that [kgC / kgN]
 
-                           call RootLayerNFixation(bc_in(s)%t_soisno_sl(j),ft,dtime,fnrt_mr_layer,fnrt_mr_nfix_layer,nfix_layer)
+                           call RootLayerNFixation(sites(s)%bc_in(ifp)%tempk_sl(j),ft,dtime,fnrt_mr_layer,fnrt_mr_nfix_layer,nfix_layer)
 
                            currentCohort%froot_mr = currentCohort%froot_mr + fnrt_mr_nfix_layer + fnrt_mr_layer 
 
@@ -1022,7 +1021,7 @@ contains
                            currentCohort%livecroot_mr = 0._r8
                            do j = 1,bc_in(s)%nlevsoil
                               ! Soil temperature used to adjust base rate of MR
-                              tcsoi  = q10_mr**((bc_in(s)%t_soisno_sl(j)-tfrz - 20.0_r8)/10.0_r8)
+                              tcsoi  = q10_mr**((sites(s)%bc_in(ifp)%tempk_sl(j)-tfrz - 20.0_r8)/10.0_r8)
                               currentCohort%livecroot_mr = currentCohort%livecroot_mr + &
                                    live_croot_n * maintresp_nonleaf_baserate * tcsoi * &
                                    rootfr_ft(ft,j) * maintresp_reduction_factor

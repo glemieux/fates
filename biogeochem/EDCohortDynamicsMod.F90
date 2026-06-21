@@ -486,7 +486,7 @@ contains
 
    if (currentCohort%n.gt.0.0_r8) then
       call SendCohortToLitter(currentSite,currentPatch, &
-           currentCohort,currentCohort%n,bc_in)
+           currentCohort,currentCohort%n)
    end if
 
    ! Set pointers and deallocate the current cohort from the list
@@ -513,7 +513,7 @@ contains
   
   ! =====================================================================================
 
-  subroutine SendCohortToLitter(csite,cpatch,ccohort,nplant,bc_in)
+  subroutine SendCohortToLitter(csite,cpatch,ccohort,nplant)
 
     ! -----------------------------------------------------------------------------------
     ! This routine transfers the existing mass in all pools and all elements
@@ -537,7 +537,6 @@ contains
     type (fates_cohort_type) , target  :: ccohort
     real(r8)                        :: nplant     ! Number (absolute)
                                                   ! of plants to transfer
-    type(bc_in_type), intent(in)    :: bc_in
 
     type(litter_type), pointer        :: litt       ! Litter object for each element
     type(elem_diag_type),pointer :: elflux_diags
@@ -564,7 +563,7 @@ contains
     plant_dens = nplant/cpatch%area
 
     call set_root_fraction(csite%rootfrac_scr, pft, csite%zi_soil, &
-         bc_in%max_rooting_depth_index_col)
+         csite%bc_in(cpatch%patchno)%max_rooting_depth_index_col)
 
     do el=1,num_elements
 

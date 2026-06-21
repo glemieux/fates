@@ -205,6 +205,7 @@ contains
     integer  :: threshold_sizeclass
     integer  :: i_dist
     integer  :: h_index
+    integer  :: ifp
     real(r8) :: harvest_rate
     real(r8) :: tempsum
     real(r8) :: mean_temp
@@ -241,12 +242,15 @@ contains
     currentPatch => site_in%oldest_patch
     do while (associated(currentPatch))   
 
+       ! Get current patch index
+       ifp = currentPatch%patchno
+
        currentCohort => currentPatch%shortest
        do while(associated(currentCohort))        
           ! Mortality for trees in the understorey.
           !currentCohort%patchptr => currentPatch
           mean_temp = currentPatch%tveg24%GetMean()
-          call mortality_rates(currentCohort,bc_in,currentPatch%btran_ft,      &
+          call mortality_rates(currentCohort,site_in%bc_in(ifp)%tempk_sl,currentPatch%btran_ft,      &
             mean_temp, cmort,hmort,bmort,frmort,smort,asmort,dgmort)
           currentCohort%dmort  = cmort+hmort+bmort+frmort+smort+asmort+dgmort
           call carea_allom(currentCohort%dbh,currentCohort%n,site_in%spread,currentCohort%pft, &
@@ -758,7 +762,7 @@ contains
                             select case(i_disturbance_type)
                             case (dtype_ilog)
                                call logging_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in)
+                                    newPatch, patch_site_areadis)
 
                                ! if transitioning from primary to secondary, then may need to change nocomp pft,
                                ! so tag as having transitioned LU
@@ -767,13 +771,13 @@ contains
                                end if
                             case (dtype_ifire)
                                call fire_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in)
+                                    newPatch, patch_site_areadis)
                             case (dtype_ifall)
                                call mortality_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in)
+                                    newPatch, patch_site_areadis)
                             case (dtype_ilandusechange)
                                call landusechange_litter_fluxes(currentSite, currentPatch, &
-                                    newPatch, patch_site_areadis,bc_in, &
+                                    newPatch, patch_site_areadis, &
                                     clearing_matrix(i_donorpatch_landuse_type,i_landusechange_receiverpatchlabel))
 
                                ! if land use change, then may need to change nocomp pft, so tag as having transitioned LU
@@ -1137,6 +1141,13 @@ contains
                                      currentSite%mass_balance(el)%burn_flux_to_atm = &
                                           currentSite%mass_balance(el)%burn_flux_to_atm + &
                                           leaf_burn_frac * leaf_m * nc%n
+                                     
+                                     ! Update fire carbon loss boundary condition output
+                                     if (el == carbon12_element) then
+                                       currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                                            currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + &
+                                            leaf_burn_frac * leaf_m * nc%n * area_inv
+                                     end if
 
                                      ! This term increments the loss flux from surviving trees
                                      currentSite%flux_diags%elem(el)%burned_liveveg = &
@@ -1380,6 +1391,9 @@ contains
 
                    call InsertPatch(currentSite, newPatch)
 
+                   ! Now that the new patch is inserted, update the patch numbers
+                   call set_patchno(currentSite,.false.,0)
+
                    ! sort out the cohorts, since some of them may be so small as to need removing.
                    ! the first call to terminate cohorts removes sparse number densities,
                    ! the second call removes for all other reasons (sparse culling must happen
@@ -1394,7 +1408,6 @@ contains
 
 
                 call check_patch_area(currentSite)
-                call set_patchno(currentSite,.false.,0)
 
              end do landusechange_receiverpatchlabel_loop
           end do landuse_donortype_loop
@@ -1931,7 +1944,7 @@ contains
     ! !USES:
     !
     ! !ARGUMENTS:
-    type(ed_site_type)  , intent(in)    :: currentSite        ! site
+    type(ed_site_type), intent(inout)      :: currentSite        ! site
     type(fates_patch_type) , intent(in)    :: currentPatch       ! Donor patch
     type(fates_patch_type) , intent(inout) :: newPatch           ! New patch
     real(r8)            , intent(in)    :: patch_site_areadis ! Area being donated
@@ -2064,6 +2077,12 @@ contains
           curr_litt%ag_cwd(c) = curr_litt%ag_cwd(c) + donatable_mass*retain_m2
 
           site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
+          
+          ! Update the fire carbon loss boundary condition output
+          if (el == carbon12_element) then
+            currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+               currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+          end if
 
           ! Transfer below ground CWD (none burns)
           do sl = 1,currentSite%nlevsoil
@@ -2092,6 +2111,12 @@ contains
            curr_litt%leaf_fines(dcmpy) = curr_litt%leaf_fines(dcmpy) + donatable_mass*retain_m2
            
            site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
+
+            ! Update the fire carbon loss boundary condition output
+            if (el == carbon12_element) then
+              currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                 currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+            end if
 
            ! Transfer root fines (none burns)
            do sl = 1,currentSite%nlevsoil
@@ -2142,7 +2167,7 @@ contains
   ! ============================================================================
 
   subroutine fire_litter_fluxes(currentSite, currentPatch, &
-       newPatch, patch_site_areadis, bc_in)
+       newPatch, patch_site_areadis)
     !
     ! !DESCRIPTION:
     !  CWD pool burned by a fire. 
@@ -2161,7 +2186,6 @@ contains
     type(fates_patch_type) , intent(inout), target :: currentPatch   ! Donor Patch
     type(fates_patch_type) , intent(inout), target :: newPatch   ! New Patch
     real(r8)            , intent(in)            :: patch_site_areadis ! Area being donated
-    type(bc_in_type)    , intent(in)            :: bc_in
 
     !
     ! !LOCAL VARIABLES:
@@ -2303,8 +2327,14 @@ contains
 
              site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
+             ! Update the fire carbon loss boundary condition output
+             if (el == carbon12_element) then
+               currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                  currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+             end if
+
              call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-                  bc_in%max_rooting_depth_index_col)
+                  currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
              ! Contribution of dead trees to root litter (no root burn flux to atm)
              do dcmpy=1,ndcmpy
@@ -2364,6 +2394,13 @@ contains
                       burned_mass = num_dead_trees * SF_val_CWD_frac_adj(c) * bstem * &
                       currentCohort%fraction_crown_burned
                       site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
+
+                      ! Update the fire carbon loss boundary condition output
+                      if (el == carbon12_element) then
+                        currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                           currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+                      end if
+
                 endif
                 new_litt%ag_cwd(c) = new_litt%ag_cwd(c) + donatable_mass * donate_m2
                 curr_litt%ag_cwd(c) = curr_litt%ag_cwd(c) + donatable_mass * retain_m2
@@ -2381,7 +2418,7 @@ contains
   ! ============================================================================
 
   subroutine mortality_litter_fluxes(currentSite, currentPatch, &
-       newPatch, patch_site_areadis,bc_in)
+       newPatch, patch_site_areadis)
     !
     ! !DESCRIPTION:
     ! Carbon going from mortality associated with disturbance into CWD pools. 
@@ -2403,7 +2440,6 @@ contains
     type(fates_patch_type) , intent(inout), target :: currentPatch
     type(fates_patch_type) , intent(inout), target :: newPatch
     real(r8)            , intent(in)            :: patch_site_areadis
-    type(bc_in_type)    , intent(in)            :: bc_in
     !
     ! !LOCAL VARIABLES:
     type(fates_cohort_type), pointer      :: currentCohort
@@ -2531,7 +2567,7 @@ contains
           bg_wood = num_dead * (struct_m + sapw_m) * (1.0_r8-prt_params%allom_agb_frac(pft))
           
           call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-               bc_in%max_rooting_depth_index_col)
+               currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
           ! Adjust how wood is partitioned between the cwd classes based on cohort dbh
 	  call adjust_SF_CWD_frac(currentCohort%dbh,ncwd,SF_val_CWD_frac,SF_val_CWD_frac_adj)
@@ -2614,8 +2650,8 @@ contains
     ! ============================================================================
 
   subroutine landusechange_litter_fluxes(currentSite, currentPatch, &
-       newPatch, patch_site_areadis, bc_in,  &
-       clearing_matrix_element)
+       newPatch, patch_site_areadis, clearing_matrix_element)
+       
     !
     ! !DESCRIPTION:
     !  CWD pool from land use change.
@@ -2630,7 +2666,6 @@ contains
     type(fates_patch_type) , intent(inout), target :: currentPatch   ! Donor Patch
     type(fates_patch_type) , intent(inout), target :: newPatch   ! New Patch
     real(r8)               , intent(in)            :: patch_site_areadis ! Area being donated
-    type(bc_in_type)       , intent(in)            :: bc_in
     logical                , intent(in)            :: clearing_matrix_element ! whether or not to clear vegetation
 
     !
@@ -2770,8 +2805,14 @@ contains
 
              site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
+             ! Update the fire carbon loss boundary condition output
+             if (el == carbon12_element) then
+               currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                  currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+             end if
+
              call set_root_fraction(currentSite%rootfrac_scr, pft, currentSite%zi_soil, &
-                  bc_in%max_rooting_depth_index_col)
+                  currentSite%bc_in(currentPatch%patchno)%max_rooting_depth_index_col)
 
              ! Contribution of dead trees to root litter (no root burn flux to atm)
              do dcmpy=1,ndcmpy
@@ -2830,6 +2871,12 @@ contains
 
                    site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
 
+                   ! Update the fire carbon loss boundary condition output
+                   if (el == carbon12_element) then
+                     currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                        currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+                   end if
+
                 else ! all other pools can end up as timber products or burn or go to litter
                    donatable_mass = donatable_mass * (1.0_r8-EDPftvarcon_inst%landusechange_frac_exported(pft)) * &
                         (1.0_r8-EDPftvarcon_inst%landusechange_frac_burned(pft))
@@ -2842,6 +2889,12 @@ contains
                         EDPftvarcon_inst%landusechange_frac_exported(pft)
 
                    site_mass%burn_flux_to_atm = site_mass%burn_flux_to_atm + burned_mass
+
+                   ! Update the fire carbon loss boundary condition output
+                   if (el == carbon12_element) then
+                     currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si = &
+                        currentSite%bc_out(currentPatch%patchno)%fire_closs_to_atm_si + burned_mass
+                   end if
 
                    ! Amount of trunk mass exported off site [kg/m2]
                    elflux_diags%exported_harvest = elflux_diags%exported_harvest + &

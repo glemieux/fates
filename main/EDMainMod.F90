@@ -27,7 +27,6 @@ module EDMainMod
   use FatesInterfaceTypesMod        , only : hlm_masterproc
   use FatesInterfaceTypesMod        , only : numpft
   use FatesInterfaceTypesMod        , only : hlm_use_nocomp
-  use FatesInterfaceTypesMod        , only : ZeroBCOutCarbonFluxes
   use PRTGenericMod            , only : prt_carbon_allom_hyp
   use PRTGenericMod            , only : prt_cnp_flex_allom_hyp
   use PRTGenericMod            , only : nitrogen_element
@@ -195,7 +194,7 @@ contains
     call ZeroLitterFluxes(currentSite)
 
     ! Zero diagnostic bc_out carbon fluxes
-    call ZeroBCOutCarbonFluxes(bc_out)
+    call currentSite%ZeroBCOutCarbonFluxes()
 
     ! Zero mass balance
     call TotalBalanceCheck(currentSite, 0)
@@ -375,6 +374,7 @@ contains
     integer  :: io_si                 ! global site index for history writing
     integer  :: iscpf                 ! index for the size-class x pft multiplexed bins
     integer  :: el                    ! Counter for element type (c,n,p,etc)
+    integer  :: ifp                   ! Patch number index
     real(r8) :: cohort_biomass_store  ! remembers the biomass in the cohort for balance checking
     real(r8) :: dbh_old               ! dbh of plant before daily PRT [cm]
     real(r8) :: height_old            ! height of plant before daily PRT [m]
@@ -419,6 +419,8 @@ contains
     real(r8) :: total_c0
     real(r8) :: nc_carbon
     real(r8) :: cc_carbon
+    real(r8) :: gpp_local
+    real(r8) :: aresp_local
     
     integer,parameter :: leaf_c_id = 1
     
@@ -469,6 +471,9 @@ contains
        ! are derived from the donor and have been modified accordingly
        newly_recovered = .false.
        
+       ! Get the current patch number
+       ifp = currentPatch%patchno
+       
        currentCohort => currentPatch%shortest
        do while(associated(currentCohort))
 
@@ -489,7 +494,7 @@ contains
                currentPatch%btran_ft, mean_temp,                               &
                currentPatch%land_use_label,                                    &
                currentPatch%age_since_anthro_disturbance, current_fates_landuse_state_vector,   &
-               harvestable_forest_c, harvest_tag)
+               harvestable_forest_c, harvest_tag, currentSite%bc_in(ifp)%tempk_sl)
 
 
              ! -----------------------------------------------------------------------------
@@ -648,7 +653,7 @@ contains
           ! Then zero out the daily uptakes, they have been used
 
           
-          call EffluxIntoLitterPools(currentSite, currentPatch, currentCohort, bc_in )
+          call EffluxIntoLitterPools(currentSite, currentPatch, currentCohort)
 
           if(element_pos(nitrogen_element)>0) then
              ! Mass balance for N uptake
@@ -668,6 +673,15 @@ contains
                currentSite%mass_balance(element_pos(carbon12_element))%net_root_uptake - &
                currentCohort%daily_c_efflux*currentCohort%n
 
+          gpp_local = currentCohort%gpp_acc * currentCohort%n
+          aresp_local = currentCohort%resp_m_acc*currentCohort%n + &
+               currentCohort%resp_excess_hold*currentCohort%n + &
+               currentCohort%resp_g_acc_hold*currentCohort%n/real( hlm_days_per_year,r8)
+
+           ! Accumulate into the patch level boundary condition output
+          currentSite%bc_out(ifp)%gpp_site = currentSite%bc_out(ifp)%gpp_site + gpp_local         
+          currentSite%bc_out(ifp)%ar_site = currentSite%bc_out(ifp)%ar_site + aresp_local         
+
           ! And simultaneously add the input fluxes to mass balance accounting
           site_cmass%gpp_acc   = site_cmass%gpp_acc + &
                 currentCohort%gpp_acc * currentCohort%n
@@ -676,7 +690,7 @@ contains
                currentCohort%resp_m_acc*currentCohort%n + &
                currentCohort%resp_excess_hold*currentCohort%n + &
                currentCohort%resp_g_acc_hold*currentCohort%n/real( hlm_days_per_year,r8)
-          
+
           call currentCohort%prt%CheckMassConservation(ft,5)
 
           ! Update the leaf biophysical rates based on proportion of leaf
@@ -775,7 +789,7 @@ contains
 
        call GenerateDamageAndLitterFluxes( currentSite, currentPatch)
 
-       call PreDisturbanceLitterFluxes( currentSite, currentPatch, bc_in)
+       call PreDisturbanceLitterFluxes( currentSite, currentPatch )
 
        call PreDisturbanceIntegrateLitter(currentPatch )
 
@@ -841,10 +855,6 @@ contains
        call set_patchno(currentSite,.true.,1)
     end if
 
-    ! Set gpp and ar bc outputs prior to zeroing the associate site carbon mass variables
-    bc_out%gpp_site = site_cmass%gpp_acc * area_inv * days_per_sec
-    bc_out%ar_site  = site_cmass%aresp_acc * area_inv * days_per_sec
-    
     if(hlm_use_sp.eq.ifalse .and. (.not.is_restarting))then
        call canopy_spread(currentSite)
     else
@@ -910,17 +920,6 @@ contains
     ! report summary diagnostic values of FATES carbon mass pools for HLM to include in total land stocks
     call SiteMassStock(currentSite,carbon12_element,total_stock,&
          bc_out%veg_c_si, bc_out%litter_cwd_c_si, bc_out%seed_c_si)
-
-    ! because the outputs of SiteMassStock are in kg C/ha, convert units to g C/m2
-    bc_out%veg_c_si = bc_out%veg_c_si * g_per_kg * AREA_INV
-    bc_out%litter_cwd_c_si = bc_out%litter_cwd_c_si * g_per_kg * AREA_INV
-    bc_out%seed_c_si = bc_out%seed_c_si * g_per_kg * AREA_INV
-
-    ! Set boundary condition to HLM for carbon loss to atm from fires and grazing
-    ! [kgC/ha/day]*[ha/m2]*[day/s] = [kg/m2/s] 
-    
-    bc_out%fire_closs_to_atm_si = site_cmass%burn_flux_to_atm * area_inv * days_per_sec
-    bc_out%grazing_closs_to_atm_si = site_cmass%herbivory_flux_out * area_inv * days_per_sec
 
   end subroutine ed_update_site
 
@@ -1145,8 +1144,8 @@ contains
     type(fates_patch_type), pointer :: currentPatch
     type(fates_cohort_type), pointer :: currentCohort
 
-    bc_out%gpp_site = 0._r8
-    bc_out%ar_site = 0._r8
+    currentSite%bc_out(:)%gpp_site = 0._r8
+    currentSite%bc_out(:)%ar_site = 0._r8
     
     currentPatch => currentSite%youngest_patch
     do while(associated(currentPatch))

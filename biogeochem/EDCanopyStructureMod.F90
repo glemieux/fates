@@ -939,10 +939,25 @@ contains
     type(ed_site_type)      , intent(inout), target :: sites(:)
     type(bc_in_type)        , intent(in)            :: bc_in(:)
 
+    ! Local
+    type (fates_patch_type)  , pointer :: currentPatch
+
     integer  :: s
+    integer  :: ifp
 
     do s = 1, size(sites,dim=1)
-       sites(s)%snow_depth = bc_in(s)%snow_depth_si * bc_in(s)%frac_sno_eff_si
+      
+      currentPatch => sites(s)%oldest_patch
+
+      do while(associated(currentPatch))
+         
+         ifp = currentPatch%patchno
+         currentPatch%snow_depth = sites(s)%bc_in(ifp)%snow_depth * sites(s)%bc_in(ifp)%frac_snow_eff
+         
+         currentPatch => currentPatch%younger
+         
+      end do 
+
     end do
 
     return
@@ -1124,15 +1139,15 @@ contains
                         ( real(iv,r8)/currentCohort%NV * crown_depth )
 
                    fraction_exposed = 1.0_r8
-                   if(currentSite%snow_depth  > layer_top_height)then
+                   if(cpatch%snow_depth  > layer_top_height)then
                       fraction_exposed = 0._r8
                    endif
-                   if(currentSite%snow_depth < layer_bottom_height)then
+                   if(cpatch%snow_depth < layer_bottom_height)then
                       fraction_exposed = 1._r8
                    endif
-                   if(currentSite%snow_depth >= layer_bottom_height .and. &
-                        currentSite%snow_depth <= layer_top_height) then !only partly hidden...
-                      fraction_exposed =  1._r8 - max(0._r8,(min(1.0_r8,(currentSite%snow_depth -layer_bottom_height)/ &
+                   if(cpatch%snow_depth >= layer_bottom_height .and. &
+                        cpatch%snow_depth <= layer_top_height) then !only partly hidden...
+                      fraction_exposed =  1._r8 - max(0._r8,(min(1.0_r8,(cpatch%snow_depth -layer_bottom_height)/ &
                            (layer_top_height-layer_bottom_height ))))
                    endif
 
@@ -1170,7 +1185,7 @@ contains
                         currentCohort%treesai,                  &
                         currentCohort%height,                   &
                         iv,currentCohort%nv,currentCohort%pft,  &
-                        currentSite%snow_depth,                    &
+                        cpatch%snow_depth,                    &
                         vai_top,vai_bot,                          &
                         elai_layer,esai_layer,tlai_layer,tsai_layer)
 
@@ -1477,8 +1492,13 @@ contains
              ! host to tell itself when to do things (circuitous). Just have
              ! to determine where else it is used
 
+             ! Set the btran filter to be false by default.  If any of the patches
+             ! on this site have vegetation not covered by snow, the filter is
+             ! site to true for the whole site
+             sites(s)%filter_btran = .false.
              if ((bc_out(s)%elai_pa(ifp) + bc_out(s)%esai_pa(ifp)) > 0._r8) then
                 bc_out(s)%frac_veg_nosno_alb_pa(ifp) = 1.0_r8
+                sites(s)%filter_btran = .true.
              else
                 bc_out(s)%frac_veg_nosno_alb_pa(ifp) = 0.0_r8
              end if
