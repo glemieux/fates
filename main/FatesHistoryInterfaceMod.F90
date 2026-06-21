@@ -5972,7 +5972,7 @@ contains
                   depth_frac = bc_in(s)%dz_sisl(j_bc)/site_hydr%dz_rhiz(j)
 
                   ! Override the watsat_sl if patch doesn't have exposed vegetation
-                  if (.not. bc_in(s)%filter_btran) then
+                  if (.not. sites(s)%filter_btran) then
                     vwc = -999._r8
                     vwc_sat = -999._r8
                   end if
@@ -6089,7 +6089,7 @@ contains
                   depth_frac = bc_in(s)%dz_sisl(j_bc)/site_hydr%dz_rhiz(j)
 
                   ! Override the watsat_sl if patch doesn't have exposed vegetation
-                  if (.not. bc_in(s)%filter_btran) then
+                  if (.not. sites(s)%filter_btran) then
                     vwc = -999._r8
                     vwc_sat = -999._r8
                   end if

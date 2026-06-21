@@ -1492,8 +1492,13 @@ contains
              ! host to tell itself when to do things (circuitous). Just have
              ! to determine where else it is used
 
+             ! Set the btran filter to be false by default.  If any of the patches
+             ! on this site have vegetation not covered by snow, the filter is
+             ! site to true for the whole site
+             sites(s)%filter_btran = .false.
              if ((bc_out(s)%elai_pa(ifp) + bc_out(s)%esai_pa(ifp)) > 0._r8) then
                 bc_out(s)%frac_veg_nosno_alb_pa(ifp) = 1.0_r8
+                sites(s)%filter_btran = .true.
              else
                 bc_out(s)%frac_veg_nosno_alb_pa(ifp) = 0.0_r8
              end if

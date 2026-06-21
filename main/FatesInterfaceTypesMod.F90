@@ -552,10 +552,6 @@ module FatesInterfaceTypesMod
       ! Liquid volume in soil layer (m3/m3)
       real(r8), allocatable :: h2o_liqvol_sl(:)
 
-      ! Site level filter for uptake response functions
-      logical               :: filter_btran
-
-
       ! ALL HYDRO DATA STRUCTURES SHOULD NOW BE ALLOCATED ON RHIZOSPHERE LEVELS
       
       ! Plant-Hydro

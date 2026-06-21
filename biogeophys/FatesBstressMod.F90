@@ -83,7 +83,7 @@ contains
                     ! Check that the patch has exposed vegetation 
                     h2o_liquid_volume = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j)
                     soil_temperature = sites(s)%bc_in(ifp)%tempk_sl(j)
-                    if (.not. bc_in(s)%filter_btran) then
+                    if (.not. sites(s)%filter_btran) then
                        h2o_liquid_volume = -999._r8
                        soil_temperature = -999._r8
                     end if

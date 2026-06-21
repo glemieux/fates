@@ -83,7 +83,7 @@ contains
        
          ifp = currentPatch%patchno
 
-         if (bc_in(s)%filter_btran) then
+         if (sites(s)%filter_btran) then
             do j = 1,bc_in(s)%nlevsoil
                bc_out(s)%active_suction_sl(j) = check_layer_water( sites(s)%bc_in(ifp)%h2o_liqvol_sl(j), &
                                                                    sites(s)%bc_in(ifp)%tempk_sl(j) )
@@ -181,7 +181,7 @@ contains
                    water_saturation = sites(s)%bc_in(ifp)%watsat_sl(j)
                    h2o_liquid_volume = sites(s)%bc_in(ifp)%h2o_liqvol_sl(j)
                    soil_temperature = sites(s)%bc_in(ifp)%tempk_sl(j)
-                   if (.not. bc_in(s)%filter_btran) then
+                   if (.not. sites(s)%filter_btran) then
                       effective_porosity = -999._r8
                       water_saturation = -999._r8
                       h2o_liquid_volume = -999._r8

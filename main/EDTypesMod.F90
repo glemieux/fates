@@ -454,6 +454,7 @@ module EDTypesMod
 
      real(r8) ::  liqvol_memory(numWaterMem,maxpft)            ! last 10 days of soil liquid water volume (drought phenology)
      real(r8) ::  smp_memory(numWaterMem,maxpft)               ! last 10 days of soil matric potential (drought phenology)
+     logical  ::  filter_btran                                 ! Site level filter for uptake response functions
 
 
      ! FIRE
