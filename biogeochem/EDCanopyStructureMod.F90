@@ -1402,12 +1402,15 @@ contains
              ! Avoid this if running in satellite phenology mode
              ! ----------------------------------------------------------------------------
 
+             ! Set the are to be used for weighting against the cohort area 
+             ! If we are not using the interstitial bareground paradigm, simply
+             ! use the patch area.  Otherwise use the total canopy area.
+             weighting_area = currentPatch%total_canopy_area
+             if (hlm_use_interstitial_bareground .eq. ifalse) then
+               weighting_area = currentPatch%area
+             end if
+
              if (currentPatch%total_canopy_area > nearzero) then
-               if (hlm_use_interstitial_bareground .eq. itrue) then
-                 weighting_area = currentPatch%total_canopy_area
-               else
-                 weighting_area = currentPatch%area
-               end if
                 currentCohort => currentPatch%shortest
                 do while(associated(currentCohort))
                    if (currentCohort%canopy_layer .eq. 1) then
