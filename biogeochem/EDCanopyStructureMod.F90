@@ -1448,12 +1448,9 @@ contains
                 endif
              else
                 ! if no canopy, then use dummy values (first PFT) of aerodynamic properties
-                if (hlm_use_interstitial_bareground .eq. itrue) then
                    bc_out(s)%z0m_pa(ifp)    = EDPftvarcon_inst%z0mr(1) * bc_out(s)%htop_pa(ifp)
                    bc_out(s)%displa_pa(ifp) = EDPftvarcon_inst%displar(1) * bc_out(s)%htop_pa(ifp)
                    bc_out(s)%dleaf_pa(ifp)  = EDPftvarcon_inst%dleaf(1)
-                ! else do something else if interstitial bareground is not being used by the HLM
-                end if
              endif
              ! -----------------------------------------------------------------------------
 
