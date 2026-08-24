@@ -506,6 +506,9 @@ module FatesInterfaceTypesMod
 
       ! soil temperature (Kelvin)
       real(r8), allocatable :: t_soisno_sl(:)
+      
+      ! surface roughness length, site bareground (m)
+      real(r8) :: z0mg
 
       ! Canopy Radiation Boundaries
       ! ---------------------------------------------------------------------------------
