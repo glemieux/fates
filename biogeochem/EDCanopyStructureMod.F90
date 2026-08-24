@@ -1329,7 +1329,7 @@ contains
 
   ! ======================================================================================
 
-  subroutine update_hlm_dynamics(nsites,sites,fcolumn,bc_out)
+  subroutine update_hlm_dynamics(nsites,sites,fcolumn,bc_out,bc_in)
 
     ! ----------------------------------------------------------------------------------
     ! The purpose of this routine is to package output boundary conditions related
@@ -1346,6 +1346,7 @@ contains
     type(ed_site_type), intent(inout), target :: sites(nsites)
     integer,            intent(in)            :: fcolumn(nsites)
     type(bc_out_type),  intent(inout)         :: bc_out(nsites)
+    type(bc_in_type),   intent(in)            :: bc_in(nsites)
 
     ! Locals
     type (fates_cohort_type) , pointer :: currentCohort
@@ -1357,6 +1358,7 @@ contains
     real(r8) :: total_patch_leaf_stem_area
     real(r8) :: weight          ! Weighting for cohort variables in patch
     real(r8) :: weighting_area  ! Area to normalize against depending on insterstitial bareground handling
+    real(r8) :: bareground_fraction  ! fraction of the patch that is bareground
 
     do s = 1,nsites
 
@@ -1422,6 +1424,15 @@ contains
                    endif
                    currentCohort => currentCohort%taller
                 end do
+                
+                ! If we are not using the interstitial bareground, we need to account for the bareground area
+                ! fraction in calculating the roughness length.  Here we mimic ZengWang 2007.  This should 
+                ! eventually be replaced with a more robust approach that more accurately accounts for the
+                ! the bareground fraction of the patch.
+                if (hlm_use_interstitial_bareground .eq. ifalse) then
+                   bareground_fraction = (currentPatch%area - currentPatch%total_canopy_area) / currentPatch%area
+                   bc_out(s)%z0m_pa(ifp) = exp(log(bc_out(s)%z0m_pa(ifp)) + bareground_fraction * log(bc_in(s)%z0mg))
+                end if
 
                 ! for lai, scale to total LAI + SAI in patch.  first add up all the LAI and SAI in the patch
                 total_patch_leaf_stem_area = 0._r8
