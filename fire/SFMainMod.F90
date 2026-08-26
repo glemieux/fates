@@ -648,7 +648,6 @@ contains
     ! 6) Calculate new ROS and FI and update ROS_front and FI   
     !
     use SFParamsMod,    only : SF_val_miner_total, SF_val_part_dens, SF_val_drying_ratio
-    use EDParamsMod,    only : crown_fire_switch
     use EDTypesMod,     only : CalculateTreeGrassAreaSite
     use SFEquationsMod, only : OptimumPackingRatio, ReactionIntensity
     use SFEquationsMod, only : HeatofPreignition, EffectiveHeatingNumber
