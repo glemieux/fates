@@ -657,6 +657,7 @@ contains
     use CrownFireEquationsMod, only : CrownFireBehaveFM10, CrownFireCFB
     use CrownFireEquationsMod, only : PassiveCrownFireIntensity, HeatReleasePerArea
     use CrownFireEquationsMod, only : CrowningIndex, CrownFireIntensity
+    use FatesInterfaceTypesMod, only : hlm_use_crown_fire
 
     ! ARGUMENTS:
     type(ed_site_type), intent(inout), target :: currentSite
@@ -705,7 +706,7 @@ contains
       currentPatch%active_crown_fire = 0
 
       if (currentPatch%nocomp_pft_label /= nocomp_bareground .and.         &
-      currentPatch%fire == itrue .and. crown_fire_switch) then
+      currentPatch%fire == itrue .and. (hlm_use_crown_fire == itrue) ) then
         ! calculate passive crown fire intensity, the minimum surface FI to initiate a crown fire
         FI_init = PassiveCrownFireIntensity(currentPatch%fuel%canopy_base_height, &
                                             currentPatch%fuel%canopy_water_content)
