@@ -1359,6 +1359,7 @@ contains
     real(r8) :: weight          ! Weighting for cohort variables in patch
     real(r8) :: weighting_area  ! Area to normalize against depending on insterstitial bareground handling
     real(r8) :: bareground_fraction  ! fraction of the patch that is bareground
+    real(r8) :: z0m_cohort           ! roughness length for the current cohort
 
     do s = 1,nsites
 
@@ -1416,11 +1417,22 @@ contains
                 currentCohort => currentPatch%shortest
                 do while(associated(currentCohort))
                    if (currentCohort%canopy_layer .eq. 1) then
+
                       weight = min(1.0_r8,currentCohort%c_area/weighting_area)
-                      bc_out(s)%z0m_pa(ifp) = bc_out(s)%z0m_pa(ifp) + &
-                           EDPftvarcon_inst%z0mr(currentCohort%pft) * currentCohort%height * weight
+
+                      ! If we are not using the interstitial bareground option, we mimic ZengWang 2007
+                      ! and accumulate the patch area weighted log of the roughness lengths for each cohort.
+                      ! Otherwise we simply accumulate the total canopy area weighted roughness lengths.
+                      if (hlm_use_interstitial_bareground .eq. ifalse) then
+                         z0m_cohort = log(EDPftvarcon_inst%z0mr(currentCohort%pft) * currentCohort%height)
+                      else
+                         z0m_cohort = EDPftvarcon_inst%z0mr(currentCohort%pft) * currentCohort%height
+                      end if
+
+                      bc_out(s)%z0m_pa(ifp) = bc_out(s)%z0m_pa(ifp) + z0m_cohort * weight
                       bc_out(s)%displa_pa(ifp) = bc_out(s)%displa_pa(ifp) + &
                            EDPftvarcon_inst%displar(currentCohort%pft) * currentCohort%height * weight
+
                    endif
                    currentCohort => currentCohort%taller
                 end do
@@ -1431,7 +1443,7 @@ contains
                 ! the bareground fraction of the patch.
                 if (hlm_use_interstitial_bareground .eq. ifalse) then
                    bareground_fraction = (currentPatch%area - currentPatch%total_canopy_area) / currentPatch%area
-                   bc_out(s)%z0m_pa(ifp) = exp(log(bc_out(s)%z0m_pa(ifp)) + bareground_fraction * log(bc_in(s)%z0mg))
+                   bc_out(s)%z0m_pa(ifp) = exp(bc_out(s)%z0m_pa(ifp) + bareground_fraction * log(bc_in(s)%z0mg))
                 end if
 
                 ! for lai, scale to total LAI + SAI in patch.  first add up all the LAI and SAI in the patch
