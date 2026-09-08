@@ -37,6 +37,10 @@ module EDCanopyStructureMod
   use FatesInterfaceTypesMod     , only : hlm_use_cohort_age_tracking
   use FatesInterfaceTypesMod     , only : hlm_use_sp
   use FatesInterfaceTypesMod     , only : hlm_use_interstitial_bareground
+  use FatesInterfaceTypesMod     , only : hlm_current_year
+  use FatesInterfaceTypesMod     , only : hlm_current_month
+  use FatesInterfaceTypesMod     , only : hlm_current_day
+  use FatesInterfaceTypesMod     , only : hlm_current_tod
   use FatesInterfaceTypesMod     , only : numpft
   use FatesInterfaceTypesMod, only : bc_in_type
   use FatesPlantHydraulicsMod, only : UpdateH2OVeg,InitHydrCohort, RecruitWaterStorage
@@ -1431,7 +1435,15 @@ contains
                 ! the bareground fraction of the patch.
                 if (hlm_use_interstitial_bareground .eq. ifalse) then
                    bareground_fraction = (currentPatch%area - currentPatch%total_canopy_area) / currentPatch%area
+                   ! DEBUG(glemieux): restart reproducibility investigation for COMP_BASE_rest
+                   ! failure under FatesColdBaregroundOff. Remove once root cause is confirmed.
+                   write(fates_log(),*) 'DEBUG_Z0MG', hlm_current_year, hlm_current_month, &
+                        hlm_current_day, hlm_current_tod, s, ifp, &
+                        currentPatch%total_canopy_area, currentPatch%area, bareground_fraction, &
+                        bc_in(s)%z0mg, bc_out(s)%z0m_pa(ifp)
                    bc_out(s)%z0m_pa(ifp) = exp(log(bc_out(s)%z0m_pa(ifp)) + bareground_fraction * log(bc_in(s)%z0mg))
+                   write(fates_log(),*) 'DEBUG_Z0MG_POST', hlm_current_year, hlm_current_month, &
+                        hlm_current_day, hlm_current_tod, s, ifp, bc_out(s)%z0m_pa(ifp)
                 end if
 
                 ! for lai, scale to total LAI + SAI in patch.  first add up all the LAI and SAI in the patch
