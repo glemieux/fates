@@ -67,6 +67,7 @@ module EDInitMod
   use FatesInterfaceTypesMod         , only : nlevdamage
   use FatesInterfaceTypesMod         , only : hlm_use_nocomp
   use FatesInterfaceTypesMod         , only : hlm_use_dbh_init
+  use FatesInterfaceTypesMod         , only : hlm_use_interstitial_bareground
   use FatesInterfaceTypesMod         , only : nlevage
   use FatesAllometryMod         , only : h2d_allom
   use FatesAllometryMod         , only : h_allom
@@ -602,6 +603,11 @@ contains
                    end do
                    sites(s)%area_bareground = bc_in(s)%pft_areafrac(0)
                 end do !hlm_pft
+                
+                ! 9/23 GL diagnostic development only: TO BE REMOVED
+               !  do fates_pft = 1,numpft 
+               !     write(fates_log(),*) 's, ifp, area_pft: ', s, fates_pft, sites(s)%area_pft(fates_pft,primaryland)
+                end do
 
              endif use_fates_luh_if
 
@@ -855,6 +861,7 @@ contains
           make_bareground_patch_if: if (hlm_use_nocomp.eq.itrue .and. hlm_use_fixed_biogeog .eq.itrue) then
 
              newparea = area * sites(s)%area_bareground
+            !  write(fates_log(),*) 's, area_bg: ', s,newparea
              if (newparea  .gt. min_patch_area_forced) then
                 
                 allocate(newp)
@@ -929,6 +936,8 @@ contains
                          if(hlm_use_fixed_biogeog.eq.itrue)then
                             newparea = sites(s)%area_pft(nocomp_pft,i_lu_state) * area * state_vector(i_lu_state) &
                                  * (1._r8 - sites(s)%area_bareground)
+                           !  write(fates_log(),*) 's, nocomp_pft, i_lu_state, newparea',s,nocomp_pft,i_lu_state,newparea
+                           !  write(fates_log(),*) 's, area_pft, state_vector',s,sites(s)%area_pft(nocomp_pft,i_lu_state),state_vector(i_lu_state)
                          else
                             newparea = area * state_vector(i_lu_state) / numpft
                          end if
@@ -956,6 +965,13 @@ contains
                             ! Set pointers for N>1 patches. Note this only happens when nocomp mode is on, or land use is on.
                             ! The new patch is the 'youngest' one, arbitrarily.
                             newp%patchno = nocomp_pft + (i_lu_state-1) * numpft
+
+                            ! If we are running with interstitial bareground mode, we are holding a bareground
+                            ! patch as patchno 1 for fixed biogeography, so we simply increment the patch number.
+                            if (hlm_use_interstitial_bareground .eq. ifalse .and. &
+                                hlm_use_fixed_biogeog .eq. itrue) then
+                               newp%patchno = newp%patchno + 1
+                            end if
                             newp%older     => sites(s)%youngest_patch
                             newp%younger   => null()
                             sites(s)%youngest_patch%younger => newp
