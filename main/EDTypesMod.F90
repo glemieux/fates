@@ -632,21 +632,21 @@ contains
     patchno = 1
     currentPatch => currentSite%oldest_patch
     do while(associated(currentPatch))
-       if(currentPatch%nocomp_pft_label.eq.nocomp_bareground)then
-          ! for bareground patch, we make the patch number 0
-          if(check .and. currentPatch%patchno.ne.1)then
-             write(fates_log(),*)'nocomp patch numbering is not correct:',currentPatch%patchno,'call_id:',call_id
-             call endrun(msg=errMsg(sourcefile, __LINE__))
-          end if
-          currentPatch%patchno = 1
-       else
+      !  if(currentPatch%nocomp_pft_label.eq.nocomp_bareground)then
+      !     ! for bareground patch, we make the patch number 0
+      !     if(check .and. currentPatch%patchno.ne.1)then
+      !        write(fates_log(),*)'nocomp patch numbering is not correct:',currentPatch%patchno,'call_id:',call_id
+      !        call endrun(msg=errMsg(sourcefile, __LINE__))
+      !     end if
+      !     currentPatch%patchno = 1
+      !  else
           if(check .and. currentPatch%patchno.ne.patchno) then
              write(fates_log(),*)'patch numbering is not correct:',currentPatch%patchno,patchno,'call_id:',call_id
              call endrun(msg=errMsg(sourcefile, __LINE__))
           end if
           currentPatch%patchno = patchno
           patchno = patchno + 1
-       endif
+      !  endif
        currentPatch => currentPatch%younger
     enddo
     

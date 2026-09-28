@@ -1361,7 +1361,9 @@ contains
     real(r8) :: bareground_fraction  ! fraction of the patch that is bareground
     real(r8) :: z0m_cohort           ! roughness length for the current cohort
 
+
     do s = 1,nsites
+   !  write(fates_log(),*) 's, in update_hlm_dynamics: ', s
 
        total_patch_area = 0._r8
        local_patch_fraction = 0._r8
@@ -1375,7 +1377,7 @@ contains
        do while(associated(currentPatch))
 
           ifp = currentPatch%patchno
-          if_bare: if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then  ! ignore the bare-ground-PFT patch entirely for these BC outs
+          if_not_sp: if (hlm_use_sp .ne. itrue) then  ! ignore the bare-ground-PFT patch entirely for these BC outs
 
              if ( currentPatch%total_canopy_area-currentPatch%area > 0.000001_r8 ) then
                 if(debug)then
@@ -1497,6 +1499,8 @@ contains
              else
                 bc_out(s)%patch_fraction(ifp) = 0.0_r8
              endif
+            !  write(fates_log(),*) 's, ifp, LPF, parea ', s, ifp, local_patch_fraction, currentPatch%area
+            !  write(fates_log(),*) 's, ifp, pfrac: ', s, ifp, bc_out(s)%patch_fraction(ifp)
 
              bare_frac_area = (1.0_r8 - local_patch_fraction) * &
                   (currentPatch%area/AREA)
@@ -1532,9 +1536,11 @@ contains
 
              total_patch_area = total_patch_area + currentPatch%area/AREA
 
-          end if if_bare
+          end if if_not_sp
           currentPatch => currentPatch%younger
        end do
+
+      !  write(fates_log(),*) 's, TPA: ', s, total_patch_area 
 
        ! Apply patch and canopy area corrections
        ! If the difference is above reasonable math precision, apply a fix
@@ -1552,11 +1558,13 @@ contains
           end if
 
           currentPatch => sites(s)%oldest_patch
+          !  write(fates_log(),*) 's, total_patch_area: ', s, total_patch_area
           do while(associated(currentPatch))
              ifp = currentPatch%patchno
-             if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then ! for vegetated patches only
+            !  if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then ! for vegetated patches only
                 bc_out(s)%patch_fraction(ifp) = bc_out(s)%patch_fraction(ifp)/total_patch_area
-             endif ! veg patch
+               !  write(fates_log(),*) 's, ifp, pfrac adj: ', s, ifp, bc_out(s)%patch_fraction(ifp)
+            !  endif ! veg patch
              currentPatch => currentPatch%younger
           end do
 
