@@ -220,9 +220,9 @@ contains
        ! If there are multiple patches on the site, the bareground patch is avoided
        ! at the level of the fire_model subroutines.
 
-       if (currentSite%youngest_patch%nocomp_pft_label .ne. nocomp_bareground)then
+      !  if (currentSite%youngest_patch%nocomp_pft_label .ne. nocomp_bareground)then
           call DailyFireModel(currentSite, bc_in)
-       end if
+      !  end if
 
        ! Calculate disturbance and mortality based on previous timestep vegetation.
        ! disturbance_rates calls logging mortality and other mortalities, Yi Xu

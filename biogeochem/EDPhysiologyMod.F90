@@ -3208,7 +3208,7 @@ contains
     catanf(t1) = 11.75_r8 +(29.7_r8 / pi) * atan( pi * 0.031_r8  * ( t1 - 15.4_r8 ))
     catanf_30 = catanf(30._r8)
 
-    if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then
+   !  if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then
 
        ! Use the hlm temp and moisture decomp fractions by default
        if ( use_hlm_soil_scalar ) then
@@ -3245,7 +3245,7 @@ contains
 
       endif ! scalar
 
-    endif ! not bare ground
+   !  endif ! not bare ground
 
   end subroutine fragmentation_scaler
 

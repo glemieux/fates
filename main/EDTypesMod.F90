@@ -632,21 +632,21 @@ contains
     patchno = 1
     currentPatch => currentSite%oldest_patch
     do while(associated(currentPatch))
-       if(currentPatch%nocomp_pft_label.eq.nocomp_bareground)then
-          ! for bareground patch, we make the patch number 0
-          if(check .and. currentPatch%patchno.ne.0)then
-             write(fates_log(),*)'nocomp patch numbering is not correct:',currentPatch%patchno,'call_id:',call_id
-             call endrun(msg=errMsg(sourcefile, __LINE__))
-          end if
-          currentPatch%patchno = 0
-       else
+      !  if(currentPatch%nocomp_pft_label.eq.nocomp_bareground)then
+      !     ! for bareground patch, we make the patch number 0
+      !     if(check .and. currentPatch%patchno.ne.0)then
+      !        write(fates_log(),*)'nocomp patch numbering is not correct:',currentPatch%patchno,'call_id:',call_id
+      !        call endrun(msg=errMsg(sourcefile, __LINE__))
+      !     end if
+      !     currentPatch%patchno = 0
+      !  else
           if(check .and. currentPatch%patchno.ne.patchno) then
              write(fates_log(),*)'patch numbering is not correct:',currentPatch%patchno,patchno,'call_id:',call_id
              call endrun(msg=errMsg(sourcefile, __LINE__))
           end if
           currentPatch%patchno = patchno
           patchno = patchno + 1
-       endif
+      !  endif
        currentPatch => currentPatch%younger
     enddo
     
@@ -745,11 +745,11 @@ contains
     
     currentPatch => csite%oldest_patch
     do while(associated(currentPatch))
-      if (currentPatch%nocomp_pft_label /= nocomp_bareground) then
+      ! if (currentPatch%nocomp_pft_label /= nocomp_bareground) then
         call currentPatch%UpdateTreeGrassArea()
         tree_fraction = tree_fraction + currentPatch%total_tree_area/AREA
         grass_fraction = grass_fraction + currentPatch%total_grass_area/AREA
-      end if 
+      ! end if 
       currentPatch => currentPatch%younger
     end do
 

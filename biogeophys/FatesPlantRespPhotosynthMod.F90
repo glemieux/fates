@@ -337,7 +337,7 @@ contains
 
             ifp = currentPatch%patchno
             
-            if_notbare: if(currentpatch%nocomp_pft_label.ne.nocomp_bareground)then
+            ! if_notbare: if(currentpatch%nocomp_pft_label.ne.nocomp_bareground)then
 
                NCL_p = currentPatch%NCL_p
 
@@ -1136,7 +1136,7 @@ contains
                   
                end if if_filter2
                
-            end if if_notbare
+            ! end if if_notbare
 
             currentPatch => currentPatch%younger
          end do

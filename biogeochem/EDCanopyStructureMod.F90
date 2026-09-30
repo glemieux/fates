@@ -1370,7 +1370,8 @@ contains
        do while(associated(currentPatch))
 
           ifp = currentPatch%patchno
-          if_bare: if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then  ! ignore the bare-ground-PFT patch entirely for these BC outs
+         !  if_bare: if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then  ! ignore the bare-ground-PFT patch entirely for these BC outs
+          if_bare: if(.not.hlm_use_sp)then  ! ignore the bare-ground-PFT patch entirely for these BC outs
 
              if ( currentPatch%total_canopy_area-currentPatch%area > 0.000001_r8 ) then
                 if(debug)then
@@ -1510,9 +1511,9 @@ contains
           currentPatch => sites(s)%oldest_patch
           do while(associated(currentPatch))
              ifp = currentPatch%patchno
-             if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then ! for vegetated patches only
+            !  if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then ! for vegetated patches only
                 bc_out(s)%canopy_fraction_pa(ifp) = bc_out(s)%canopy_fraction_pa(ifp)/total_patch_area
-             endif ! veg patch
+            !  endif ! veg patch
              currentPatch => currentPatch%younger
           end do
 

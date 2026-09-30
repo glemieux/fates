@@ -2317,7 +2317,7 @@ contains
 
            ifp = cpatch%patchno
            
-           nocomp_bare: if(cpatch%nocomp_pft_label.ne.nocomp_bareground)then
+         !   nocomp_bare: if(cpatch%nocomp_pft_label.ne.nocomp_bareground)then
 
            call cpatch%tveg24%UpdateRMean(bc_in(s)%t_veg_pa(ifp))
            call cpatch%tveg_lpa%UpdateRMean(bc_in(s)%t_veg_pa(ifp))
@@ -2379,7 +2379,7 @@ contains
               ccohort => ccohort%shorter
            end do
 
-        end if nocomp_bare
+      !   end if nocomp_bare
 
         cpatch => cpatch%younger
      enddo

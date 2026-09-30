@@ -5350,11 +5350,11 @@ contains
                     cpatch%c_lblayer * cpatch%total_canopy_area * mol_per_umol * site_area_veg_inv
 
                ! Only accumulate the instantaneous vegetation temperature for vegetated patches
-               if (cpatch%nocomp_pft_label.ne.nocomp_bareground)then
+               ! if (cpatch%nocomp_pft_label.ne.nocomp_bareground)then
                   hio_tveg(io_si) = hio_tveg(io_si) + &
                        (bc_in(s)%t_veg_pa(cpatch%patchno) - t_water_freeze_k_1atm) * &
                        cpatch%total_canopy_area * site_area_veg_inv
-               end if
+               ! end if
 
                ccohort => cpatch%shortest
                do while(associated(ccohort))
@@ -5673,7 +5673,7 @@ contains
          cpatch => sites(s)%oldest_patch
          patch_loop1: do while(associated(cpatch))
             
-            nocomp_bare: if(cpatch%nocomp_pft_label.ne.nocomp_bareground)then
+          !   nocomp_bare: if(cpatch%nocomp_pft_label.ne.nocomp_bareground)then
             
             ccohort => cpatch%shortest
             do while(associated(ccohort))
@@ -5853,7 +5853,7 @@ contains
                   end do do_canlev1
                end do do_pft1
             end if if_zenith1
-            end if nocomp_bare
+          !   end if nocomp_bare
             cpatch => cpatch%younger
          end do patch_loop1 !patch loop
 

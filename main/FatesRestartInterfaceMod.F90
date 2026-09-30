@@ -4215,7 +4215,7 @@ contains
            currentPatch%nrmlzd_parprof_pft_dif_z(:,:,:) = 0._r8
            currentPatch%rad_error(:) = hlm_hio_ignore_val
 
-           if_notbareground: if(currentPatch%nocomp_pft_label.ne.nocomp_bareground) then
+          !  if_notbareground: if(currentPatch%nocomp_pft_label.ne.nocomp_bareground) then
 
            if_zenith_flag: if (sites(s)%coszen>0._r8) then
               
@@ -4268,7 +4268,7 @@ contains
               end select
 
            end if if_zenith_flag
-           end if if_notbareground    ! if the vegetation and zenith filter is active
+          !  end if if_notbareground    ! if the vegetation and zenith filter is active
            
            currentPatch => currentPatch%younger
         end do while_patch

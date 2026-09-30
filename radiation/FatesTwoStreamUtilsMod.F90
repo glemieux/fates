@@ -108,7 +108,7 @@ contains
     patch => site%oldest_patch
     do while (associated(patch))
 
-       if_notbareground: if(patch%nocomp_pft_label.ne.nocomp_bareground)then
+      !  if_notbareground: if(patch%nocomp_pft_label.ne.nocomp_bareground)then
 
        ifp = ifp + 1
           
@@ -347,7 +347,7 @@ contains
          
        end associate
 
-       end if if_notbareground
+      !  end if if_notbareground
        
        patch => patch%younger
     end do

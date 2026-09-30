@@ -309,7 +309,7 @@ contains
        
        ifp = cpatch%patchno
        
-       if_notbare: if(cpatch%nocomp_pft_label .ne. nocomp_bareground)then
+      !  if_notbare: if(cpatch%nocomp_pft_label .ne. nocomp_bareground)then
           ! Patch ordering when passing boundary conditions
           ! always goes from oldest to youngest, following
           ! the convention of EDPatchDynamics::set_patchno()
@@ -408,7 +408,7 @@ contains
              end if
     
           end if
-       end if if_notbare
+      !  end if if_notbare
 
        cpatch => cpatch%younger
     end do
