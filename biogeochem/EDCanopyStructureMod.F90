@@ -1370,8 +1370,8 @@ contains
        do while(associated(currentPatch))
 
           ifp = currentPatch%patchno
-         !  if_bare: if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then  ! ignore the bare-ground-PFT patch entirely for these BC outs
-          if_bare: if(hlm_use_sp .eq. ifalse)then  ! ignore the bare-ground-PFT patch entirely for these BC outs
+         !  if_bare: if(hlm_use_sp .eq. ifalse)then  ! ignore the bare-ground-PFT patch entirely for these BC outs
+          if_bare: if(currentPatch%nocomp_pft_label.ne.nocomp_bareground)then  ! ignore the bare-ground-PFT patch entirely for these BC outs
 
              if ( currentPatch%total_canopy_area-currentPatch%area > 0.000001_r8 ) then
                 if(debug)then
